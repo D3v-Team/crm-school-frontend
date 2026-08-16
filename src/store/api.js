@@ -4,7 +4,7 @@ import Cookies from "js-cookie";
 /* ===============================
    CONFIG
 ================================ */
-export const BASE_URL = "https://api.usderp.uz/crm";
+export const BASE_URL = "https://edu.udsgroup.uz";
 
 export const $api = axios.create({
     baseURL: `${BASE_URL}/api`,
@@ -29,7 +29,7 @@ const processQueue = (error, token = null) => {
 
 // 🔴 Вынесли logout отдельно
 const forceLogout = () => {
-    ["token", "refresh_token", "us_nesw", "nesw"].forEach((key) => Cookies.remove(key));
+    ["token", "refresh_token", "userId", "us_nesw", "jti", "role", "nesw"].forEach((key) => Cookies.remove(key));
     window.location.href = "/login";
 };
 
@@ -74,14 +74,14 @@ $api.interceptors.response.use(
 
             try {
                 const refreshToken = Cookies.get("refresh_token");
-                const userId = Cookies.get("us_nesw");
+                const userId = Cookies.get("userId") || Cookies.get("us_nesw");
 
                 if (!refreshToken || !userId) throw new Error("Refresh token или userId отсутствует");
 
                 // Запрос на обновление токена
                 const { data } = await axios.post(`${BASE_URL}/api/auth/refresh`, {
-                    refreshToken,
                     userId,
+                    refreshToken,
                 });
 
                 const { access_token, refresh_token } = data;
@@ -93,7 +93,7 @@ $api.interceptors.response.use(
                 $api.defaults.headers.Authorization = `Bearer ${access_token}`;
 
                 // Продолжаем все отложенные запросы
-                processQueue(null, access_token);
+                processQueue(null, access_token);ee
 
                 originalRequest.headers.Authorization = `Bearer ${access_token}`;
                 return $api(originalRequest);

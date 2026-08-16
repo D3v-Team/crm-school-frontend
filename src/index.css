@@ -5,6 +5,39 @@
 
 * {}
 
+:root {
+  --page-bg: linear-gradient(to bottom right, #eff6ff, #eef2ff);
+  --card-bg: rgba(255,255,255,0.9);
+  --card-border: rgba(255,255,255,0.2);
+  --text-primary: #111827; /* gray-900 */
+  --text-secondary: #6b7280; /* gray-500 */
+  --accent: #4D6BFE;
+  --accent-hover: #4166D5;
+  --input-bg: transparent;
+  --input-border: #d1d5db; /* gray-300 */
+  --input-text: #111827;
+  --placeholder-color: #9ca3af; /* gray-400 */
+}
+
+body {
+  background: var(--page-bg);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.dark {
+  --page-bg: #151517;
+  --card-bg: #2c2c2e; /* gray-900 */
+  --card-border: rgba(75,85,99,0.5); /* gray-700 */
+  --text-primary: #f9fafb; /* gray-50 */
+  --text-secondary: #9ca3af; /* gray-400 */
+  --accent: #4D6BFE;
+  --accent-hover: #6b8bff;
+  --input-bg: rgba(17,24,39,0.3);
+  --input-border: #374151; /* gray-700 */
+  --input-text: #f9fafb;
+  --placeholder-color: #6b7280;
+}
+
 .Container {
   width: 1430px;
   max-width: 100%;
@@ -19,6 +52,10 @@
   background-color: #fff;
   transition: right 0.3s ease-in-out;
   border-radius: 5px;
+}
+
+input::placeholder {
+  color: var(--placeholder-color);
 }
 
 
