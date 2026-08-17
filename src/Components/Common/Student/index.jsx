@@ -3,9 +3,12 @@ import { useEffect, useState } from "react";
 import { useLazyGetStudentsQuery } from "../../../store/services/student.api";
 import Create from "./__components/Create";
 import Edit from "./__components/Edit";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, RefreshCw, Eye } from "lucide-react";
 import Loading from "../../Other/UI/Loadings/Loading";
 import Delete from "./__components/Delete";
+import { NavLink } from "react-router-dom";
+import { Button } from "@material-tailwind/react";
+import AddGroup from "./__components/AddGroup";
 
 export default function Student() {
     const [page, setPage] = useState(1);
@@ -110,7 +113,7 @@ export default function Student() {
                 <h1 className="text-4xl font-bold text-text-primary">O‘quvchilar</h1>
                 <div className="flex gap-2">
                     <Create />
-             
+
                 </div>
             </div>
 
@@ -197,11 +200,10 @@ export default function Student() {
                                                 {student.price ? Number(student.price).toLocaleString('ru-RU') + ' so‘m' : "—"}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                                                    student.is_active
-                                                        ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                                                        : "bg-red-500/20 text-red-600 dark:text-red-400"
-                                                }`}>
+                                                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${student.is_active
+                                                    ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                                                    : "bg-red-500/20 text-red-600 dark:text-red-400"
+                                                    }`}>
                                                     {student.is_active ? "Faol" : "Nofaol"}
                                                 </span>
                                             </td>
@@ -213,7 +215,14 @@ export default function Student() {
                                             </td>
                                             <td className="px-4 py-3 text-text-secondary text-xs">
                                                 <div className="flex items-center gap-2">
-                                                    
+                                                    <NavLink to={`/student/${student.id}`}>
+                                                        <Button
+                                                            className="p-2 bg-accent hover:bg-accent-hover text-white transition-colors"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </Button>
+                                                    </NavLink>
+                                                    <AddGroup onAdd={fetchStudents} studentID={student.id} />
                                                     <Edit student={student} />
                                                     <Delete student={student} />
                                                 </div>

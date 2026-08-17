@@ -47,5 +47,15 @@ export const ROUTES = [
         component: lazy(() => import('../../Components/Common/TeacherProfile')),
         roles: [ROLES.ADMIN],
     },
+    {
+        path: '/group/:id',
+        component: lazy(() => import('../../Components/Common/GroupProfile')),
+        roles: [ROLES.ADMIN],
+    },
+    {
+        path: '/student/:id',
+        component: lazy(() => import('../../Components/Common/StudentProfile')),
+        roles: [ROLES.ADMIN],
+    },
 ];
 

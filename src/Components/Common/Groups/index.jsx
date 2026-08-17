@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { useLazyGetGroupsQuery } from "../../../store/services/group.api";
 import Create from "./__components/Create";
 
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, RefreshCw, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, RefreshCw, Users, Eye } from "lucide-react";
 import Loading from "../../Other/UI/Loadings/Loading";
 import Delete from "./__components/Delete";
 import Edit from "./__components/Edit";
+import { NavLink } from "react-router-dom";
+import { Button } from "@material-tailwind/react";
 
 export default function Groups() {
     const [page, setPage] = useState(1);
@@ -171,6 +173,13 @@ export default function Groups() {
                                             </td>
                                             <td className="px-4 py-3 text-text-secondary text-xs">
                                                 <div className="flex items-center gap-2">
+                                                    <NavLink to={`/group/${group.id}`}>
+                                                        <Button
+                                                            className="p-2 bg-accent hover:bg-accent-hover text-white transition-colors"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </Button>
+                                                    </NavLink>
                                                     <Edit group={group} />
                                                     <Delete group={group} />
                                                 </div>
