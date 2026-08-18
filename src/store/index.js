@@ -10,6 +10,8 @@ import { subjectApi } from './services/subject.api';
 import { groupApi } from './services/group.api';
 import { teacherSubjectApi } from './services/teacher-subject.api';
 import { teacherGroupApi } from './services/theacher-group.api';
+import { groupScheduleApi } from './services/group-schedule.api';
+import { weeklyTopicApi } from './services/weekly-topic.api';
 
 export const store = configureStore({
     reducer: {
@@ -22,9 +24,22 @@ export const store = configureStore({
         [groupApi.reducerPath]: groupApi.reducer,
         [teacherSubjectApi.reducerPath]: teacherSubjectApi.reducer,
         [teacherGroupApi.reducerPath]: teacherGroupApi.reducer,
+        [groupScheduleApi.reducerPath]: groupScheduleApi.reducer,
+        [weeklyTopicApi.reducerPath]: weeklyTopicApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(authApi.middleware, userApi.middleware, statisticApi.middleware, studentApi.middleware, subjectApi.middleware, groupApi.middleware, teacherSubjectApi.middleware, teacherGroupApi.middleware),
+        getDefaultMiddleware().concat(
+            authApi.middleware,
+            userApi.middleware,
+            statisticApi.middleware,
+            studentApi.middleware,
+            subjectApi.middleware,
+            groupApi.middleware,
+            teacherSubjectApi.middleware,
+            teacherGroupApi.middleware,
+            groupScheduleApi.middleware,
+            weeklyTopicApi.middleware,
+        ),
 });
 
 setupListeners(store.dispatch);
