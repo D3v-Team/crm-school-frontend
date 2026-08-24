@@ -7,8 +7,14 @@ import AddGroup from "./__components/AddGroup";
 import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Users, Eye, RefreshCw } from "lucide-react";
+import { useAppSelector } from "../../../store/hooks";
+import Cookies from "js-cookie";
 
 export default function Student() {
+    const roleFromStore = useAppSelector(s => s.auth?.role);
+    const role = roleFromStore || Cookies.get('role');
+    const isTeacher = role === 'teacher';
+
     const [page, setPage] = useState(1);
     const [limit] = useState(10);
     const [search, setSearch] = useState("");
@@ -48,7 +54,7 @@ export default function Student() {
                     O'quvchilar
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <Create />
+                    {!isTeacher && <Create />}
                     <button className="btn-refresh" onClick={() => fetchStudents(page)} title="Yangilash">
                         <RefreshCw size={15} />
                     </button>
@@ -126,9 +132,9 @@ export default function Student() {
                                                         <Eye size={14} />
                                                     </button>
                                                 </NavLink>
-                                                <AddGroup onAdd={fetchStudents} studentID={s.id} />
-                                                <Edit student={s} />
-                                                <Delete student={s} />
+                                                {!isTeacher && <AddGroup onAdd={fetchStudents} studentID={s.id} />}
+                                                {!isTeacher && <Edit student={s} />}
+                                                {!isTeacher && <Delete student={s} />}
                                             </div>
                                         </td>
                                     </tr>

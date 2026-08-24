@@ -1,56 +1,66 @@
 import { lazy } from 'react';
 import { ROLES } from '../permissions/roles';
 
+const { SUPER_ADMIN, ADMIN, TEACHER, HR, CASHIER } = ROLES;
+
 export const ROUTES = [
-    // Bitta dashboard — ikkala rol uchun
+    // Dashboard — admin va boshqalar uchun (teacher emas)
     {
         path: '/dashboard',
         component: lazy(() => import('../../Components/Common/SA-Dashboard')),
-        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+        roles: [SUPER_ADMIN, ADMIN, HR, CASHIER],
     },
+
+    // Super admin only
     {
         path: '/sa/employee',
         component: lazy(() => import('../../Components/Common/SA-Employee')),
-        roles: [ROLES.SUPER_ADMIN],
+        roles: [SUPER_ADMIN],
     },
+
+    // Admin + Teacher
+    {
+        path: '/ad/teachers',
+        component: lazy(() => import('../../Components/Common/Teacher')),
+        roles: [ADMIN],
+    },
+    {
+        path: '/ad/student',
+        component: lazy(() => import('../../Components/Common/Student')),
+        roles: [ADMIN],
+    },
+    {
+        path: '/ad/subjects',
+        component: lazy(() => import('../../Components/Common/Subject')),
+        roles: [ADMIN, TEACHER],
+    },
+    {
+        path: '/ad/groups',
+        component: lazy(() => import('../../Components/Common/Groups')),
+        roles: [ADMIN, TEACHER],
+    },
+
+    // Profile — hammaga ochiq
     {
         path: '/profile',
         component: lazy(() => import('../../Components/Common/Profile')),
         roles: null,
     },
-    {
-        path: '/ad/teachers',
-        component: lazy(() => import('../../Components/Common/Teacher')),
-        roles: [ROLES.ADMIN],
-    },
-    {
-        path: '/ad/student',
-        component: lazy(() => import('../../Components/Common/Student')),
-        roles: [ROLES.ADMIN],
-    },
-    {
-        path: '/ad/subjects',
-        component: lazy(() => import('../../Components/Common/Subject')),
-        roles: [ROLES.ADMIN],
-    },
-    {
-        path: '/ad/groups',
-        component: lazy(() => import('../../Components/Common/Groups')),
-        roles: [ROLES.ADMIN],
-    },
+
+    // Detail pages
     {
         path: '/teacher/:id',
         component: lazy(() => import('../../Components/Common/TeacherProfile')),
-        roles: [ROLES.ADMIN],
+        roles: [ADMIN, TEACHER],
     },
     {
         path: '/group/:id',
         component: lazy(() => import('../../Components/Common/GroupProfile')),
-        roles: [ROLES.ADMIN],
+        roles: [ADMIN, TEACHER],
     },
     {
         path: '/student/:id',
         component: lazy(() => import('../../Components/Common/StudentProfile')),
-        roles: [ROLES.ADMIN],
+        roles: [ADMIN, TEACHER],
     },
 ];

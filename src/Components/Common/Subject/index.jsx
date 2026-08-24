@@ -5,8 +5,14 @@ import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
 import { Search, BookOpen, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import Loading from "../../Other/UI/Loadings/Loading";
+import { useAppSelector } from "../../../store/hooks";
+import Cookies from "js-cookie";
 
 export default function Subject() {
+    const roleFromStore = useAppSelector(s => s.auth?.role);
+    const role = roleFromStore || Cookies.get('role');
+    const isTeacher = role === 'teacher';
+
     const [page, setPage] = useState(1);
     const [limit] = useState(12);
     const [search, setSearch] = useState("");
@@ -32,16 +38,14 @@ export default function Subject() {
 
     return (
         <div>
-            {/* Header */}
             <div className="page-header">
                 <div className="page-title">
                     <span className="page-title-icon"><BookOpen size={18} /></span>
                     Fanlar
                 </div>
-                <Create />
+                {!isTeacher && <Create />}
             </div>
 
-            {/* Search */}
             <div className="search-bar">
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16} />
@@ -80,10 +84,12 @@ export default function Subject() {
                                         <BookOpen size={18} />
                                     </div>
                                     <span className="data-card-name">{subject.name}</span>
-                                    <div className="data-card-actions">
-                                        <Edit subject={subject} />
-                                        <Delete subject={subject} />
-                                    </div>
+                                    {!isTeacher && (
+                                        <div className="data-card-actions">
+                                            <Edit subject={subject} />
+                                            <Delete subject={subject} />
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

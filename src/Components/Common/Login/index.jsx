@@ -41,7 +41,10 @@ export default function Login() {
       const role = data.user?.role;
       if (role === "super_admin") navigate("/dashboard");
       else if (role === "admin") navigate("/dashboard");
-      else navigate("/");
+      else if (role === "teacher") navigate("/ad/groups");
+      else if (role === "hr") navigate("/dashboard");
+      else if (role === "cashier") navigate("/dashboard");
+      else navigate("/dashboard");
     } catch (err) {
       Alert(err.data?.message || "Avtorizatsiya xatosi", "error");
     }
