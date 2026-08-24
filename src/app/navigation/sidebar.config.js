@@ -1,25 +1,13 @@
 // navigation/sidebar.config.js
 import { ROLES } from '../permissions/roles';
-import { Users, LayoutDashboard, Settings, Book, Layers } from 'lucide-react';
+import { Users, LayoutDashboard, Book, Layers } from 'lucide-react';
 
 export const SIDEBAR_CONFIG = [
     {
         label: 'Boshqaruv paneli',
         path: '/dashboard',
         icon: LayoutDashboard,
-        roles: [ROLES.SUPER_ADMIN],
-    },
-    {
-        label: 'Boshqaruv paneli',
-        path: '/ad/dashboard',
-        icon: LayoutDashboard,
-        roles: [ROLES.ADMIN],
-    },
-    {
-        label: 'Ustozlar',
-        path: '/ad/teachers',
-        icon: Users,
-        roles: [ROLES.ADMIN],
+        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     },
     {
         label: 'Xodimlar',
@@ -28,7 +16,13 @@ export const SIDEBAR_CONFIG = [
         roles: [ROLES.SUPER_ADMIN],
     },
     {
-        label: 'O‘quvchilar',
+        label: 'Ustozlar',
+        path: '/ad/teachers',
+        icon: Users,
+        roles: [ROLES.ADMIN],
+    },
+    {
+        label: "O'quvchilar",
         path: '/ad/student',
         icon: Users,
         roles: [ROLES.ADMIN],

@@ -3,50 +3,33 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../../../store/hooks";
 import { setAuth } from "../../../store/slices/auth.slice";
 import { useLoginMutation } from "../../../store/services/auth.api";
-
-import { Card, Button, Typography } from "@material-tailwind/react";
-import { User, Lock, TrendingUp, Moon, Sun } from "lucide-react";
-
+import { User, Lock, GraduationCap, Moon, Sun, ArrowRight } from "lucide-react";
 import { Alert } from "../../Other/UI/Alert/Alert";
 
 export default function Login() {
-  const [loginField, setLoginField] = useState("shox");
-  const [password, setPassword] = useState("123456");
-  const [login, { isLoading, error }] = useLoginMutation();
+  const [loginField, setLoginField] = useState("");
+  const [password, setPassword] = useState("");
+  const [login, { isLoading }] = useLoginMutation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const [isDark, setIsDark] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [focusedField, setFocusedField] = useState(null);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-      document.documentElement.classList.add('dark');
+    const saved = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (saved === "dark" || (!saved && prefersDark)) {
+      document.documentElement.classList.add("dark");
       setIsDark(true);
-    } else {
-      document.documentElement.classList.remove('dark');
-      setIsDark(false);
     }
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
   }, []);
 
   const toggleTheme = () => {
-    const newDark = !isDark;
-    setIsDark(newDark);
-    if (newDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
   };
 
   const handleSubmit = async (e) => {
@@ -55,113 +38,160 @@ export default function Login() {
       const data = await login({ username: loginField, password }).unwrap();
       dispatch(setAuth(data));
       Alert("Xush kelibsiz!", "success");
-
-      // Редирект в зависимости от роли
       const role = data.user?.role;
-      if (role === 'super_admin') {
-        navigate("/dashboard");
-      } else if (role === 'admin') {
-        navigate("/ad/dashboard");
-      } else {
-        // fallback для других ролей (или можно на главную)
-        navigate("/");
-      }
+      if (role === "super_admin") navigate("/dashboard");
+      else if (role === "admin") navigate("/dashboard");
+      else navigate("/");
     } catch (err) {
-      console.error("Login failed:", err);
       Alert(err.data?.message || "Avtorizatsiya xatosi", "error");
     }
   };
 
-  const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]";
-
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 transition-colors duration-300 bg-[var(--page-bg)]">
-      <Card className="w-full max-w-md p-8 shadow-2xl rounded-3xl border transition-colors duration-300 backdrop-blur-sm relative bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-primary)]">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 transition-colors duration-300 relative overflow-hidden"
+      style={{ background: 'var(--page-bg)' }}
+    >
+      {/* Decorative blobs */}
+      <div className="absolute top-[-10%] left-[-5%] w-96 h-96 rounded-full blur-3xl opacity-30 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, var(--accent), transparent)' }} />
+      <div className="absolute bottom-[-10%] right-[-5%] w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #7c3aed, transparent)' }} />
 
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <div className="text-2xl font-light tracking-wider text-[var(--text-primary)]">
-              {new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
-            </div>
-            <div className="text-xs font-light text-[var(--text-secondary)]">
-              {new Date().toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })}
-            </div>
-          </div>
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full transition-all duration-300 bg-[var(--card-bg)] hover:brightness-95"
-          >
-            {isDark ? <Sun className="w-5 h-5 text-[var(--text-primary)]" /> : <Moon className="w-5 h-5 text-[var(--text-primary)]" />}
-          </button>
-        </div>
+      {/* Theme toggle */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110 z-10"
+        style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', color: 'var(--text-secondary)', boxShadow: 'var(--shadow-sm)' }}
+      >
+        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+      </button>
 
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-3">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#4D6BFE] to-[#4166D5] flex items-center justify-center shadow-lg shadow-[#4D6BFE]/30">
-              <TrendingUp className="w-8 h-8 text-white" strokeWidth={2} />
-            </div>
-          </div>
-          <Typography variant="h4" className="font-bold text-[var(--text-primary)]">
-            Investing
-          </Typography>
-          <Typography variant="paragraph" className="text-sm text-[var(--text-secondary)]">
-            Tizimga kirish
-          </Typography>
-        </div>
+      {/* Card */}
+      <div
+        className="w-full max-w-[420px] relative"
+        style={{
+          background: 'var(--card-bg)',
+          border: '1px solid var(--card-border)',
+          borderRadius: '28px',
+          boxShadow: 'var(--shadow-lg)',
+          backdropFilter: 'blur(20px)',
+        }}
+      >
+        {/* Top gradient bar */}
+        <div className="h-1.5 rounded-t-[28px]"
+           />
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--text-secondary)]">Login</label>
-            <div className="relative">
-              <User className={iconClass} />
-              <input
-                type="text"
-                value={loginField}
-                onChange={(e) => setLoginField(e.target.value)}
-                required
-                className="w-full rounded-xl border-2 py-3 pl-11 pr-4 outline-none transition-all duration-200 bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--input-text)] placeholder-[var(--placeholder-color)]"
-              />
+        <div className="p-8">
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-8">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+              style={{ background: 'linear-gradient(135deg, var(--accent), #7c3aed)', boxShadow: '0 8px 24px var(--accent-glow)' }}
+            >
+              <GraduationCap className="w-8 h-8 text-white" />
             </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--text-secondary)]">Parol</label>
-            <div className="relative">
-              <Lock className={iconClass} />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-xl border-2 py-3 pl-11 pr-4 outline-none transition-all duration-200 bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--input-text)] placeholder-[var(--placeholder-color)]"
-              />
-            </div>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              CRM School
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+              Tizimga kirish uchun ma'lumotlarni kiriting
+            </p>
           </div>
 
-          <Button
-            type="submit"
-            fullWidth
-            disabled={isLoading}
-            className="mt-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] transition-all duration-300 shadow-lg text-white font-semibold py-3 rounded-xl"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                Kirilmoqda...
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Login */}
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                Login
+              </label>
+              <div className="relative">
+                <div
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center"
+                  style={{ color: focusedField === 'login' ? 'var(--accent)' : 'var(--text-muted)' }}
+                >
+                  <User className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  value={loginField}
+                  onChange={(e) => setLoginField(e.target.value)}
+                  onFocus={() => setFocusedField('login')}
+                  onBlur={() => setFocusedField(null)}
+                  required
+                  placeholder="Login kiriting"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all duration-200"
+                  style={{
+                    background: 'var(--input-bg)',
+                    border: `1.5px solid ${focusedField === 'login' ? 'var(--accent)' : 'var(--input-border)'}`,
+                    color: 'var(--input-text)',
+                    boxShadow: focusedField === 'login' ? '0 0 0 3px var(--accent-glow)' : 'none',
+                  }}
+                />
               </div>
-            ) : (
-              "Kirish"
-            )}
-          </Button>
-        </form>
+            </div>
 
-        <div className="text-center text-xs mt-6 text-[var(--text-secondary)]">
-          © 2026 Investing. Barcha huquqlar himoyalangan.
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                Parol
+              </label>
+              <div className="relative">
+                <div
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                  style={{ color: focusedField === 'password' ? 'var(--accent)' : 'var(--text-muted)' }}
+                >
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  required
+                  placeholder="Parolni kiriting"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all duration-200"
+                  style={{
+                    background: 'var(--input-bg)',
+                    border: `1.5px solid ${focusedField === 'password' ? 'var(--accent)' : 'var(--input-border)'}`,
+                    color: 'var(--input-text)',
+                    boxShadow: focusedField === 'password' ? '0 0 0 3px var(--accent-glow)' : 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl text-sm font-semibold text-white transition-all duration-300 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              style={{ background: 'linear-gradient(135deg, var(--accent), #7c3aed)', boxShadow: '0 4px 20px var(--accent-glow)' }}
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Kirilmoqda...
+                </>
+              ) : (
+                <>
+                  Kirish
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
+            © 2026 CRM School · Barcha huquqlar himoyalangan
+          </p>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

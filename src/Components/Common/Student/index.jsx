@@ -1,14 +1,12 @@
-// Student.jsx
 import { useEffect, useState } from "react";
 import { useLazyGetStudentsQuery } from "../../../store/services/student.api";
 import Create from "./__components/Create";
 import Edit from "./__components/Edit";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, RefreshCw, Eye } from "lucide-react";
-import Loading from "../../Other/UI/Loadings/Loading";
 import Delete from "./__components/Delete";
-import { NavLink } from "react-router-dom";
-import { Button } from "@material-tailwind/react";
 import AddGroup from "./__components/AddGroup";
+import Loading from "../../Other/UI/Loadings/Loading";
+import { NavLink } from "react-router-dom";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Users, Eye, RefreshCw } from "lucide-react";
 
 export default function Student() {
     const [page, setPage] = useState(1);
@@ -18,244 +16,135 @@ export default function Student() {
 
     const [trigger, { data, isLoading, error }] = useLazyGetStudentsQuery();
 
-    const fetchStudents = (pageNum = page, searchTerm = search, activeFilter = isActiveFilter) => {
-        const params = {
-            page: pageNum,
-            limit,
-            ...(searchTerm && { search: searchTerm }),
-            ...(activeFilter !== null && { is_active: activeFilter }),
-        };
-        console.log("📤 Запрос на получение студентов:", params);
-        trigger(params);
+    const fetchStudents = (p = page, s = search, f = isActiveFilter) => {
+        trigger({ page: p, limit, ...(s && { search: s }), ...(f !== null && { is_active: f }) });
     };
 
-    useEffect(() => {
-        fetchStudents(1);
-    }, []);
+    useEffect(() => { fetchStudents(1); }, []);
 
-    useEffect(() => {
-        if (page > 1) {
-            fetchStudents(page);
-        }
-    }, [page]);
-
-    const handleSearch = () => {
-        setPage(1);
-        fetchStudents(1, search, isActiveFilter);
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === "Enter") handleSearch();
-    };
-
-    const handleClear = () => {
-        setSearch("");
-        setIsActiveFilter(null);
-        setPage(1);
-        fetchStudents(1, "", null);
-    };
-
+    const handleSearch = () => { setPage(1); fetchStudents(1, search, isActiveFilter); };
+    const handleKeyDown = (e) => { if (e.key === "Enter") handleSearch(); };
+    const handleClear = () => { setSearch(""); setIsActiveFilter(null); setPage(1); fetchStudents(1, "", null); };
     const handleFilterChange = (e) => {
-        const value = e.target.value;
-        let filter = null;
-        if (value === "active") filter = true;
-        else if (value === "inactive") filter = false;
-        setIsActiveFilter(filter);
+        const v = e.target.value;
+        const f = v === "active" ? true : v === "inactive" ? false : null;
+        setIsActiveFilter(f);
         setPage(1);
-        fetchStudents(1, search, filter);
+        fetchStudents(1, search, f);
     };
-
-    useEffect(() => {
-        if (data) {
-            console.log("📦 Данные студентов получены:", data);
-        }
-        if (error) {
-            console.error("❌ Ошибка:", error);
-        }
-    }, [data, error]);
 
     const students = data?.data?.records || [];
     const pagination = data?.data?.pagination || {};
     const totalPages = pagination.total_pages || 1;
     const currentPage = pagination.currentPage || 1;
-    const totalCount = pagination.total_count || 0;
 
-    const handlePrevPage = () => {
-        if (currentPage > 1) {
-            const newPage = currentPage - 1;
-            setPage(newPage);
-            fetchStudents(newPage);
-        }
-    };
-    const handleNextPage = () => {
-        if (currentPage < totalPages) {
-            const newPage = currentPage + 1;
-            setPage(newPage);
-            fetchStudents(newPage);
-        }
-    };
-    const handleFirstPage = () => {
-        if (currentPage !== 1) {
-            setPage(1);
-            fetchStudents(1);
-        }
-    };
-    const handleLastPage = () => {
-        if (currentPage !== totalPages) {
-            setPage(totalPages);
-            fetchStudents(totalPages);
-        }
-    };
+    const goTo = (p) => { setPage(p); fetchStudents(p); };
 
     return (
-        <div className="mt-[10px]">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-4xl font-bold text-text-primary">O‘quvchilar</h1>
-                <div className="flex gap-2">
+        <div>
+            <div className="page-header">
+                <div className="page-title">
+                    <span className="page-title-icon"><Users size={18} /></span>
+                    O'quvchilar
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
                     <Create />
-
+                    <button className="btn-refresh" onClick={() => fetchStudents(page)} title="Yangilash">
+                        <RefreshCw size={15} />
+                    </button>
                 </div>
             </div>
 
-            <div className="bg-card border border-border rounded-lg p-2 mb-4 shadow-md">
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex-1 min-w-[200px] relative">
-                        <input
-                            type="text"
-                            placeholder="Ism yoki telefon bo‘yicha qidirish..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border-2 bg-input-bg border-input-border text-input-text placeholder:text-input-placeholder focus:border-accent focus:outline-none transition-colors"
-                        />
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
-                    </div>
-
-                    <select
-                        value={
-                            isActiveFilter === null ? "all"
-                                : isActiveFilter === true ? "active" : "inactive"
-                        }
-                        onChange={handleFilterChange}
-                        className="px-4 py-2 rounded-lg border-2 bg-input-bg border-input-border text-input-text focus:border-accent focus:outline-none transition-colors"
-                    >
-                        <option value="all">Barcha</option>
-                        <option value="active">Faol</option>
-                        <option value="inactive">Nofaol</option>
-                    </select>
-
-                    <button
-                        onClick={handleSearch}
-                        className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors font-medium"
-                    >
-                        Qidirish
-                    </button>
-
-                    <button
-                        onClick={handleClear}
-                        className="px-4 py-2 text-text-secondary hover:text-accent transition-colors"
-                    >
-                        Tozalash
-                    </button>
+            <div className="search-bar">
+                <div className="search-input-wrap">
+                    <Search className="search-icon" size={16} />
+                    <input className="search-input" type="text" placeholder="Ism yoki telefon bo'yicha..."
+                        value={search} onChange={e => setSearch(e.target.value)} onKeyDown={handleKeyDown} />
                 </div>
+                <select className="search-select"
+                    value={isActiveFilter === null ? "all" : isActiveFilter ? "active" : "inactive"}
+                    onChange={handleFilterChange}>
+                    <option value="all">Barcha</option>
+                    <option value="active">Faol</option>
+                    <option value="inactive">Nofaol</option>
+                </select>
+                <button className="search-btn" onClick={handleSearch}>Qidirish</button>
+                <button className="clear-btn" onClick={handleClear}>Tozalash</button>
             </div>
 
             {isLoading && <Loading />}
             {error && (
-                <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded-lg">
-                    Xatolik yuz berdi: {error.data?.message || error.status || "Noma'lum xatolik"}
+                <div style={{ background: 'var(--danger-soft)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '12px 16px', borderRadius: 10 }}>
+                    Xatolik: {error.data?.message || "Noma'lum xatolik"}
                 </div>
             )}
 
             {!isLoading && !error && (
                 <>
-                    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-md">
-                        <table className="w-full text-sm text-text-primary">
-                            <thead className="bg-[var(--card-bg)]/50 border-b border-border">
+                    <div className="data-table-wrap">
+                        <table className="data-table">
+                            <thead>
                                 <tr>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">№</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">To‘liq ism</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">Telefon</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">Narx</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">Holat</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">Guruh</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">Ota-ona</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-text-secondary">Amallar</th>
+                                    <th>№</th>
+                                    <th>To'liq ism</th>
+                                    <th>Telefon</th>
+                                    <th>Narx</th>
+                                    <th>Holat</th>
+                                    <th>Guruh</th>
+                                    <th>Ota-ona</th>
+                                    <th>Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {students.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="px-4 py-8 text-center text-text-secondary">
-                                            O‘quvchilar topilmadi
+                                        <td colSpan="8" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
+                                            O'quvchilar topilmadi
                                         </td>
                                     </tr>
-                                ) : (
-                                    students.map((student, index) => (
-                                        <tr key={student.id} className="border-b border-border hover:bg-[var(--accent)]/5 transition-colors last:border-0">
-                                            <td className="px-4 py-3 font-mono text-xs">{index + 1}</td>
-                                            <td className="px-4 py-3 font-medium">{student.full_name}</td>
-                                            <td className="px-4 py-3">{student.phone || "—"}</td>
-                                            <td className="px-4 py-3">
-                                                {student.price ? Number(student.price).toLocaleString('ru-RU') + ' so‘m' : "—"}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${student.is_active
-                                                    ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                                                    : "bg-red-500/20 text-red-600 dark:text-red-400"
-                                                    }`}>
-                                                    {student.is_active ? "Faol" : "Nofaol"}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                {student.group?.name || student.group_name || "—"}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                {student.parent?.full_name || student.parent_name || "—"}
-                                            </td>
-                                            <td className="px-4 py-3 text-text-secondary text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    <NavLink to={`/student/${student.id}`}>
-                                                        <Button
-                                                            className="p-2 bg-accent hover:bg-accent-hover text-white transition-colors"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </Button>
-                                                    </NavLink>
-                                                    <AddGroup onAdd={fetchStudents} studentID={student.id} />
-                                                    <Edit student={student} />
-                                                    <Delete student={student} />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                ) : students.map((s, i) => (
+                                    <tr key={s.id}>
+                                        <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
+                                            {(currentPage - 1) * limit + i + 1}
+                                        </td>
+                                        <td style={{ fontWeight: 600 }}>{s.full_name}</td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>{s.phone || "—"}</td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>
+                                            {s.price ? Number(s.price).toLocaleString('ru-RU') + " so\u2018m" : "—"}
+                                        </td>
+                                        <td>
+                                            <span className={s.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
+                                                {s.is_active ? "Faol" : "Nofaol"}
+                                            </span>
+                                        </td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>{s.group?.name || s.group_name || "—"}</td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>{s.parent?.full_name || s.parent_name || "—"}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                <NavLink to={`/student/${s.id}`}>
+                                                    <button className="action-btn action-btn-ghost" title="Ko'rish">
+                                                        <Eye size={14} />
+                                                    </button>
+                                                </NavLink>
+                                                <AddGroup onAdd={fetchStudents} studentID={s.id} />
+                                                <Edit student={s} />
+                                                <Delete student={s} />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between mt-4 gap-2">
-                        <div className="text-sm text-text-secondary">
-                            {totalCount > 0 ? (
-                                <>Jami {totalCount} ta o‘quvchi, {currentPage} / {totalPages} sahifa</>
-                            ) : (
-                                <>Ma'lumot yo‘q</>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={handleFirstPage} disabled={currentPage <= 1} className="p-2 rounded-lg border border-border bg-card text-text-primary hover:bg-[var(--accent)]/10 hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                                <ChevronsLeft className="w-5 h-5" />
-                            </button>
-                            <button onClick={handlePrevPage} disabled={currentPage <= 1} className="p-2 rounded-lg border border-border bg-card text-text-primary hover:bg-[var(--accent)]/10 hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                                <ChevronLeft className="w-5 h-5" />
-                            </button>
-                            <span className="px-3 py-1 rounded-lg bg-accent/10 text-accent font-medium">{currentPage}</span>
-                            <button onClick={handleNextPage} disabled={currentPage >= totalPages} className="p-2 rounded-lg border border-border bg-card text-text-primary hover:bg-[var(--accent)]/10 hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
-                            <button onClick={handleLastPage} disabled={currentPage >= totalPages} className="p-2 rounded-lg border border-border bg-card text-text-primary hover:bg-[var(--accent)]/10 hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                                <ChevronsRight className="w-5 h-5" />
-                            </button>
+                    <div className="pagination">
+                        <span />
+                        <div className="pagination-controls">
+                            <button className="page-btn" onClick={() => goTo(1)} disabled={currentPage <= 1}><ChevronsLeft size={15} /></button>
+                            <button className="page-btn" onClick={() => goTo(currentPage - 1)} disabled={currentPage <= 1}><ChevronLeft size={15} /></button>
+                            <span className="page-current">{currentPage}</span>
+                            <button className="page-btn" onClick={() => goTo(currentPage + 1)} disabled={currentPage >= totalPages}><ChevronRight size={15} /></button>
+                            <button className="page-btn" onClick={() => goTo(totalPages)} disabled={currentPage >= totalPages}><ChevronsRight size={15} /></button>
                         </div>
                     </div>
                 </>

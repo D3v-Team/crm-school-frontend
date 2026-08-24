@@ -1,484 +1,443 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useGetOverviewQuery } from '../../../store/services/statistic.api';
 import {
-    Card,
-    CardBody,
-    CardHeader,
-    Typography,
-    Button,
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableCell,
-    Select,
-    Option,
-} from '@material-tailwind/react';
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    PieChart,
-    Pie,
-    Cell,
-    ResponsiveContainer,
+    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+    Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import {
-    Users,
-    UserCircle,
-    BookOpen,
-    GraduationCap,
-    Users2,
-    Wallet,
-    CalendarDays,
-    TrendingUp,
-    PieChart as PieChartIcon,
-    Trophy,
-    CreditCard,
-    DollarSign,
-    Home,
+    Users, GraduationCap, Users2, Wallet, CalendarDays,
+    TrendingUp, BookOpen, Trophy, CreditCard,
+    ArrowUpRight, RefreshCw, LayoutDashboard,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 
-export default function Dashboard() {
-    // Получаем текущие год и месяц
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1;
+/* ─── constants ─────────────────────────────────────── */
+const MONTH_NAMES = [
+    'Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn',
+    'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek',
+];
+const FULL_MONTHS = [
+    'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+    'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr',
+];
+const PIE_COLORS  = ['#6366f1', '#f59e0b', '#ef4444'];
+const CHART_TOOLTIP = {
+    contentStyle: {
+        background: 'var(--card-bg)',
+        border: '1px solid var(--card-border)',
+        borderRadius: 10,
+        color: 'var(--text-primary)',
+        fontSize: '0.78rem',
+        boxShadow: 'var(--shadow-md)',
+    },
+    cursor: { fill: 'var(--accent-soft)' },
+};
 
-    // Состояние фильтров: только год и месяц (дата и top удалены)
+/* ─── small reusables ───────────────────────────────── */
+function DashCard({ children, style = {} }) {
+    return (
+        <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            borderRadius: 16,
+            overflow: 'hidden',
+            ...style,
+        }}>
+            {children}
+        </div>
+    );
+}
+
+function CardHead({ icon: Icon, title, color = 'var(--accent)' }) {
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '16px 20px 0',
+        }}>
+            <div style={{
+                width: 32, height: 32, borderRadius: 9,
+                background: color + '18',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+                <Icon size={15} style={{ color }} />
+            </div>
+            <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {title}
+            </span>
+        </div>
+    );
+}
+
+/* Big stat card — horizontal layout */
+function KpiCard({ icon: Icon, label, value, sub, color }) {
+    return (
+        <DashCard>
+            <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                    background: color + '18',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <Icon size={24} style={{ color }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                        {value}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 3 }}>{label}</div>
+                </div>
+                {sub != null && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 2,
+                        fontSize: '0.72rem', fontWeight: 600,
+                        color: '#10b981', flexShrink: 0,
+                    }}>
+                        <ArrowUpRight size={13} />
+                        {sub}
+                    </div>
+                )}
+            </div>
+        </DashCard>
+    );
+}
+
+/* Stat row inside a card */
+function StatRow({ items }) {
+    return (
+        <div style={{ display: 'flex', gap: 1, padding: '0 1px 1px' }}>
+            {items.map((item, i) => (
+                <div key={i} style={{
+                    flex: 1, textAlign: 'center', padding: '12px 8px',
+                    background: 'var(--input-bg)',
+                    borderRight: i < items.length - 1 ? '1px solid var(--card-border)' : 'none',
+                }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {item.value ?? 0}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                        {item.label}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/* ─── main ──────────────────────────────────────────── */
+export default function Dashboard() {
+    const now = new Date();
     const [filters, setFilters] = useState({
-        year: currentYear,
-        month: currentMonth,
-        top: 3, // фиксировано
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        top: 5,
     });
 
     const { data, isLoading, error, refetch } = useGetOverviewQuery(filters);
     const overview = data?.data || data;
 
-    // Обработчик для select (Material Tailwind передаёт значение)
-    const handleSelectChange = (name, value) => {
-        setFilters((prev) => ({ ...prev, [name]: parseInt(value) }));
-    };
+    const g       = overview?.general;
+    const pay     = overview?.payment;
+    const ranking = overview?.groups_ranking;
 
-    // Подготовка данных для графиков
-    const yearlyData = overview?.payment?.yearly_chart || [];
-    const studentStatusData = overview?.payment?.students_status
-        ? [
-            { name: "To'liq to'lagan", value: overview.payment.students_status.full_paid || 0 },
-            { name: "Qisman to'lagan", value: overview.payment.students_status.partial_paid || 0 },
-            { name: "Qarzdorlar", value: overview.payment.students_status.debtors || 0 },
-        ]
-        : [];
+    /* chart data */
+    const yearlyData = (pay?.yearly_chart || []).map(d => ({
+        ...d,
+        name: MONTH_NAMES[(d.month ?? 1) - 1] ?? d.month,
+    }));
 
-    const monthlyMethods = overview?.payment?.monthly?.by_method
-        ? Object.entries(overview.payment.monthly.by_method).map(([key, val]) => ({
-            name: key === 'bank_account' ? 'Bank' : key.charAt(0).toUpperCase() + key.slice(1),
-            count: val.count || 0,
-            total: val.total_paid || 0,
-        }))
-        : [];
+    const pieData = pay?.students_status ? [
+        { name: "To'liq",  value: pay.students_status.full_paid    || 0 },
+        { name: "Qisman",  value: pay.students_status.partial_paid || 0 },
+        { name: "Qarzdor", value: pay.students_status.debtors      || 0 },
+    ] : [];
 
-    const userRoles = overview?.general?.users
-        ? Object.entries(overview.general.users).map(([role, count]) => ({
-            name: role === 'hr' ? 'HR' : role.charAt(0).toUpperCase() + role.slice(1),
-            value: count,
-        }))
-        : [];
+    const methodData = pay?.monthly?.by_method
+        ? Object.entries(pay.monthly.by_method).map(([k, v]) => ({
+            name: k === 'bank_account' ? 'Bank' : k.charAt(0).toUpperCase() + k.slice(1),
+            value: v.total_paid || 0,
+        })) : [];
 
-    const chartColors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981'];
+    const totalUsers = g?.users ? Object.values(g.users).reduce((a, b) => a + b, 0) : 0;
 
-    // ---------- Вспомогательные компоненты ----------
-    const StatCard = ({ icon: Icon, title, value, color = 'text-accent' }) => (
-        <Card className="bg-card border border-border shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-2xl h-full">
-            <CardBody className="p-4 text-center flex flex-col items-center justify-center h-full">
-                <div className={`mb-1 ${color}`}>
-                    <Icon size={24} strokeWidth={1.5} />
-                </div>
-                <Typography variant="small" className="text-text-secondary font-medium uppercase tracking-wider text-xs">
-                    {title}
-                </Typography>
-                <Typography variant="h5" className="text-text-primary font-bold mt-0.5">
-                    {value}
-                </Typography>
-            </CardBody>
-        </Card>
-    );
+    const yearOptions = [];
+    for (let y = now.getFullYear() - 3; y <= now.getFullYear() + 1; y++) yearOptions.push(y);
 
-    const StatGrid = ({ items }) => (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-            {items.map((item, idx) => (
-                <div key={idx} className="bg-input-bg/50 rounded-lg p-2 text-center border border-border/40">
-                    <Typography variant="small" className="text-text-secondary text-xs">
-                        {item.label}
-                    </Typography>
-                    <Typography variant="h6" className="text-text-primary font-semibold text-sm">
-                        {item.value}
-                    </Typography>
-                </div>
-            ))}
+    if (isLoading) return <Loading />;
+    if (error) return (
+        <div style={{
+            background: 'var(--danger-soft)', border: '1px solid var(--danger)',
+            color: 'var(--danger)', padding: 16, borderRadius: 12,
+        }}>
+            Xatolik: {error?.data?.message || "Noma'lum xatolik"}
         </div>
     );
 
-    // ---------- Рендеринг ----------
-    if (isLoading) {
-        return <Loading />;
-    }
-
-    if (error) {
-        return (
-            <div className="min-h-screen bg-page p-6">
-                <Card className="bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
-                    <CardBody>
-                        <Typography color="red" className="font-medium">
-                            ❌ Xatolik: {JSON.stringify(error)}
-                        </Typography>
-                    </CardBody>
-                </Card>
-            </div>
-        );
-    }
-
-    const g = overview?.general;
-    const pay = overview?.payment;
-    const ranking = overview?.groups_ranking;
-
-    // Опции для года (последние 10 лет)
-    const yearOptions = [];
-    for (let y = currentYear - 5; y <= currentYear + 5; y++) {
-        yearOptions.push(y);
-    }
-
-    // Месяцы (на узбекском)
-    const monthNames = [
-        'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-        'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
-    ];
-
     return (
-        <div className="min-h-screen ">
-            <div className=" mx-auto">
-                {/* Заголовок */}
-                <div className="mb-8">
-                    <Typography variant="h2" className="text-text-primary font-bold flex items-center gap-3">
-                        <Home size={30} className="text-accent" />
-                        Umumiy statistika
-                    </Typography>
-                    <Typography variant="small" className="text-text-secondary mt-1">
-                        {new Date().toLocaleDateString('uz-UZ')} dagi ma'lumotlar
-                    </Typography>
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-                {/* Панель фильтров с Select */}
-                <Card className="bg-card border border-border shadow-lg rounded-2xl mb-8">
-                    <CardBody className="p-5 flex flex-wrap items-end gap-4">
-                        <div className="min-w-[150px] flex-1">
-                            <Select
-                                label="Yil"
-                                value={filters.year.toString()}
-                                onChange={(val) => handleSelectChange('year', val)}
-                                className="!bg-input-bg !border-input-border text-input-text"
-                                labelProps={{ className: 'text-text-secondary' }}
-                            >
-                                {yearOptions.map((year) => (
-                                    <Option key={year} value={year.toString()}>
-                                        {year}
-                                    </Option>
-                                ))}
-                            </Select>
+            {/* ── Header ── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                            width: 36, height: 36, borderRadius: 10,
+                            background: 'var(--accent-soft)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <LayoutDashboard size={18} style={{ color: 'var(--accent)' }} />
                         </div>
-
-                        <div className="min-w-[160px] flex-1">
-                            <Select
-                                label="Oy"
-                                value={filters.month.toString()}
-                                onChange={(val) => handleSelectChange('month', val)}
-                                className="!bg-input-bg !border-input-border text-input-text"
-                                labelProps={{ className: 'text-text-secondary' }}
-                            >
-                                {monthNames.map((name, idx) => (
-                                    <Option key={idx + 1} value={(idx + 1).toString()}>
-                                        {name}
-                                    </Option>
-                                ))}
-                            </Select>
-                        </div>
-
-                        <Button
-                            onClick={refetch}
-                            className="bg-accent hover:bg-accent-hover text-white font-medium px-8 rounded-xl shadow-md hover:shadow-lg transition-all h-11 flex items-center"
-                        >
-                            Yangilash
-                        </Button>
-                    </CardBody>
-                </Card>
-
-                {/* Основные метрики */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-                    <StatCard icon={GraduationCap} title="Talabalar" value={g?.students?.total ?? 0} color="text-blue-500" />
-                    <StatCard icon={Users} title="Foydalanuvchilar" value={g?.users ? Object.values(g.users).reduce((a, b) => a + b, 0) : 0} color="text-green-500" />
-                    <StatCard icon={BookOpen} title="Guruhlar" value={g?.groups_count ?? 0} color="text-orange-500" />
-                    <StatCard icon={TrendingUp} title="Fanlar" value={g?.subjects_count ?? 0} color="text-purple-500" />
-                    <StatCard icon={Users2} title="Ota-onalar" value={g?.parents?.total ?? 0} color="text-pink-500" />
-                </div>
-
-                {/* Детальные блоки */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                    {g?.students && (
-                        <Card className="bg-card border border-border shadow-lg rounded-2xl h-full">
-                            <CardBody className="p-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <UserCircle size={20} className="text-blue-500" />
-                                    <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                        Talabalar holati
-                                    </Typography>
-                                </div>
-                                <StatGrid
-                                    items={[
-                                        { label: 'Faol', value: g.students.active ?? 0 },
-                                        { label: 'Nofaol', value: g.students.inactive ?? 0 },
-                                        { label: 'Jami', value: g.students.total ?? 0 },
-                                    ]}
-                                />
-                            </CardBody>
-                        </Card>
-                    )}
-
-                    {g?.parents && (
-                        <Card className="bg-card border border-border shadow-lg rounded-2xl h-full">
-                            <CardBody className="p-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Users2 size={20} className="text-pink-500" />
-                                    <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                        Ota-onalar
-                                    </Typography>
-                                </div>
-                                <StatGrid
-                                    items={[
-                                        { label: 'Jami', value: g.parents.total ?? 0 },
-                                        { label: 'Botga ulangan', value: g.parents.linked_to_bot ?? 0 },
-                                        { label: 'Ulanganmagan', value: g.parents.not_linked ?? 0 },
-                                    ]}
-                                />
-                            </CardBody>
-                        </Card>
-                    )}
-
-                    {userRoles.length > 0 && (
-                        <Card className="bg-card border border-border shadow-lg rounded-2xl h-full">
-                            <CardBody className="p-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Users size={20} className="text-green-500" />
-                                    <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                        Foydalanuvchi rollari
-                                    </Typography>
-                                </div>
-                                <StatGrid items={userRoles.map((role) => ({ label: role.name, value: role.value }))} />
-                            </CardBody>
-                        </Card>
-                    )}
-                </div>
-
-                {/* Платежи */}
-                {pay && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-                        <Card className="bg-card border border-border shadow-lg rounded-2xl">
-                            <CardBody className="p-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Wallet size={20} className="text-yellow-500" />
-                                    <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                        Oylik to'lovlar ({pay.monthly?.month}/{pay.monthly?.year})
-                                    </Typography>
-                                </div>
-                                <StatGrid
-                                    items={[
-                                        { label: 'Kerakli', value: pay.monthly?.total_required ?? 0 },
-                                        { label: "To'langan", value: pay.monthly?.total_paid ?? 0 },
-                                        { label: 'Qarz', value: pay.monthly?.total_debt ?? 0 },
-                                        { label: "To'lovlar soni", value: pay.monthly?.payments_count ?? 0 },
-                                    ]}
-                                />
-                            </CardBody>
-                        </Card>
-                        <Card className="bg-card border border-border shadow-lg rounded-2xl">
-                            <CardBody className="p-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <CalendarDays size={20} className="text-indigo-500" />
-                                    <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                        Kunlik to'lovlar ({pay.daily?.date})
-                                    </Typography>
-                                </div>
-                                <StatGrid
-                                    items={[
-                                        { label: "To'langan", value: pay.daily?.total_paid ?? 0 },
-                                        { label: "To'lovlar soni", value: pay.daily?.payments_count ?? 0 },
-                                    ]}
-                                />
-                            </CardBody>
-                        </Card>
+                        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                            Boshqaruv paneli
+                        </h1>
                     </div>
-                )}
-
-                {/* Графики */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <Card className="bg-card border border-border shadow-lg rounded-2xl">
-                        <div className="flex items-center p-4 gap-2">
-                            <Trophy size={20} className="text-yellow-500" />
-                            <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                Eng yaxshi guruhlar
-                            </Typography>
-                        </div>
-                        <CardBody className="h-72 p-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={yearlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" />
-                                    <XAxis dataKey="month" tickFormatter={(m) => `${m}`} stroke="var(--text-secondary)" />
-                                    <YAxis stroke="var(--text-secondary)" />
-                                    <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--card-bg)',
-                                            borderColor: 'var(--card-border)',
-                                            color: 'var(--text-primary)',
-                                        }}
-                                    />
-                                    <Legend wrapperStyle={{ color: 'var(--text-primary)' }} />
-                                    <Bar dataKey="total_paid" name="To'langan" fill={chartColors[0]} radius={[6, 6, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardBody>
-                    </Card>
-
-                    <Card className="bg-card border border-border shadow-lg rounded-2xl">
-                        <div className="flex items-center p-4 gap-2">
-                            <PieChartIcon size={20} className="text-purple-500" />
-                            <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                Talabalar to'lov holati
-                            </Typography>
-                        </div>
-                        <CardBody className="h-72 p-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={studentStatusData}
-                                        dataKey="value"
-                                        nameKey="name"
-                                        cx="50%"
-                                        cy="50%"
-                                        outerRadius={80}
-                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                        {studentStatusData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--card-bg)',
-                                            borderColor: 'var(--card-border)',
-                                            color: 'var(--text-primary)',
-                                        }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </CardBody>
-                    </Card>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, marginLeft: 46 }}>
+                        {now.toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
                 </div>
 
-                {/* Методы оплаты */}
-                {monthlyMethods.length > 0 && (
-                    <Card className="bg-card border border-border shadow-lg rounded-2xl mb-8">
-                        <div className="flex items-center p-4 gap-2">
-                            <CreditCard size={20} className="text-emerald-500" />
-                            <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                To'lov usullari (oylik)
-                            </Typography>
-                        </div>
-                        <CardBody className="h-64 p-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={monthlyMethods} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" />
-                                    <XAxis dataKey="name" stroke="var(--text-secondary)" />
-                                    <YAxis stroke="var(--text-secondary)" />
-                                    <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--card-bg)',
-                                            borderColor: 'var(--card-border)',
-                                            color: 'var(--text-primary)',
-                                        }}
-                                    />
-                                    <Legend wrapperStyle={{ color: 'var(--text-primary)' }} />
-                                    <Bar dataKey="total" name="Summa" fill={chartColors[2]} radius={[6, 6, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardBody>
-                    </Card>
-                )}
-
-                {/* Топ групп */}
-                {ranking?.top && ranking.top.length > 0 && (
-                    <Card className="bg-card border border-border shadow-lg rounded-2xl mb-8">
-                        <CardHeader floated={false} className="p-4 pb-0">
-                            <div className="flex items-center gap-2">
-                                <Trophy size={20} className="text-yellow-500" />
-                                <Typography variant="h6" className="text-text-primary font-semibold text-base">
-                                    Eng yaxshi guruhlar
-                                </Typography>
-                            </div>
-                        </CardHeader>
-                        <CardBody className="p-4 overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-border/40">
-                                        <TableCell className="text-text-secondary font-semibold">#</TableCell>
-                                        <TableCell className="text-text-secondary font-semibold">Nomi</TableCell>
-                                        <TableCell className="text-text-secondary font-semibold">Soni</TableCell>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {ranking.top.slice(0, 3).map((group, idx) => (
-                                        <TableRow key={idx} className="border-border/20">
-                                            <TableCell className="text-text-primary">{idx + 1}</TableCell>
-                                            <TableCell className="text-text-primary">
-                                                {group.name || group.groupName || group.title || '—'}
-                                            </TableCell>
-                                            <TableCell className="text-text-primary">
-                                                {group.count || group.students || group.value || '—'}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardBody>
-                    </Card>
-                )}
-
-                {/* Дополнительные поля (отладка) */}
-                {overview && (() => {
-                    const extra = Object.keys(overview).filter(k => !['general', 'groups_ranking', 'payment'].includes(k));
-                    if (extra.length === 0) return null;
-                    return (
-                        <Card className="bg-card border border-border shadow-lg rounded-2xl">
-                            <CardBody className="p-4">
-                                <Typography variant="h6" className="text-text-primary mb-2 flex items-center gap-2 text-base">
-                                    <DollarSign size={18} className="text-gray-400" />
-                                    Qo'shimcha maydonlar
-                                </Typography>
-                                <pre className="bg-input-bg/70 p-3 rounded-xl overflow-auto text-sm text-text-primary border border-border/40">
-                                    {JSON.stringify(
-                                        extra.reduce((acc, k) => ({ ...acc, [k]: overview[k] }), {}),
-                                        null,
-                                        2
-                                    )}
-                                </pre>
-                            </CardBody>
-                        </Card>
-                    );
-                })()}
+                {/* Filters */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 14px',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--card-border)',
+                    borderRadius: 12,
+                    flexWrap: 'wrap',
+                }}>
+                    <select
+                        className="search-select"
+                        style={{ minWidth: 80 }}
+                        value={filters.year}
+                        onChange={e => setFilters(p => ({ ...p, year: +e.target.value }))}
+                    >
+                        {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select
+                        className="search-select"
+                        style={{ minWidth: 110 }}
+                        value={filters.month}
+                        onChange={e => setFilters(p => ({ ...p, month: +e.target.value }))}
+                    >
+                        {FULL_MONTHS.map((name, i) => (
+                            <option key={i + 1} value={i + 1}>{name}</option>
+                        ))}
+                    </select>
+                    <button
+                        onClick={refetch}
+                        style={{
+                            width: 34, height: 34,
+                            border: '1.5px solid var(--card-border)',
+                            borderRadius: 8,
+                            background: 'var(--input-bg)',
+                            color: 'var(--text-secondary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                        }}
+                        title="Yangilash"
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-soft)'; e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--input-bg)'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--card-border)'; }}
+                    >
+                        <RefreshCw size={14} />
+                    </button>
+                </div>
             </div>
+
+            {/* ── KPI row ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                <KpiCard icon={GraduationCap} label="O'quvchilar"      value={g?.students?.total ?? 0}  color="#6366f1" />
+                <KpiCard icon={Users}         label="Xodimlar"          value={totalUsers}                color="#10b981" />
+                <KpiCard icon={BookOpen}      label="Guruhlar"          value={g?.groups_count ?? 0}     color="#f59e0b" />
+                <KpiCard icon={TrendingUp}    label="Fanlar"            value={g?.subjects_count ?? 0}   color="#8b5cf6" />
+                <KpiCard icon={Users2}        label="Ota-onalar"        value={g?.parents?.total ?? 0}   color="#ec4899" />
+            </div>
+
+            {/* ── Middle row: detail cards ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                {g?.students && (
+                    <DashCard>
+                        <CardHead icon={GraduationCap} title="O'quvchilar holati" color="#6366f1" />
+                        <div style={{ padding: '12px 20px 0' }} />
+                        <StatRow items={[
+                            { label: 'Faol',   value: g.students.active   ?? 0 },
+                            { label: 'Nofaol', value: g.students.inactive ?? 0 },
+                            { label: 'Jami',   value: g.students.total    ?? 0 },
+                        ]} />
+                    </DashCard>
+                )}
+
+                {g?.parents && (
+                    <DashCard>
+                        <CardHead icon={Users2} title="Ota-onalar" color="#ec4899" />
+                        <div style={{ padding: '12px 20px 0' }} />
+                        <StatRow items={[
+                            { label: 'Jami',       value: g.parents.total         ?? 0 },
+                            { label: 'Bot ulangan', value: g.parents.linked_to_bot ?? 0 },
+                            { label: 'Ulanmagan',  value: g.parents.not_linked    ?? 0 },
+                        ]} />
+                    </DashCard>
+                )}
+
+                {pay?.monthly && (
+                    <DashCard>
+                        <CardHead icon={Wallet} title={`Oylik to'lov — ${FULL_MONTHS[(filters.month ?? 1) - 1]}`} color="#f59e0b" />
+                        <div style={{ padding: '12px 20px 0' }} />
+                        <StatRow items={[
+                            { label: 'Kerakli',   value: pay.monthly.total_required ?? 0 },
+                            { label: "To'langan", value: pay.monthly.total_paid     ?? 0 },
+                            { label: 'Qarz',      value: pay.monthly.total_debt     ?? 0 },
+                        ]} />
+                    </DashCard>
+                )}
+
+                {pay?.daily && (
+                    <DashCard>
+                        <CardHead icon={CalendarDays} title={`Kunlik to'lov — ${pay.daily.date ?? ''}`} color="#6366f1" />
+                        <div style={{ padding: '12px 20px 0' }} />
+                        <StatRow items={[
+                            { label: "To'langan",  value: pay.daily.total_paid     ?? 0 },
+                            { label: "To'lovlar",  value: pay.daily.payments_count ?? 0 },
+                        ]} />
+                    </DashCard>
+                )}
+            </div>
+
+            {/* ── Charts row ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
+
+                {/* Area/Bar — yearly */}
+                <DashCard style={{ gridColumn: yearlyData.length === 0 ? '1 / -1' : undefined }}>
+                    <CardHead icon={TrendingUp} title="Yillik to'lovlar dinamikasi" color="#6366f1" />
+                    <div style={{ padding: '16px 20px 20px' }}>
+                        {yearlyData.length === 0 ? (
+                            <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                                Ma'lumot yo'q
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={220}>
+                                <AreaChart data={yearlyData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.18} />
+                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" vertical={false} />
+                                    <XAxis dataKey="name" stroke="var(--text-muted)" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <Tooltip {...CHART_TOOLTIP} />
+                                    <Area
+                                        type="monotone" dataKey="total_paid" name="To'langan"
+                                        stroke="#6366f1" strokeWidth={2.5}
+                                        fill="url(#areaGrad)" dot={false} activeDot={{ r: 5, fill: '#6366f1' }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </DashCard>
+
+                {/* Pie — payment status */}
+                <DashCard>
+                    <CardHead icon={CreditCard} title="To'lov holati" color="#8b5cf6" />
+                    <div style={{ padding: '16px 20px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                        {pieData.every(d => d.value === 0) ? (
+                            <div style={{ width: '100%', height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                                Ma'lumot yo'q
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ flex: '0 0 160px' }}>
+                                    <ResponsiveContainer width={160} height={200}>
+                                        <PieChart>
+                                            <Pie
+                                                data={pieData} dataKey="value" nameKey="name"
+                                                cx="50%" cy="50%" innerRadius={48} outerRadius={72}
+                                                paddingAngle={3}
+                                            >
+                                                {pieData.map((_, i) => (
+                                                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip {...CHART_TOOLTIP} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                                    {pieData.map((item, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <div style={{ width: 10, height: 10, borderRadius: 3, background: PIE_COLORS[i], flexShrink: 0 }} />
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{item.name}</div>
+                                                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{item.value}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </DashCard>
+            </div>
+
+            {/* ── Payment methods bar ── */}
+            {methodData.length > 0 && (
+                <DashCard>
+                    <CardHead icon={Wallet} title="To'lov usullari (oylik)" color="#10b981" />
+                    <div style={{ padding: '16px 20px 20px' }}>
+                        <ResponsiveContainer width="100%" height={180}>
+                            <BarChart data={methodData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" vertical={false} />
+                                <XAxis dataKey="name" stroke="var(--text-muted)" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                                <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                                <Tooltip {...CHART_TOOLTIP} />
+                                <Bar dataKey="value" name="Summa" fill="#10b981" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </DashCard>
+            )}
+
+            {/* ── Top groups ── */}
+            {ranking?.top && ranking.top.length > 0 && (
+                <DashCard>
+                    <CardHead icon={Trophy} title="Top guruhlar" color="#f59e0b" />
+                    <div style={{ padding: '12px 0 0' }}>
+                        {ranking.top.slice(0, 5).map((grp, i) => (
+                            <div key={i} style={{
+                                display: 'flex', alignItems: 'center', gap: 14,
+                                padding: '12px 20px',
+                                borderTop: i === 0 ? '1px solid var(--card-border)' : 'none',
+                                borderBottom: '1px solid var(--card-border)',
+                                transition: 'background 0.15s',
+                            }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-soft)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <div style={{
+                                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                                    background: i === 0 ? '#f59e0b18' : i === 1 ? '#6366f118' : 'var(--input-bg)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: 700, fontSize: '0.82rem',
+                                    color: i === 0 ? '#f59e0b' : i === 1 ? '#6366f1' : 'var(--text-muted)',
+                                }}>
+                                    {i + 1}
+                                </div>
+                                <span style={{ flex: 1, fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                                    {grp.name || grp.groupName || grp.title || '—'}
+                                </span>
+                                <span style={{
+                                    fontSize: '0.78rem', fontWeight: 700,
+                                    background: 'var(--accent-soft)', color: 'var(--accent)',
+                                    padding: '2px 10px', borderRadius: 99,
+                                }}>
+                                    {grp.count ?? grp.students ?? grp.value ?? '—'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </DashCard>
+            )}
         </div>
     );
 }

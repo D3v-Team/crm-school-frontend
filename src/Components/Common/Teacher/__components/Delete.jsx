@@ -1,77 +1,49 @@
 import { useState } from "react";
-import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from "@material-tailwind/react";
 import { useDeleteUserMutation } from "../../../../store/services/user.api";
 import { Trash, AlertTriangle } from "lucide-react";
 import { Alert } from "../../../Other/UI/Alert/Alert";
+import Modal from "../../../Other/UI/Modal/Modal";
 
 export default function Delete({ user }) {
     const [open, setOpen] = useState(false);
     const [deleteUser, { isLoading }] = useDeleteUserMutation();
 
-    const handleOpen = () => setOpen(true);
-    const handleClose = () => setOpen(false);
+    if (user && ["super_admin", "parent"].includes(user.role)) return null;
 
     const handleDelete = async () => {
         try {
             await deleteUser(user.id).unwrap();
-            Alert(`Foydalanuvchi ${user.full_name} o‘chirildi`, "success");
-            handleClose();
-        } catch (error) {
-            const errorMessage = error?.data?.message || "Xatolik yuz berdi";
-            Alert(errorMessage, "error");
+            Alert(`${user.full_name} o'chirildi`, "success");
+            setOpen(false);
+        } catch (err) {
+            Alert(err?.data?.message || "Xatolik yuz berdi", "error");
         }
     };
 
-    // Запрещаем удаление для суперадмина и родителя
-    const isDeletable = user && !["super_admin", "parent"].includes(user.role);
-
-    if (!isDeletable) return null; // или можно вернуть пустой фрагмент
-
     return (
         <>
-            <Button
-                className="p-2 bg-red-500 hover:bg-red-600 text-white transition-colors"
-                onClick={handleOpen}
-                title="O‘chirish"
-            >
-                <Trash className="w-5 h-5" />
-            </Button>
-
-            <Dialog
-                open={open}
-                handler={handleClose}
-                size="sm"
-                className="bg-card text-text-primary border border-border"
-            >
-                <DialogHeader className="text-text-primary flex items-center gap-2">
-                    <AlertTriangle className="w-6 h-6 text-red-500" />
-                    O‘chirishni tasdiqlang
-                </DialogHeader>
-                <DialogBody className="text-text-secondary">
-                    <p className="mb-2">
-                        Siz <span className="font-semibold text-text-primary">{user.full_name}</span> ustozni o‘chirmoqchisiz.
-                    </p>
-                    <p className="text-sm text-red-400">Bu amalni qaytarib bo‘lmaydi!</p>
-                </DialogBody>
-                <DialogFooter className="gap-2">
-                    <Button
-                        variant="text"
-                        className="text-text-secondary hover:bg-[var(--accent)]/10 transition-colors"
-                        onClick={handleClose}
-                        disabled={isLoading}
-                    >
-                        Bekor qilish
-                    </Button>
-                    <Button
-                        className="bg-red-500 hover:bg-red-600 text-white transition-colors"
-                        onClick={handleDelete}
-                        loading={isLoading}
-                        disabled={isLoading}
-                    >
-                        O‘chirish
-                    </Button>
-                </DialogFooter>
-            </Dialog>
+            <button className="action-btn action-btn-danger" onClick={() => setOpen(true)} title="O'chirish">
+                <Trash size={14} />
+            </button>
+            <Modal open={open} onClose={() => setOpen(false)} title="O'chirishni tasdiqlang" size="sm">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0 8px' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <AlertTriangle size={18} style={{ color: 'var(--danger)' }} />
+                    </div>
+                    <div>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                            <strong style={{ color: 'var(--danger)' }}>{user.full_name}</strong> o'qituvchini o'chirmoqchisiz.
+                        </p>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Bu amalni qaytarib bo'lmaydi.</p>
+                    </div>
+                </div>
+                <div className="modal-footer">
+                    <button className="btn-cancel" onClick={() => setOpen(false)}>Bekor qilish</button>
+                    <button className="btn-delete" onClick={handleDelete} disabled={isLoading}>
+                        <Trash size={14} /> {isLoading ? "O'chirilmoqda..." : "O'chirish"}
+                    </button>
+                </div>
+            </Modal>
         </>
     );
 }

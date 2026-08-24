@@ -8,12 +8,34 @@ export default function MainLayout() {
 
     const toggleSidebar = () => setSidebarOpen((s) => !s);
 
+    // sidebarOpen=true  → sidebar width 260px
+    // sidebarOpen=false → sidebar width 72px
+    const sidebarW = sidebarOpen ? 260 : 72;
+
     return (
-        <div className="min-h-screen bg-[var(--page-bg)] text-[var(--text-primary)] transition-colors duration-300">
+        <div
+            className="min-h-screen transition-colors duration-300"
+            style={{ background: 'var(--page-bg)', overflow: 'hidden' }}
+        >
             <Sidebar open={!sidebarOpen} />
-            <div className={`${sidebarOpen ? 'ml-[300px]' : 'ml-[120px]'} pt-[75px] pr-[8px] flex flex-col gap-[10px] min-h-screen transition-all duration-300`}>
-                <Header active={toggleSidebar} sidebarOpen={sidebarOpen} />
-                <Outlet />
+
+            {/* Main content — shifted right by sidebar width, no x-overflow */}
+            <div
+                className="flex flex-col min-h-screen transition-all duration-300"
+                style={{
+                    marginLeft: sidebarW,
+                    overflowX: 'hidden',
+                }}
+            >
+                <Header active={toggleSidebar} sidebarOpen={sidebarOpen} sidebarW={sidebarW} />
+
+                {/* Page body below fixed header */}
+                <main
+                    className="flex flex-col gap-4 flex-1 page-enter"
+                    style={{ paddingTop: 88, paddingLeft: 20, paddingRight: 20, paddingBottom: 24 }}
+                >
+                    <Outlet />
+                </main>
             </div>
         </div>
     );

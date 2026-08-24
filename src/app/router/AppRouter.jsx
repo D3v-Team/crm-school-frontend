@@ -12,16 +12,19 @@ export default function AppRouter() {
     return (
         <Suspense fallback={<Loading/>}>
             <Routes>
+                {/* Default root → redirect to login */}
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
+
                 <Route element={<MainLayout />}>
                     {ROUTES.map(r => (
                         <Route key={r.path} element={<RoleGuard allow={r.roles} />}>
                             <Route path={r.path} element={<r.component />} />
                         </Route>
                     ))}
-                    {/* Catch-all route: unknown paths -> ErrorPage */}
                 </Route>
-                    <Route path="/login" element={<Login/>} />
-                    <Route path="*" element={<ErrorPage />} />
+
+                <Route path="*" element={<ErrorPage />} />
             </Routes>
         </Suspense>
     );

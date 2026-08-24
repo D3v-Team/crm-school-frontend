@@ -1,63 +1,59 @@
-// ProfileTabs.jsx
-import React from 'react';
-import { Tabs, TabsHeader, TabsBody, Tab, TabPanel } from '@material-tailwind/react';
-import { BookOpen, GraduationCap, Users, CalendarDays, ListChecks } from 'lucide-react';
+import { useState } from 'react';
+import { BookOpen, GraduationCap, CalendarDays, ListChecks } from 'lucide-react';
 import SubjectsTab from './tabs/SubjectsTab';
 import GroupsTab from './tabs/GroupsTab';
 import ScheduleTab from './tabs/ScheduleTab';
 import TopicsTab from './tabs/TopicsTab';
 
-export default function ProfileTabs({ user, subjects }) {
-  return (
-    <Tabs value="subjects" className="w-full">
-      <TabsHeader 
-        className="bg-input-bg/50 rounded-xl p-1 overflow-x-auto"
-        indicatorProps={{
-          className: "bg-accent shadow-none rounded-lg",
-        }}
-      >
-        <Tab 
-          value="subjects" 
-          className="text-text-primary data-[active=true]:text-white data-[active=true]:bg-accent/10 rounded-lg transition-all duration-200"
-        >
-          <BookOpen size={18} className="inline mr-1" /> Fanlar
-        </Tab>
-        <Tab 
-          value="groups" 
-          className="text-text-primary data-[active=true]:text-white data-[active=true]:bg-accent/10 rounded-lg transition-all duration-200"
-        >
-          <GraduationCap size={18} className="inline mr-1" /> Guruhlar
-        </Tab>
-        <Tab 
-          value="schedule" 
-          className="text-text-primary data-[active=true]:text-white data-[active=true]:bg-accent/10 rounded-lg transition-all duration-200"
-        >
-          <CalendarDays size={18} className="inline mr-1" /> Jadvallar
-        </Tab>
-        <Tab 
-          value="topics" 
-          className="text-text-primary data-[active=true]:text-white data-[active=true]:bg-accent/10 rounded-lg transition-all duration-200"
-        >
-          <ListChecks size={18} className="inline mr-1" /> Mavzular
-        </Tab>
-      </TabsHeader>
-      <TabsBody className="mt-4">
-        <TabPanel value="subjects" className="p-0">
-          <SubjectsTab
-            subjectsList={subjects}
-          />
-        </TabPanel>
-        <TabPanel value="groups" className="p-0">
-          <GroupsTab user={user}   />
-        </TabPanel>
+const TABS = [
+    { key: 'subjects',  label: 'Fanlar',    icon: BookOpen      },
+    { key: 'groups',    label: 'Guruhlar',  icon: GraduationCap },
+    { key: 'schedule',  label: 'Jadvallar', icon: CalendarDays  },
+    { key: 'topics',    label: 'Mavzular',  icon: ListChecks    },
+];
 
-        <TabPanel value="schedule" className="p-0">
-          <ScheduleTab user={user} />
-        </TabPanel>
-        <TabPanel value="topics" className="p-0">
-          <TopicsTab user={user}  />
-        </TabPanel>
-      </TabsBody>
-    </Tabs>
-  );
+export default function ProfileTabs({ user, subjects }) {
+    const [active, setActive] = useState('subjects');
+
+    return (
+        <div>
+            {/* Tab bar */}
+            <div style={{
+                display: 'flex', gap: 4, padding: '4px',
+                background: 'var(--input-bg)', borderRadius: 12,
+                border: '1px solid var(--card-border)',
+                marginBottom: 20, overflowX: 'auto',
+            }}>
+                {TABS.map(({ key, label, icon: Icon }) => {
+                    const isActive = active === key;
+                    return (
+                        <button
+                            key={key}
+                            onClick={() => setActive(key)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                padding: '8px 16px', borderRadius: 9, border: 'none',
+                                cursor: 'pointer', whiteSpace: 'nowrap',
+                                fontSize: '0.82rem', fontWeight: isActive ? 600 : 500,
+                                transition: 'all 0.15s',
+                                background: isActive ? 'var(--accent)' : 'transparent',
+                                color: isActive ? '#fff' : 'var(--text-secondary)',
+                            }}
+                        >
+                            <Icon size={14} />
+                            {label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Tab content */}
+            <div>
+                {active === 'subjects'  && <SubjectsTab subjectsList={subjects} />}
+                {active === 'groups'    && <GroupsTab   user={user} />}
+                {active === 'schedule'  && <ScheduleTab user={user} />}
+                {active === 'topics'    && <TopicsTab   user={user} />}
+            </div>
+        </div>
+    );
 }

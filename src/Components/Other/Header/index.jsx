@@ -1,147 +1,206 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LogOut, User, ChevronDown, Moon, Sun, Menu } from "lucide-react";
+import { LogOut, User, ChevronDown, Moon, Sun, Menu, Bell, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@material-tailwind/react";
+import Cookies from "js-cookie";
+import { useAppSelector } from "../../../store/hooks";
 
-export default function Header({ active, sidebarOpen, ...props }) {
+export default function Header({ active, sidebarOpen, sidebarW = 260, ...props }) {
     const navigate = useNavigate();
     const [openMenu, setOpenMenu] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
     const menuRef = useRef(null);
 
-    // Инициализация темы
-    useEffect(() => {
-        const savedTheme = localStorage.getItem("theme");
-        const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const roleFromStore = useAppSelector((s) => s.auth?.role);
+    const role = roleFromStore || Cookies.get('role') || null;
+    const roleLabel =
+        role === 'super_admin' ? 'Super Admin' :
+        role === 'admin' ? 'Admin' :
+        role ? role : 'Foydalanuvchi';
 
-        if (savedTheme === "dark" || (!savedTheme && systemPrefersDark)) {
+    useEffect(() => {
+        const saved = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (saved === "dark" || (!saved && prefersDark)) {
             setIsDarkMode(true);
             document.documentElement.classList.add("dark");
-        } else {
-            setIsDarkMode(false);
-            document.documentElement.classList.remove("dark");
         }
     }, []);
 
-    // Переключение тёмной темы
     const toggleDarkMode = () => {
-        const newDarkMode = !isDarkMode;
-        setIsDarkMode(newDarkMode);
-
-        if (newDarkMode) {
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("theme", "dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("theme", "light");
-        }
+        const next = !isDarkMode;
+        setIsDarkMode(next);
+        document.documentElement.classList.toggle("dark", next);
+        localStorage.setItem("theme", next ? "dark" : "light");
     };
 
     const handleLogout = () => {
         localStorage.clear();
+        Cookies.remove('role');
         navigate("/login");
     };
 
-    // Закрытие меню при клике вне
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                setOpenMenu(false);
-            }
+        const handler = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) setOpenMenu(false);
         };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
     }, []);
 
     return (
-        <div
-            className={`fixed top-[8px] z-30 flex justify-between items-center mb-6 px-2 py-2 rounded-lg border shadow-lg transition-all duration-500 backdrop-blur-md bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-primary)] ${sidebarOpen ? 'left-[296px] w-[calc(100%-304px)]' : 'left-[120px] w-[91%]'}`}
+        <header
+            className="fixed top-0 right-0 z-40 flex items-center justify-between px-5 transition-all duration-300"
+            style={{
+                left: sidebarW,
+                height: 70,
+                background: 'var(--card-bg)',
+                borderBottom: '1px solid var(--card-border)',
+                boxShadow: 'var(--shadow-sm)',
+            }}
         >
-            {/* Левая часть - кнопка меню */}
-            <div className="flex items-center gap-[20px]">
-                <Button
-                    onClick={active}
-                    className="px-4 py-3 rounded-xl transition-all duration-300 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white"
-                >
-                    <Menu className="w-5 h-5" />
-                </Button>
-            </div>
-
-            {/* Правая часть - переключатель темы + профиль */}
-            <div className="flex items-center gap-2">
-                {/* Переключатель темы с улучшенной анимацией */}
+            {/* Left */}
+            <div className="flex items-center gap-3">
                 <button
-                    onClick={toggleDarkMode}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    className={`
-        relative flex items-center justify-center w-10 h-10 rounded-xl border-2 shadow 
-        transition-all duration-500 bg-card text-text-primary
-        ${isDarkMode ? 'border-border' : 'border-gray-300'}
-        ${isHovered ? "scale-110 rotate-12" : "scale-100 rotate-0"}
-    `}
-                    title={isDarkMode ? "Светлый режим" : "Тёмный режим"}
+                    onClick={active}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-105 flex-shrink-0"
+                    style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
                 >
-                    {isDarkMode ? (
-                        <Sun className="w-5 h-5 transition-transform duration-300" />
-                    ) : (
-                        <Moon className="w-5 h-5 transition-transform duration-300" />
-                    )}
+                    <Menu className="w-4 h-4" />
                 </button>
 
-                {/* Профиль с улучшенным дизайном */}
-                <div className="relative flex items-center gap-4" ref={menuRef}>
-                    <button
-                        onClick={() => setOpenMenu(!openMenu)}
-                        className={`
-        flex items-center gap-1 px-4 py-1 rounded-xl 
-        border-2 transition-all duration-300 text-sm font-medium
-        bg-card text-text-primary shadow-sm
-        hover:bg-[var(--accent)]/10 hover:text-accent hover:border-accent
-        ${openMenu
-                                ? 'border-accent'
-                                : isDarkMode
-                                    ? 'border-border'
-                                    : 'border-gray-300'
-                            }
-    `}
-                    >
-                        <div className="py-1 rounded-full bg-[var(--card-bg)]/50">
-                            <User className="w-5 h-5" />
-                        </div>
-                        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${openMenu ? "rotate-180" : ""}`} />
-                    </button>
-
-                    {/* Выпадающее меню */}
-                    {openMenu && (
-                        <div className="absolute right-0 top-16 w-48 bg-card border-2 border-border shadow-lg rounded-xl py-2 z-50 overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-border/50"></div>
-
-                            <button
-                                onClick={() => navigate("/profile")}
-                                className="w-full px-4 py-3 text-left text-sm text-text-primary hover:bg-[var(--accent)]/10 hover:text-accent transition-all duration-200 flex items-center gap-2"
-                            >
-                                <User className="w-4 h-4" />
-                                <span>Profil</span>
-                            </button>
-
-                            <div className="h-px my-1 bg-border/50"></div>
-
-                            <button
-                                onClick={handleLogout}
-                                className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-all duration-200 flex items-center gap-2"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                <span>Chiqish</span>
-                            </button>
-                        </div>
-                    )}
-                    {props.children}
+                {/* Search */}
+                <div
+                    className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl"
+                    style={{ background: 'var(--input-bg)', border: '1.5px solid var(--input-border)' }}
+                >
+                    <Search className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    <input
+                        type="text"
+                        placeholder="Qidirish..."
+                        className="bg-transparent outline-none text-sm transition-all duration-200 focus:w-48 w-36"
+                        style={{ color: 'var(--input-text)' }}
+                    />
                 </div>
             </div>
-        </div>
+
+            {/* Right */}
+            <div className="flex items-center gap-2">
+                {/* Dark mode */}
+                <button
+                    onClick={toggleDarkMode}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-105"
+                    style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
+                    title={isDarkMode ? "Yorug' rejim" : "Qorong'i rejim"}
+                >
+                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+
+          
+
+                {/* Profile */}
+                <div className="relative" ref={menuRef}>
+                    <button
+                        onClick={() => setOpenMenu(!openMenu)}
+                        className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl transition-all duration-200"
+                        style={{
+                            background: openMenu ? 'var(--accent-soft)' : 'var(--input-bg)',
+                            border: `1.5px solid ${openMenu ? 'var(--accent)' : 'var(--input-border)'}`,
+                        }}
+                    >
+                        <div
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+                            style={{ background: 'linear-gradient(135deg, var(--accent), #7c3aed)' }}
+                        >
+                            {roleLabel.charAt(0)}
+                        </div>
+                        <div className="hidden sm:block text-left">
+                            <div className="text-xs font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                                {roleLabel}
+                            </div>
+                            <div className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>
+                                Online
+                            </div>
+                        </div>
+                        <ChevronDown
+                            className="w-3.5 h-3.5 transition-transform duration-200"
+                            style={{
+                                color: 'var(--text-muted)',
+                                transform: openMenu ? 'rotate(180deg)' : 'rotate(0)',
+                            }}
+                        />
+                    </button>
+
+                    {openMenu && (
+                        <div
+                            className="absolute right-0 mt-2 w-52 py-2 z-50"
+                            style={{
+                                background: 'var(--card-bg)',
+                                border: '1px solid var(--card-border)',
+                                borderRadius: '14px',
+                                boxShadow: 'var(--shadow-lg)',
+                                animation: 'modalIn 0.2s ease',
+                            }}
+                        >
+                            <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--card-border)' }}>
+                                <div className="flex items-center gap-2.5">
+                                    <div
+                                        className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                                        style={{ background: 'linear-gradient(135deg, var(--accent), #7c3aed)' }}
+                                    >
+                                        {roleLabel.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                            {roleLabel}
+                                        </div>
+                                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                            Tizim foydalanuvchisi
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="py-1">
+                                <button
+                                    onClick={() => { navigate("/profile"); setOpenMenu(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150"
+                                    style={{ color: 'var(--text-primary)' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-soft)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <div
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center"
+                                        style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
+                                    >
+                                        <User className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span>Profil</span>
+                                </button>
+
+                                <div className="my-1 mx-3 h-px" style={{ background: 'var(--card-border)' }} />
+
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150"
+                                    style={{ color: 'var(--danger)' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--danger-soft)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <div
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center"
+                                        style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}
+                                    >
+                                        <LogOut className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span>Chiqish</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {props.children}
+        </header>
     );
 }

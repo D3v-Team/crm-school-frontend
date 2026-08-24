@@ -2,10 +2,11 @@ import { lazy } from 'react';
 import { ROLES } from '../permissions/roles';
 
 export const ROUTES = [
+    // Bitta dashboard — ikkala rol uchun
     {
         path: '/dashboard',
         component: lazy(() => import('../../Components/Common/SA-Dashboard')),
-        roles: [ROLES.SUPER_ADMIN],
+        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     },
     {
         path: '/sa/employee',
@@ -16,11 +17,6 @@ export const ROUTES = [
         path: '/profile',
         component: lazy(() => import('../../Components/Common/Profile')),
         roles: null,
-    },
-    {
-        path: '/ad/dashboard',
-        component: lazy(() => import('../../Components/Common/AD-Dashboard')),
-        roles: [ROLES.ADMIN],
     },
     {
         path: '/ad/teachers',
@@ -58,4 +54,3 @@ export const ROUTES = [
         roles: [ROLES.ADMIN],
     },
 ];
-

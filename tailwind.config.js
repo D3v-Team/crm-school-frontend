@@ -17,10 +17,13 @@ module.exports = withMT({
         text: {
           primary: "var(--text-primary)",
           secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
         },
         accent: {
           DEFAULT: "var(--accent)",
           hover: "var(--accent-hover)",
+          soft: "var(--accent-soft)",
+          glow: "var(--accent-glow)",
         },
         input: {
           bg: "var(--input-bg)",
@@ -28,6 +31,26 @@ module.exports = withMT({
           text: "var(--input-text)",
           placeholder: "var(--placeholder-color)",
         },
+        success: {
+          DEFAULT: "var(--success)",
+          soft: "var(--success-soft)",
+        },
+        danger: {
+          DEFAULT: "var(--danger)",
+          soft: "var(--danger-soft)",
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          soft: "var(--warning-soft)",
+        },
+      },
+      boxShadow: {
+        'glow': '0 4px 20px var(--accent-glow)',
+        'card': 'var(--shadow-md)',
+      },
+      borderRadius: {
+        'xl2': '20px',
+        'xl3': '28px',
       },
     },
   },
