@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LogOut, User, ChevronDown, Moon, Sun, Menu, Bell, Search } from "lucide-react";
+import { LogOut, User, ChevronDown, Moon, Sun, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { useAppSelector } from "../../../store/hooks";
@@ -69,11 +69,13 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, ...props }
                     onClick={active}
                     className="w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-105 flex-shrink-0"
                     style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
+                    title={sidebarOpen ? 'Yopish' : 'Ochish'}
                 >
-                    <Menu className="w-4 h-4" />
+                    {sidebarOpen
+                        ? <PanelLeftOpen className="w-4 h-4" />
+                        : <PanelLeftClose className="w-4 h-4" />
+                    }
                 </button>
-
-              
             </div>
 
             {/* Right */}

@@ -115,7 +115,7 @@ export default function ParentDashboard() {
                                         <div style={{ fontSize: '1.8rem', fontWeight: 800, color: diff.attendance_rate >= 0 ? 'var(--success)' : 'var(--danger)', lineHeight: 1 }}>
                                             {diff.attendance_rate >= 0 ? '+' : ''}{diff.attendance_rate}%
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 5 }}>Davomat o'zgarishi</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 5 }}> O'zgarish</div>
                                     </div>
                                 </div>
                             )}
@@ -133,7 +133,7 @@ export default function ParentDashboard() {
                                         <div style={{ fontSize: '1.8rem', fontWeight: 800, color: diff.avg_grade >= 0 ? 'var(--success)' : 'var(--danger)', lineHeight: 1 }}>
                                             {diff.avg_grade >= 0 ? '+' : ''}{diff.avg_grade}%
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 5 }}>Baho o'zgarishi</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 5 }}>Baho osishi</div>
                                     </div>
                                 </div>
                             )}
