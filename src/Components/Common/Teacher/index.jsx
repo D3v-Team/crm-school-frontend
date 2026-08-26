@@ -5,7 +5,10 @@ import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
 import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Users, Eye, RefreshCw } from "lucide-react";
+import {
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+    Search, Users, Eye, RefreshCw,
+} from "lucide-react";
 
 export default function Teacher() {
     const [page, setPage] = useState(1);
@@ -73,37 +76,36 @@ export default function Teacher() {
                                     <th>To'liq ism</th>
                                     <th>Telefon</th>
                                     <th>Username</th>
-                                    <th>Rol</th>
                                     <th>Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {users.length === 0 ? (
                                     <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>O'qituvchilar topilmadi</td></tr>
-                                ) : users.map((u, i) => (
-                                    <tr key={u.id}>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
-                                            {(currentPage - 1) * limit + i + 1}
-                                        </td>
-                                        <td style={{ fontWeight: 600 }}>{u.full_name}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{u.phone || "—"}</td>
-                                        <td style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{u.username}</td>
-                                        <td>
-                                            <span className="badge badge-teacher">O'qituvchi</span>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: 6 }}>
-                                                <NavLink to={`/teacher/${u.id}`}>
-                                                    <button className="action-btn action-btn-ghost" title="Ko'rish">
-                                                        <Eye size={14} />
-                                                    </button>
-                                                </NavLink>
-                                                <Edit user={u} />
-                                                <Delete user={u} />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                ) : users.map((u, i) => {
+                                    return (
+                                        <tr key={u.id}>
+                                            <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
+                                                {(currentPage - 1) * limit + i + 1}
+                                            </td>
+                                            <td style={{ fontWeight: 600 }}>{u.full_name}</td>
+                                           
+                                            <td style={{ color: 'var(--text-secondary)' }}>{u.phone || "—"}</td>
+                                            <td style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{u.username}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    <NavLink to={`/teacher/${u.id}`}>
+                                                        <button className="action-btn action-btn-ghost" title="Ko'rish">
+                                                            <Eye size={14} />
+                                                        </button>
+                                                    </NavLink>
+                                                    <Edit user={u} />
+                                                    <Delete user={u} />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

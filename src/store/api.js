@@ -27,9 +27,10 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
-// 🔴 Вынесли logout отдельно
 const forceLogout = () => {
-    ["token", "refresh_token", "userId", "us_nesw", "jti", "role", "nesw"].forEach((key) => Cookies.remove(key));
+    ["token", "refresh_token", "userId", "us_nesw", "jti", "role", "nesw"].forEach((key) =>
+        Cookies.remove(key)
+    );
     window.location.href = "/login";
 };
 
@@ -53,11 +54,9 @@ $api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Если ошибка авторизации и не пытались ретраить
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            // Если уже идёт refresh, ставим запрос в очередь
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({
@@ -76,29 +75,42 @@ $api.interceptors.response.use(
                 const refreshToken = Cookies.get("refresh_token");
                 const userId = Cookies.get("userId") || Cookies.get("us_nesw");
 
-                if (!refreshToken || !userId) throw new Error("Refresh token или userId отсутствует");
+                if (!refreshToken || !userId) throw new Error("No refresh token or userId");
 
-                // Запрос на обновление токена
                 const { data } = await axios.post(`${BASE_URL}/api/auth/refresh`, {
                     userId,
                     refreshToken,
                 });
 
-                const { access_token, refresh_token } = data;
+                /* Server response may nest tokens differently */
+                const accessToken =
+                    data?.access_token ||
+                    data?.tokens?.access_token ||
+                    data?.token ||
+                    null;
 
-                Cookies.set("token", access_token);
-                Cookies.set("refresh_token", refresh_token);
+                const newRefreshToken =
+                    data?.refresh_token ||
+                    data?.tokens?.refresh_token ||
+                    null;
 
-                // Обновляем Authorization заголовок для всех последующих запросов
-                $api.defaults.headers.Authorization = `Bearer ${access_token}`;
+                const newJti =
+                    data?.jti ||
+                    data?.tokens?.jti ||
+                    null;
 
-                // Продолжаем все отложенные запросы
-                processQueue(null, access_token);ee
+                if (!accessToken) throw new Error("No access token in refresh response");
 
-                originalRequest.headers.Authorization = `Bearer ${access_token}`;
+                Cookies.set("token", accessToken);
+                if (newRefreshToken) Cookies.set("refresh_token", newRefreshToken);
+                if (newJti)          Cookies.set("jti", newJti);
+
+                $api.defaults.headers.Authorization = `Bearer ${accessToken}`;
+                processQueue(null, accessToken);
+
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
                 return $api(originalRequest);
             } catch (err) {
-                // 🔴 Если обновление не удалось, делаем полный logout
                 processQueue(err, null);
                 forceLogout();
                 return Promise.reject(err);

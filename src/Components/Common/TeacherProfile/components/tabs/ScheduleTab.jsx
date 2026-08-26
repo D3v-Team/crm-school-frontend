@@ -1,150 +1,111 @@
-// ScheduleTab.jsx
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { CalendarDays, Clock, BookOpen, Users } from 'lucide-react';
-import { Typography } from '@material-tailwind/react';
-import { useLazyGetScheduleByTeacherQuery } from '../../../../../store/services/group-schedule.api';
-import Loading from '../../../../Other/UI/Loadings/Loading';
+import { useMemo } from 'react';
+import { Clock, BookOpen, User, CalendarDays, CalendarCheck2 } from 'lucide-react';
 
-const DAY_LABELS = {
-    monday:    'Dushanba',
-    tuesday:   'Seshanba',
-    wednesday: 'Chorshanba',
-    thursday:  'Payshanba',
-    friday:    'Juma',
-    saturday:  'Shanba',
-    sunday:    'Yakshanba',
-};
+const DAYS_ORDER = ['monday','tuesday','wednesday','thursday','friday','saturday'];
+const DAY_LABELS = { monday:'Dushanba', tuesday:'Seshanba', wednesday:'Chorshanba', thursday:'Payshanba', friday:'Juma', saturday:'Shanba' };
+const DAY_SHORT  = { monday:'DU', tuesday:'SE', wednesday:'CH', thursday:'PA', friday:'JU', saturday:'SH' };
+const JS_DAY = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
-const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const PALETTE_COLORS = ['#6366f1','#8b5cf6','#f59e0b','#10b981','#ef4444','#06b6d4'];
+const colorFor = (id) => { if(!id)return PALETTE_COLORS[0]; let h=0; for(let i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))%PALETTE_COLORS.length; return PALETTE_COLORS[h]; };
+const fmtTime = (t) => t ? t.slice(0,5) : '—';
+const toMins  = (t) => { const [h,m]=(t||'0:0').split(':').map(Number); return h*60+m; };
 
-// Returns current week's monday date as YYYY-MM-DD
-function getThisMonday() {
-    const today = new Date();
-    const day = today.getDay(); // 0=Sun, 1=Mon ...
-    const diff = day === 0 ? -6 : 1 - day;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + diff);
-    return monday.toISOString().slice(0, 10);
-}
+export default function ScheduleTab({ user }) {
+    const schedules = user?.group_schedules || [];
+    const today = JS_DAY[new Date().getDay()];
 
-export default function ScheduleTab() {
-    const { id } = useParams();
-    const [selectedDate, setSelectedDate] = useState(getThisMonday);
-    const [trigger, { data, isLoading, error }] = useLazyGetScheduleByTeacherQuery();
+    const subjectsMap = useMemo(() => {
+        const m={};
+        (user?.teacher_subjects||[]).forEach(s=>{ m[s.subject_id]=s.name; });
+        return m;
+    }, [user]);
 
-    useEffect(() => {
-        if (id && selectedDate) {
-            trigger({ teacher_id: id, date: selectedDate });
-        }
-    }, [id, selectedDate, trigger]);
+    const grouped = useMemo(() => {
+        const m={};
+        schedules.forEach(item=>{ const d=item.day_of_week; if(!m[d])m[d]=[]; m[d].push(item); });
+        Object.keys(m).forEach(d=>m[d].sort((a,b)=>toMins(a.start_time)-toMins(b.start_time)));
+        return m;
+    }, [schedules]);
 
-    const schedules = data?.data || [];
+    const totalSchedules = schedules.length;
 
-    // Group by day_of_week, sorted by DAY_ORDER
-    const grouped = DAY_ORDER.reduce((acc, day) => {
-        const items = schedules
-            .filter((s) => s.day_of_week === day)
-            .sort((a, b) => a.start_time.localeCompare(b.start_time));
-        if (items.length > 0) acc[day] = items;
-        return acc;
-    }, {});
-
-    const hasDays = Object.keys(grouped).length > 0;
+    if (totalSchedules === 0) {
+        return (
+            <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
+                <CalendarDays size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>
+                <p style={{ fontSize:'0.875rem' }}>Jadvallar mavjud emas</p>
+            </div>
+        );
+    }
 
     return (
-        <div>
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                <div className="flex items-center gap-2">
-                    <CalendarDays className="w-5 h-5 text-accent" />
-                    <Typography variant="h6" className="text-text-primary font-semibold">
-                        Dars jadvali
-                    </Typography>
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ width:32,height:32,borderRadius:9,background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center' }}>
+                    <CalendarDays size={15} style={{ color:'var(--accent)' }}/>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Typography className="text-text-secondary text-sm">Hafta sanasi:</Typography>
-                    <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="bg-input-bg border border-border text-text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-accent"
-                    />
+                <div>
+                    <div style={{ fontSize:'0.875rem',fontWeight:600,color:'var(--text-primary)' }}>Dars jadvali</div>
+                    <div style={{ fontSize:'0.72rem',color:'var(--text-muted)' }}>Haftalik taqsimot · {totalSchedules} ta dars</div>
                 </div>
             </div>
 
-            {/* Content */}
-            {isLoading ? (
-                <Loading />
-            ) : error ? (
-                <div className="text-red-500 text-sm p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    Xatolik: {error?.data?.message || "Ma'lumot yuklanmadi"}
-                </div>
-            ) : !hasDays ? (
-                <div className="flex flex-col items-center justify-center py-14 text-center bg-input-bg/30 rounded-xl border border-border/40">
-                    <CalendarDays className="w-16 h-16 text-text-secondary/30 mb-3" />
-                    <Typography className="text-text-secondary text-base font-medium">
-                        Bu hafta uchun dars jadvali mavjud emas
-                    </Typography>
-                    <Typography className="text-text-secondary text-sm mt-1">
-                        Boshqa haftani tanlang
-                    </Typography>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-5">
-                    {Object.entries(grouped).map(([day, lessons]) => (
-                        <div key={day}>
-                            {/* Day label */}
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="h-px flex-1 bg-border/40" />
-                                <span className="text-xs font-semibold text-accent uppercase tracking-wider px-2">
-                                    {DAY_LABELS[day]}
-                                </span>
-                                <div className="h-px flex-1 bg-border/40" />
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px,1fr))', gap:12 }}>
+                {DAYS_ORDER.map(day => {
+                    const items = grouped[day] || [];
+                    const isToday = day === today;
+                    return (
+                        <div key={day} style={{
+                            borderRadius:14, overflow:'hidden',
+                            border: isToday ? '1.5px solid var(--accent)' : '1px solid var(--card-border)',
+                            background: 'var(--card-bg)',
+                            boxShadow: isToday ? '0 0 0 3px var(--accent-glow)' : 'none',
+                        }}>
+                            {/* Day header */}
+                            <div style={{ display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderBottom:'1px solid var(--card-border)',background:isToday?'var(--accent-soft)':'transparent' }}>
+                                <div style={{ width:28,height:28,borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.72rem',fontWeight:700,background:isToday?'var(--accent)':'var(--input-bg)',color:isToday?'#fff':'var(--text-muted)',flexShrink:0 }}>
+                                    {DAY_SHORT[day]}
+                                </div>
+                                <span style={{ fontSize:'0.82rem',fontWeight:600,color:'var(--text-primary)' }}>{DAY_LABELS[day]}</span>
+                                {isToday && <span style={{ fontSize:'0.68rem',fontWeight:600,color:'var(--accent)',background:'var(--accent-soft)',padding:'1px 8px',borderRadius:99,display:'flex',alignItems:'center',gap:3 }}><CalendarCheck2 size={10}/>Bugun</span>}
+                                {items.length > 0 && !isToday && <span style={{ fontSize:'0.68rem',color:'var(--text-muted)',background:'var(--input-bg)',padding:'1px 7px',borderRadius:99,marginLeft:'auto' }}>{items.length}</span>}
                             </div>
 
-                            {/* Lessons */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {lessons.map((lesson) => (
-                                    <div
-                                        key={lesson.id}
-                                        className="p-4 rounded-xl bg-input-bg/40 border border-border/40 hover:border-accent/40 hover:shadow-md transition-all duration-200"
-                                    >
-                                        {/* Time */}
-                                        <div className="flex items-center gap-1.5 mb-2">
-                                            <Clock className="w-4 h-4 text-accent" />
-                                            <span className="text-accent font-semibold text-sm">
-                                                {lesson.start_time?.slice(0, 5)} – {lesson.end_time?.slice(0, 5)}
-                                            </span>
-                                        </div>
-
-                                        {/* Subject */}
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <BookOpen className="w-4 h-4 text-text-secondary flex-shrink-0" />
-                                            <Typography className="text-text-primary font-medium text-sm">
-                                                {lesson.subject?.name || '—'}
-                                            </Typography>
-                                        </div>
-
-                                        {/* Group */}
-                                        <div className="flex items-center gap-2">
-                                            <Users className="w-4 h-4 text-text-secondary flex-shrink-0" />
-                                            <Typography className="text-text-secondary text-xs">
-                                                {lesson.group?.name || '—'}
-                                                {lesson.group?.start_date && (
-                                                    <span className="ml-1 opacity-60">
-                                                        ({new Date(lesson.group.start_date).toLocaleDateString('uz-UZ')})
-                                                    </span>
-                                                )}
-                                            </Typography>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            {items.length === 0 ? (
+                                <div style={{ padding:'24px 0',textAlign:'center',color:'var(--text-muted)',fontSize:'0.78rem' }}>Dars yo'q</div>
+                            ) : (
+                                <div>
+                                    {items.map(item => {
+                                        const color = colorFor(item.subject_id);
+                                        const subName = subjectsMap[item.subject_id] || (item.subject?.name) || item.subject_id?.slice(0,8);
+                                        return (
+                                            <div key={item.id} style={{ display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',borderTop:'1px solid var(--card-border)' }}
+                                                onMouseEnter={e=>e.currentTarget.style.background='var(--input-bg)'}
+                                                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                                                <div style={{ width:3,borderRadius:99,background:color,alignSelf:'stretch',flexShrink:0,marginTop:2 }}/>
+                                                <div>
+                                                    <div style={{ fontSize:'0.72rem',fontWeight:600,color:color,marginBottom:3,display:'flex',alignItems:'center',gap:4 }}>
+                                                        <Clock size={10}/>{fmtTime(item.start_time)}–{fmtTime(item.end_time)}
+                                                    </div>
+                                                    <div style={{ fontSize:'0.82rem',fontWeight:600,color:'var(--text-primary)',display:'flex',alignItems:'center',gap:5 }}>
+                                                        <BookOpen size={11} style={{ color:'var(--text-muted)',flexShrink:0 }}/>{subName}
+                                                    </div>
+                                                    {item.group?.name && (
+                                                        <div style={{ fontSize:'0.72rem',color:'var(--text-muted)',display:'flex',alignItems:'center',gap:4,marginTop:2 }}>
+                                                            <User size={10}/>{item.group.name}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    ))}
-                </div>
-            )}
+                    );
+                })}
+            </div>
         </div>
     );
 }

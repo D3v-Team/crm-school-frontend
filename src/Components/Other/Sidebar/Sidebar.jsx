@@ -1,12 +1,18 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { SIDEBAR_CONFIG } from "../../../app/navigation/sidebar.config";
 import { useAppSelector } from "../../../store/hooks";
+import { useGetUserByIdQuery } from "../../../store/services/user.api";
 import Cookies from 'js-cookie';
 import { GraduationCap, ChevronRight } from "lucide-react";
 
 export default function Sidebar({ open }) {
+    const location = useLocation();
     const roleFromStore = useAppSelector((s) => s.auth?.role);
+    const userId = useAppSelector((s) => s.auth?.userId);
     const role = roleFromStore || Cookies.get('role') || null;
+
+    const { data: userData } = useGetUserByIdQuery(userId, { skip: !userId });
+    const schoolName = userData?.data?.school?.name || userData?.school?.name || 'CRM School';
 
     const menuItems = SIDEBAR_CONFIG.filter((item) => {
         if (!item.roles || item.roles.length === 0) return true;
@@ -14,9 +20,24 @@ export default function Sidebar({ open }) {
         return item.roles.includes(role);
     });
 
+    /* Check if current path matches item or any of its childPaths */
+    const isItemActive = (item) => {
+        const cur = location.pathname;
+        if (cur === item.path || cur.startsWith(item.path + '/')) return true;
+        if (item.childPaths) {
+            return item.childPaths.some(cp => cur.startsWith(cp));
+        }
+        return false;
+    };
+
     const roleLabel =
         role === 'super_admin' ? 'Super Admin' :
-        role === 'admin' ? 'Admin' :
+        role === 'admin'       ? 'Admin'       :
+        role === 'teacher'     ? "O'qituvchi"  :
+        role === 'parent'      ? 'Ota-ona'     :
+        role === 'hr'          ? 'HR'          :
+        role === 'cashier'     ? 'Kassir'      :
+        role === 'dev'         ? 'Developer'   :
         role ? role : 'Foydalanuvchi';
 
     const roleInitial = roleLabel.charAt(0).toUpperCase();
@@ -54,10 +75,10 @@ export default function Sidebar({ open }) {
                 {!open && (
                     <div className="overflow-hidden">
                         <div className="font-bold text-sm leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
-                            CRM School
+                            {schoolName}
                         </div>
                         <div className="text-[11px] leading-tight truncate" style={{ color: 'var(--text-muted)' }}>
-                            Management
+                            Boshqaruv tizimi
                         </div>
                     </div>
                 )}
@@ -81,6 +102,7 @@ export default function Sidebar({ open }) {
 
                 {menuItems.map((item, idx) => {
                     const Icon = item.icon;
+                    const forceActive = isItemActive(item);
                     return (
                         <NavLink
                             key={item.path + idx}
@@ -89,7 +111,9 @@ export default function Sidebar({ open }) {
                             className="group relative"
                             style={{ textDecoration: 'none' }}
                         >
-                            {({ isActive }) => (
+                            {({ isActive: navActive }) => {
+                                const isActive = forceActive || navActive;
+                                return (
                                 <div
                                     className={`
                                         flex items-center gap-3 rounded-xl transition-all duration-200 font-medium
@@ -146,7 +170,8 @@ export default function Sidebar({ open }) {
                                         </div>
                                     )}
                                 </div>
-                            )}
+                                );
+                            }}
                         </NavLink>
                     );
                 })}
@@ -170,8 +195,7 @@ export default function Sidebar({ open }) {
                         </div>
                         <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                             Tizimda
-                        </div>
-                    </div>
+                        </div>                    </div>
                 )}
             </div>
         </aside>

@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Typography } from '@material-tailwind/react';
 import { BookOpen } from 'lucide-react';
 import AddSubject from '../AddSubject';
 import DeleteSubject from '../DeleteSubject';
@@ -8,80 +7,56 @@ import { useLazyGetTeacherSubjectsByTeacherIdQuery } from '../../../../../store/
 import Loading from '../../../../Other/UI/Loadings/Loading';
 
 export default function SubjectsTab() {
-    const { id } = useParams(); // teacher_id из URL
-    const [trigger, { data, isLoading, error, refetch }] = useLazyGetTeacherSubjectsByTeacherIdQuery();
+    const { id } = useParams();
+    const [trigger, { data, isLoading, error }] = useLazyGetTeacherSubjectsByTeacherIdQuery();
 
-    useEffect(() => {
-        if (id) {
-            trigger(id);
-        }
-    }, [id, trigger]);
+    useEffect(() => { if (id) trigger(id); }, [id]);
+    const refresh = () => { if (id) trigger(id); };
 
-    // Обработчик обновления списка после добавления/удаления
-    const handleRefresh = () => {
-        if (id) trigger(id);
-    };
+    if (isLoading) return <Loading/>;
+    if (error) return <div style={{ color:'var(--danger)', padding:12, background:'var(--danger-soft)', borderRadius:10 }}>Xatolik: {error?.data?.message}</div>;
 
-    if (isLoading) return <Loading />;
-    if (error) {
-        return (
-            <div className="text-red-500 text-sm p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                Xatolik yuz berdi: {error?.data?.message || "Noma'lum xatolik"}
-            </div>
-        );
-    }
-
-    // Извлекаем массив объектов, каждый содержит teacher_subject_id и subject
-    const teacherSubjects = data?.data || [];
+    const subjects = data?.data || [];
 
     return (
-        <div className="mb-6 last:mb-0">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-accent" />
-                    <Typography variant="h6" className="text-text-primary font-semibold">
-                        Fanlar
-                    </Typography>
-              
+        <div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:30, height:30, borderRadius:8, background:'var(--accent-soft)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <BookOpen size={15} style={{ color:'var(--accent)' }}/>
+                    </div>
+                    <span style={{ fontSize:'0.875rem', fontWeight:600, color:'var(--text-primary)' }}>Fanlar</span>
+                    {subjects.length > 0 && <span style={{ fontSize:'0.72rem', background:'var(--accent-soft)', color:'var(--accent)', padding:'1px 8px', borderRadius:99, fontWeight:600 }}>{subjects.length}</span>}
                 </div>
-                <AddSubject  onAdd={handleRefresh} />
+                <AddSubject onAdd={refresh}/>
             </div>
 
-            {teacherSubjects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center bg-input-bg/30 rounded-xl border border-border/40">
-                    <BookOpen className="w-16 h-16 text-text-secondary/30 mb-3" />
-                    <Typography className="text-text-secondary text-base font-medium">
-                        Hozircha fanlar mavjud emas
-                    </Typography>
-                    <Typography className="text-text-secondary text-sm mt-1">
-                        O‘qituvchiga fan biriktirish uchun "Qo‘shish" tugmasini bosing
-                    </Typography>
+            {subjects.length === 0 ? (
+                <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
+                    <BookOpen size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>
+                    <p style={{ fontSize:'0.875rem' }}>Fan biriktirilmagan</p>
+                    <p style={{ fontSize:'0.78rem', marginTop:4 }}>Qo'shish tugmasini bosing</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {teacherSubjects.map((item) => (
-                        <div
-                            key={item.teacher_subject_id}
-                            className="flex items-center justify-between p-4 rounded-xl bg-input-bg/40 border border-border/40 hover:border-accent/40 hover:shadow-md transition-all duration-200 group"
-                        >
-                            <div className="flex items-center gap-3">
-                                <BookOpen className="w-5 h-5 text-accent/70 flex-shrink-0" />
-                                <div>
-                                    <Typography className="text-text-primary font-medium">
-                                        {item.subject?.name || 'Noma\'lum fan'}
-                                    </Typography>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px,1fr))', gap:10 }}>
+                    {subjects.map(item => (
+                        <div key={item.teacher_subject_id} className="data-card" style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:'12px 14px' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                                <div style={{ width:32, height:32, borderRadius:8, background:'var(--accent-soft)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                    <BookOpen size={14} style={{ color:'var(--accent)' }}/>
+                                </div>
+                                <div style={{ minWidth:0 }}>
+                                    <div style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                        {item.subject?.name||"Noma'lum"}
+                                    </div>
                                     {item.subject?.createdAt && (
-                                        <Typography className="text-text-secondary text-xs">
-                                            Qo‘shilgan: {new Date(item.subject.createdAt).toLocaleDateString('uz-UZ')}
-                                        </Typography>
+                                        <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>
+                                            {new Date(item.subject.createdAt).toLocaleDateString('uz-UZ')}
+                                        </div>
                                     )}
                                 </div>
                             </div>
-                            <DeleteSubject
-                                teacherSubjectId={item.teacher_subject_id}
-                                subjectName={item.subject?.name || 'Fan'}
-                                onRemove={handleRefresh}
-                            />
+                            <DeleteSubject teacherSubjectId={item.teacher_subject_id} subjectName={item.subject?.name||'Fan'} onRemove={refresh}/>
                         </div>
                     ))}
                 </div>

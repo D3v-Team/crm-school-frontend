@@ -73,6 +73,15 @@ export const userApi = createApi({
             }),
             invalidatesTags: (result, error, { id }) => [{ type: 'User', id }],
         }),
+        // POST /api/user/super-admin  (dev only)
+        createSuperAdmin: builder.mutation({
+            query: (data) => ({
+                url: '/user/super-admin',
+                method: 'POST',
+                data,
+            }),
+            invalidatesTags: [{ type: 'User', id: 'LIST' }],
+        }),
     }),
 });
 
@@ -87,4 +96,5 @@ export const {
     useDeleteUserMutation,
     useResetChatIdMutation,
     useResetPasswordMutation,
+    useCreateSuperAdminMutation,
 } = userApi;

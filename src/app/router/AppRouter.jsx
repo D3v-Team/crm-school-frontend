@@ -24,6 +24,7 @@ export default function AppRouter() {
                     ))}
                 </Route>
 
+                <Route path="/403" element={<ErrorPage />} />
                 <Route path="*" element={<ErrorPage />} />
             </Routes>
         </Suspense>

@@ -77,19 +77,18 @@ export default function Subject() {
                             <p>Fanlar topilmadi</p>
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:12 }}>
                             {subjects.map((subject) => (
-                                <div key={subject.id} className="data-card">
-                                    <div className="data-card-icon">
-                                        <BookOpen size={18} />
+                                <div key={subject.id} className="data-card" style={{ padding:'14px 16px', position:'relative' }}>
+                                    {/* Edit + Delete — top right */}
+                                    <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:5 }}>
+                                        {!isTeacher && <Edit subject={subject} />}
+                                        {!isTeacher && <Delete subject={subject} />}
                                     </div>
-                                    <span className="data-card-name">{subject.name}</span>
-                                    {!isTeacher && (
-                                        <div className="data-card-actions">
-                                            <Edit subject={subject} />
-                                            <Delete subject={subject} />
-                                        </div>
-                                    )}
+                                    {/* Name */}
+                                    <span className="data-card-name" style={{ paddingRight:60, display:'block', lineHeight:1.4 }}>
+                                        {subject.name}
+                                    </span>
                                 </div>
                             ))}
                         </div>

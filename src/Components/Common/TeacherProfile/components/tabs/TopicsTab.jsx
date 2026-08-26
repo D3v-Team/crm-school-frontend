@@ -1,198 +1,105 @@
-// TopicsTab.jsx
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ListChecks, CalendarDays, ChevronLeft, ChevronRight, BookOpen, Users, Calendar } from 'lucide-react';
-import { Typography } from '@material-tailwind/react';
 import { useLazyGetWeeklyTopicsQuery } from '../../../../../store/services/weekly-topic.api';
+import { ListChecks, RefreshCw, Calendar } from 'lucide-react';
 import Loading from '../../../../Other/UI/Loadings/Loading';
 
-// Returns monday of current week + offset weeks as YYYY-MM-DD
-function getThisMonday(offset = 0) {
-    const today = new Date();
-    const day = today.getDay(); // 0=Sun
-    const diff = day === 0 ? -6 : 1 - day;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + diff + offset * 7);
-    return monday.toISOString().slice(0, 10);
-}
+const DAYS_UZ = ['Yakshanba','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'];
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
 
-function formatWeekRange(mondayStr) {
-    const monday = new Date(mondayStr);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    const fmt = (d) =>
-        d.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    return `${fmt(monday)} – ${fmt(sunday)}`;
-}
+export default function TopicsTab({ user }) {
+    const { id: teacherId } = useParams();
+    const [fetchTopics, { data, isLoading, error }] = useLazyGetWeeklyTopicsQuery();
 
-export default function TopicsTab() {
-    const { id: teacher_id } = useParams();
-    const [weekOffset, setWeekOffset] = useState(0);
-    const [page, setPage] = useState(1);
-    const weekStartDate = getThisMonday(weekOffset);
-
-    const [trigger, { data, isLoading, isFetching, error }] = useLazyGetWeeklyTopicsQuery();
-
-    // Reset to page 1 when week changes
-    useEffect(() => {
-        setPage(1);
-    }, [weekOffset]);
+    const now = new Date();
+    const mondayOfWeek = (d) => {
+        const day = d.getDay() || 7;
+        const m = new Date(d);
+        m.setDate(d.getDate() - day + 1);
+        return m.toISOString().split('T')[0];
+    };
+    const [weekStart, setWeekStart] = useState(mondayOfWeek(now));
 
     useEffect(() => {
-        if (teacher_id) {
-            trigger({ teacher_id, week_start_date: weekStartDate, page });
+        if (teacherId) {
+            fetchTopics({ teacher_id: teacherId, week_start_date: weekStart });
         }
-    }, [teacher_id, weekStartDate, page, trigger]);
+    }, [teacherId, weekStart]);
 
     const records = data?.data?.records || [];
-    const totalCount = data?.data?.pagination?.total_count ?? records.length;
-    const totalPages = data?.data?.pagination?.total_pages ?? 1;
+    // Also show topics from user prop as fallback
+    const userTopics = user?.weekly_topics || [];
+    const topics = records.length > 0 ? records : userTopics;
 
-    const goBack = () => setWeekOffset((o) => o - 1);
-    const goForward = () => setWeekOffset((o) => o + 1);
-    const goToday = () => { setWeekOffset(0); setPage(1); };
+    const prevWeek = () => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() - 7);
+        setWeekStart(d.toISOString().split('T')[0]);
+    };
+    const nextWeek = () => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + 7);
+        setWeekStart(d.toISOString().split('T')[0]);
+    };
 
     return (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                <div className="flex items-center gap-2">
-                    <ListChecks className="w-5 h-5 text-accent" />
-                    <Typography variant="h6" className="text-text-primary font-semibold">
-                        Haftalik mavzular
-                    </Typography>
-                    {!isLoading && !isFetching && (
-                        <span className="text-xs text-text-secondary bg-input-bg/60 border border-border/40 rounded-full px-2 py-0.5">
-                            {totalCount} ta
-                        </span>
-                    )}
-                </div>
-
-                {/* Week navigator */}
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={goBack}
-                        className="p-1.5 rounded-lg border border-border/60 text-text-secondary hover:text-accent hover:border-accent/50 transition-all"
-                        title="Oldingi hafta"
-                    >
-                        <ChevronLeft size={16} />
-                    </button>
-
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-input-bg/50 border border-border/50 min-w-[190px] justify-center">
-                        <CalendarDays size={14} className="text-accent flex-shrink-0" />
-                        <span className="text-text-primary text-xs font-medium">
-                            {formatWeekRange(weekStartDate)}
-                        </span>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:30,height:30,borderRadius:8,background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center' }}>
+                        <ListChecks size={15} style={{ color:'var(--accent)' }}/>
                     </div>
-
-                    <button
-                        onClick={goForward}
-                        className="p-1.5 rounded-lg border border-border/60 text-text-secondary hover:text-accent hover:border-accent/50 transition-all"
-                        title="Keyingi hafta"
-                    >
-                        <ChevronRight size={16} />
+                    <span style={{ fontSize:'0.875rem',fontWeight:600,color:'var(--text-primary)' }}>Haftalik mavzular</span>
+                    {topics.length > 0 && <span style={{ fontSize:'0.72rem',background:'var(--accent-soft)',color:'var(--accent)',padding:'1px 8px',borderRadius:99,fontWeight:600 }}>{topics.length}</span>}
+                </div>
+                {/* Week navigation */}
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <button onClick={prevWeek} style={{ width:30,height:30,borderRadius:8,border:'1.5px solid var(--card-border)',background:'var(--input-bg)',color:'var(--text-secondary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.82rem',fontWeight:700 }}>‹</button>
+                    <div style={{ display:'flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:8,border:'1px solid var(--card-border)',background:'var(--input-bg)' }}>
+                        <Calendar size={13} style={{ color:'var(--accent)' }}/>
+                        <span style={{ fontSize:'0.78rem',color:'var(--text-primary)',fontWeight:500 }}>{weekStart}</span>
+                    </div>
+                    <button onClick={nextWeek} style={{ width:30,height:30,borderRadius:8,border:'1.5px solid var(--card-border)',background:'var(--input-bg)',color:'var(--text-secondary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.82rem',fontWeight:700 }}>›</button>
+                    <button onClick={()=>fetchTopics({ teacher_id:teacherId, week_start_date:weekStart })}
+                        style={{ width:30,height:30,borderRadius:8,border:'1.5px solid var(--card-border)',background:'var(--input-bg)',color:'var(--text-secondary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}>
+                        <RefreshCw size={13}/>
                     </button>
-
-                    {weekOffset !== 0 && (
-                        <button
-                            onClick={goToday}
-                            className="text-xs text-accent border border-accent/40 rounded-lg px-2.5 py-1.5 hover:bg-accent/10 transition-all"
-                        >
-                            Joriy hafta
-                        </button>
-                    )}
                 </div>
             </div>
 
-            {/* Content */}
-            {isLoading || isFetching ? (
-                <Loading />
-            ) : error ? (
-                <div className="text-red-500 text-sm p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    Xatolik: {error?.data?.message || "Ma'lumot yuklanmadi"}
-                </div>
-            ) : records.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 text-center bg-input-bg/30 rounded-xl border border-border/40">
-                    <ListChecks className="w-16 h-16 text-text-secondary/30 mb-3" />
-                    <Typography className="text-text-secondary text-base font-medium">
-                        Bu hafta uchun mavzular topilmadi
-                    </Typography>
-                    <Typography className="text-text-secondary text-sm mt-1">
-                        Boshqa haftani tanlang
-                    </Typography>
+            {isLoading ? <Loading/> : error ? (
+                <div style={{ color:'var(--danger)',padding:12,background:'var(--danger-soft)',borderRadius:10 }}>Xatolik: {error?.data?.message}</div>
+            ) : topics.length === 0 ? (
+                <div style={{ textAlign:'center',padding:'40px 0',color:'var(--text-muted)' }}>
+                    <ListChecks size={40} style={{ opacity:.2,margin:'0 auto 10px' }}/>
+                    <p style={{ fontSize:'0.875rem' }}>Bu hafta uchun mavzular yo'q</p>
                 </div>
             ) : (
-                <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {records.map((topic) => (
-                            <div
-                                key={topic.id}
-                                className="p-4 rounded-xl bg-input-bg/40 border border-border/40 hover:border-accent/40 hover:shadow-md transition-all duration-200 flex flex-col gap-2"
-                            >
-                                {/* Topic */}
-                                <div className="flex items-start gap-2">
-                                    <BookOpen className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                                    <Typography className="text-text-primary font-semibold text-sm leading-snug">
-                                        {topic.topic || 'Mavzu'}
-                                    </Typography>
+                <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(240px,1fr))',gap:10 }}>
+                    {topics.map((t,i) => (
+                        <div key={t.id||i} style={{ padding:'14px 16px',borderRadius:12,border:'1px solid var(--card-border)',background:'var(--card-bg)',transition:'border-color 0.15s' }}
+                            onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
+                            onMouseLeave={e=>e.currentTarget.style.borderColor='var(--card-border)'}>
+                            <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:8 }}>
+                                <div style={{ width:28,height:28,borderRadius:7,background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                                    <ListChecks size={13} style={{ color:'var(--accent)' }}/>
                                 </div>
-
-                                <div className="flex flex-col gap-1.5 pl-6">
-                                    {/* Group */}
-                                    {topic.group?.name && (
-                                        <div className="flex items-center gap-1.5">
-                                            <Users className="w-3.5 h-3.5 text-text-secondary flex-shrink-0" />
-                                            <span className="text-text-secondary text-xs">{topic.group.name}</span>
-                                        </div>
-                                    )}
-
-                                    {/* Subject */}
-                                    {topic.subject?.name && (
-                                        <div className="flex items-center gap-1.5">
-                                            <ListChecks className="w-3.5 h-3.5 text-text-secondary flex-shrink-0" />
-                                            <span className="text-text-secondary text-xs">{topic.subject.name}</span>
-                                        </div>
-                                    )}
-
-                                    {/* Week start date */}
-                                    {topic.week_start_date && (
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar className="w-3.5 h-3.5 text-text-secondary flex-shrink-0" />
-                                            <span className="text-text-secondary text-xs">
-                                                {new Date(topic.week_start_date).toLocaleDateString('uz-UZ')}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
+                                <span style={{ fontSize:'0.82rem',fontWeight:600,color:'var(--text-primary)' }}>
+                                    {t.title||t.name||`Mavzu ${i+1}`}
+                                </span>
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-2 mt-5">
-                            <button
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className="p-1.5 rounded-lg border border-border/60 text-text-secondary hover:text-accent hover:border-accent/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
-
-                            <span className="text-text-secondary text-sm px-2">
-                                {page} / {totalPages}
-                            </span>
-
-                            <button
-                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                                className="p-1.5 rounded-lg border border-border/60 text-text-secondary hover:text-accent hover:border-accent/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                            >
-                                <ChevronRight size={16} />
-                            </button>
+                            {t.description && (
+                                <p style={{ fontSize:'0.78rem',color:'var(--text-secondary)',margin:'0 0 8px',lineHeight:1.5 }}>{t.description}</p>
+                            )}
+                            <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginTop:4 }}>
+                                {t.group?.name && <span style={{ fontSize:'0.72rem',padding:'2px 8px',borderRadius:99,background:'var(--accent-soft)',color:'var(--accent)',fontWeight:600 }}>{t.group.name}</span>}
+                                {t.subject?.name && <span style={{ fontSize:'0.72rem',padding:'2px 8px',borderRadius:99,background:'var(--success-soft)',color:'var(--success)',fontWeight:600 }}>{t.subject.name}</span>}
+                                {t.week_start_date && <span style={{ fontSize:'0.68rem',color:'var(--text-muted)' }}>{fmtDate(t.week_start_date)}</span>}
+                            </div>
                         </div>
-                    )}
-                </>
+                    ))}
+                </div>
             )}
         </div>
     );

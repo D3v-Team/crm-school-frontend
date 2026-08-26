@@ -14,7 +14,12 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, ...props }
     const role = roleFromStore || Cookies.get('role') || null;
     const roleLabel =
         role === 'super_admin' ? 'Super Admin' :
-        role === 'admin' ? 'Admin' :
+        role === 'admin'       ? 'Admin'       :
+        role === 'teacher'     ? "O'qituvchi"  :
+        role === 'parent'      ? 'Ota-ona'     :
+        role === 'hr'          ? 'HR'          :
+        role === 'cashier'     ? 'Kassir'      :
+        role === 'dev'         ? 'Developer'   :
         role ? role : 'Foydalanuvchi';
 
     useEffect(() => {
@@ -68,19 +73,7 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, ...props }
                     <Menu className="w-4 h-4" />
                 </button>
 
-                {/* Search */}
-                <div
-                    className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl"
-                    style={{ background: 'var(--input-bg)', border: '1.5px solid var(--input-border)' }}
-                >
-                    <Search className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                    <input
-                        type="text"
-                        placeholder="Qidirish..."
-                        className="bg-transparent outline-none text-sm transition-all duration-200 focus:w-48 w-36"
-                        style={{ color: 'var(--input-text)' }}
-                    />
-                </div>
+              
             </div>
 
             {/* Right */}
@@ -118,7 +111,7 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, ...props }
                                 {roleLabel}
                             </div>
                             <div className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>
-                                Online
+                                Tizimda
                             </div>
                         </div>
                         <ChevronDown

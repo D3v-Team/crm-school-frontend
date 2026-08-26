@@ -9,6 +9,7 @@ const initialState = {
     userId: Cookies.get('userId') || Cookies.get('us_nesw') || null,
     role: Cookies.get('role') || null,
     isAuthenticated: !!Cookies.get('token'),
+    is_payment: Cookies.get('is_payment') === 'true',
 };
 
 const authSlice = createSlice({
@@ -31,12 +32,14 @@ const authSlice = createSlice({
             const jti = payload.jti || payload.tokens?.jti || null;
             const userId = payload.user?.id || payload.userId || payload.user_id || null;
             const role = payload.role || payload.user?.role || null;
+            const is_payment = payload.user?.is_payment ?? payload.is_payment ?? false;
 
             state.token = token;
             state.refreshToken = refreshToken;
             state.jti = jti;
             state.userId = userId;
             state.role = role;
+            state.is_payment = is_payment;
             state.isAuthenticated = !!token;
 
             if (token) Cookies.set('token', token);
@@ -47,6 +50,7 @@ const authSlice = createSlice({
                 Cookies.remove('us_nesw');
             }
             if (role) Cookies.set('role', role);
+            Cookies.set('is_payment', String(is_payment));
         },
         logout(state) {
             state.token = null;
@@ -54,6 +58,7 @@ const authSlice = createSlice({
             state.jti = null;
             state.userId = null;
             state.role = null;
+            state.is_payment = false;
             state.isAuthenticated = false;
 
             Cookies.remove('token');
@@ -62,6 +67,7 @@ const authSlice = createSlice({
             Cookies.remove('userId');
             Cookies.remove('us_nesw');
             Cookies.remove('role');
+            Cookies.remove('is_payment');
         },
     },
 });

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useGetOverviewQuery } from '../../../store/services/statistic.api';
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -145,6 +146,8 @@ export default function Dashboard() {
         name: MONTH_NAMES[(d.month ?? 1) - 1] ?? d.month,
     }));
 
+    const is_payment = useSelector(s => s.auth.is_payment);
+
     const pieData = pay?.students_status ? [
         { name: "To'liq",  value: pay.students_status.full_paid    || 0 },
         { name: "Qisman",  value: pay.students_status.partial_paid || 0 },
@@ -190,9 +193,7 @@ export default function Dashboard() {
                             Boshqaruv paneli
                         </h1>
                     </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, marginLeft: 46 }}>
-                        {now.toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
+               
                 </div>
 
                 {/* Filters */}
@@ -253,56 +254,99 @@ export default function Dashboard() {
             </div>
 
             {/* ── Middle row: detail cards ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                {g?.students && (
-                    <DashCard>
-                        <CardHead icon={GraduationCap} title="O'quvchilar holati" color="#6366f1" />
-                        <div style={{ padding: '12px 20px 0' }} />
-                        <StatRow items={[
-                            { label: 'Faol',   value: g.students.active   ?? 0 },
-                            { label: 'Nofaol', value: g.students.inactive ?? 0 },
-                            { label: 'Jami',   value: g.students.total    ?? 0 },
-                        ]} />
-                    </DashCard>
-                )}
-
-                {g?.parents && (
-                    <DashCard>
-                        <CardHead icon={Users2} title="Ota-onalar" color="#ec4899" />
-                        <div style={{ padding: '12px 20px 0' }} />
-                        <StatRow items={[
-                            { label: 'Jami',       value: g.parents.total         ?? 0 },
-                            { label: 'Bot ulangan', value: g.parents.linked_to_bot ?? 0 },
-                            { label: 'Ulanmagan',  value: g.parents.not_linked    ?? 0 },
-                        ]} />
-                    </DashCard>
-                )}
-
-                {pay?.monthly && (
-                    <DashCard>
-                        <CardHead icon={Wallet} title={`Oylik to'lov — ${FULL_MONTHS[(filters.month ?? 1) - 1]}`} color="#f59e0b" />
-                        <div style={{ padding: '12px 20px 0' }} />
-                        <StatRow items={[
-                            { label: 'Kerakli',   value: pay.monthly.total_required ?? 0 },
-                            { label: "To'langan", value: pay.monthly.total_paid     ?? 0 },
-                            { label: 'Qarz',      value: pay.monthly.total_debt     ?? 0 },
-                        ]} />
-                    </DashCard>
-                )}
-
-                {pay?.daily && (
-                    <DashCard>
-                        <CardHead icon={CalendarDays} title={`Kunlik to'lov — ${pay.daily.date ?? ''}`} color="#6366f1" />
-                        <div style={{ padding: '12px 20px 0' }} />
-                        <StatRow items={[
-                            { label: "To'langan",  value: pay.daily.total_paid     ?? 0 },
-                            { label: "To'lovlar",  value: pay.daily.payments_count ?? 0 },
-                        ]} />
-                    </DashCard>
-                )}
-            </div>
+            {is_payment ? (
+                /* With payment — 4 columns */
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                    {g?.students && (
+                        <DashCard>
+                            <CardHead icon={GraduationCap} title="O'quvchilar holati" color="#6366f1" />
+                            <div style={{ padding: '12px 20px 0' }} />
+                            <StatRow items={[
+                                { label: 'Faol',   value: g.students.active   ?? 0 },
+                                { label: 'Nofaol', value: g.students.inactive ?? 0 },
+                                { label: 'Jami',   value: g.students.total    ?? 0 },
+                            ]} />
+                        </DashCard>
+                    )}
+                    {g?.parents && (
+                        <DashCard>
+                            <CardHead icon={Users2} title="Ota-onalar" color="#ec4899" />
+                            <div style={{ padding: '12px 20px 0' }} />
+                            <StatRow items={[
+                                { label: 'Jami',       value: g.parents.total         ?? 0 },
+                                { label: 'Bot ulangan', value: g.parents.linked_to_bot ?? 0 },
+                                { label: 'Ulanmagan',  value: g.parents.not_linked    ?? 0 },
+                            ]} />
+                        </DashCard>
+                    )}
+                    {pay?.monthly && (
+                        <DashCard>
+                            <CardHead icon={Wallet} title={`Oylik to'lov — ${FULL_MONTHS[(filters.month ?? 1) - 1]}`} color="#f59e0b" />
+                            <div style={{ padding: '12px 20px 0' }} />
+                            <StatRow items={[
+                                { label: 'Kerakli',   value: pay.monthly.total_required ?? 0 },
+                                { label: "To'langan", value: pay.monthly.total_paid     ?? 0 },
+                                { label: 'Qarz',      value: pay.monthly.total_debt     ?? 0 },
+                            ]} />
+                        </DashCard>
+                    )}
+                    {pay?.daily && (
+                        <DashCard>
+                            <CardHead icon={CalendarDays} title={`Kunlik to'lov — ${pay.daily.date ?? ''}`} color="#6366f1" />
+                            <div style={{ padding: '12px 20px 0' }} />
+                            <StatRow items={[
+                                { label: "To'langan",  value: pay.daily.total_paid     ?? 0 },
+                                { label: "To'lovlar",  value: pay.daily.payments_count ?? 0 },
+                            ]} />
+                        </DashCard>
+                    )}
+                </div>
+            ) : (
+                /* Without payment — 2 big columns */
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    {g?.students && (
+                        <DashCard>
+                            <CardHead icon={GraduationCap} title="O'quvchilar holati" color="#6366f1" />
+                            <div style={{ padding: '20px 24px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                                    {[
+                                        { label: 'Faol',   value: g.students.active   ?? 0, color: 'var(--success)' },
+                                        { label: 'Nofaol', value: g.students.inactive ?? 0, color: 'var(--danger)' },
+                                        { label: 'Jami',   value: g.students.total    ?? 0, color: 'var(--accent)' },
+                                    ].map((item, i) => (
+                                        <div key={i} style={{ textAlign: 'center', padding: '22px 12px', background: 'var(--input-bg)', borderRadius: 14 }}>
+                                            <div style={{ fontSize: '2.4rem', fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.value}</div>
+                                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 6 }}>{item.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </DashCard>
+                    )}
+                    {g?.parents && (
+                        <DashCard>
+                            <CardHead icon={Users2} title="Ota-onalar" color="#ec4899" />
+                            <div style={{ padding: '20px 24px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                                    {[
+                                        { label: 'Jami',        value: g.parents.total         ?? 0, color: '#ec4899' },
+                                        { label: 'Bot ulangan', value: g.parents.linked_to_bot ?? 0, color: 'var(--success)' },
+                                        { label: 'Ulanmagan',   value: g.parents.not_linked    ?? 0, color: 'var(--text-muted)' },
+                                    ].map((item, i) => (
+                                        <div key={i} style={{ textAlign: 'center', padding: '22px 12px', background: 'var(--input-bg)', borderRadius: 14 }}>
+                                            <div style={{ fontSize: '2.4rem', fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.value}</div>
+                                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 6 }}>{item.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </DashCard>
+                    )}
+                </div>
+            )}
 
             {/* ── Charts row ── */}
+            {is_payment && (
             <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
 
                 {/* Area/Bar — yearly */}
@@ -379,9 +423,10 @@ export default function Dashboard() {
                     </div>
                 </DashCard>
             </div>
+            )}
 
             {/* ── Payment methods bar ── */}
-            {methodData.length > 0 && (
+            {is_payment && methodData.length > 0 && (
                 <DashCard>
                     <CardHead icon={Wallet} title="To'lov usullari (oylik)" color="#10b981" />
                     <div style={{ padding: '16px 20px 20px' }}>

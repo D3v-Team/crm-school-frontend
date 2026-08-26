@@ -39,10 +39,12 @@ export default function Login() {
       dispatch(setAuth(data));
       Alert("Xush kelibsiz!", "success");
       const role = data.user?.role;
-      if (role === "super_admin") navigate("/dashboard");
-      else if (role === "admin") navigate("/dashboard");
-      else if (role === "teacher") navigate("/ad/groups");
-      else if (role === "hr") navigate("/dashboard");
+      if (role === "dev")         navigate("/dev/panel");
+      else if (role === "super_admin") navigate("/dashboard");
+      else if (role === "admin")  navigate("/dashboard");
+      else if (role === "teacher") navigate("/teacher/dashboard");
+      else if (role === "parent") navigate("/parent/dashboard");
+      else if (role === "hr")     navigate("/dashboard");
       else if (role === "cashier") navigate("/dashboard");
       else navigate("/dashboard");
     } catch (err) {

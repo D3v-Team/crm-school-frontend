@@ -1,8 +1,6 @@
-// GroupsTab.jsx
-import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Typography } from '@material-tailwind/react';
-import { Users } from 'lucide-react';
+import { useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Layers } from 'lucide-react';
 import Loading from '../../../../Other/UI/Loadings/Loading';
 import AddGroup from '../AddGroups';
 import DeleteGroup from '../DeleteGroups';
@@ -12,76 +10,53 @@ export default function GroupsTab() {
     const { id } = useParams();
     const [trigger, { data, isLoading, error }] = useLazyGetTeacherGroupsByTeacherIdQuery();
 
-    useEffect(() => {
-        if (id) trigger(id);
-    }, [id, trigger]);
+    useEffect(() => { if (id) trigger(id); }, [id]);
+    const refresh = () => { if (id) trigger(id); };
 
-    const handleAdd = () => {
-        if (id) trigger(id);
-    };
-    const handleRemove = () => {
-        if (id) trigger(id);
-    };
+    if (isLoading) return <Loading/>;
+    if (error) return <div style={{ color:'var(--danger)', padding:12, background:'var(--danger-soft)', borderRadius:10 }}>Xatolik: {error?.data?.message}</div>;
 
-    if (isLoading) return <Loading />;
-    if (error) {
-        return (
-            <div className="text-red-500 text-sm p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                Xatolik: {error?.data?.message || "Noma'lum xatolik"}
-            </div>
-        );
-    }
-
-    const groups =
-        data?.data?.records || (Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []);
+    const groups = data?.data?.records || (Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []);
 
     return (
-        <div className="mb-6 last:mb-0">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-accent" />
-                    <Typography variant="h6" className="text-text-primary font-semibold">
-                        Guruhlar
-                    </Typography>
+        <div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:30, height:30, borderRadius:8, background:'var(--accent-soft)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <Layers size={15} style={{ color:'var(--accent)' }}/>
+                    </div>
+                    <span style={{ fontSize:'0.875rem', fontWeight:600, color:'var(--text-primary)' }}>Guruhlar</span>
+                    {groups.length > 0 && <span style={{ fontSize:'0.72rem', background:'var(--accent-soft)', color:'var(--accent)', padding:'1px 8px', borderRadius:99, fontWeight:600 }}>{groups.length}</span>}
                 </div>
-                <AddGroup onAdd={handleAdd} />
+                <AddGroup onAdd={refresh}/>
             </div>
 
             {groups.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center bg-input-bg/30 rounded-xl border border-border/40">
-                    <Users className="w-16 h-16 text-text-secondary/30 mb-3" />
-                    <Typography className="text-text-secondary text-base font-medium">
-                        Hozircha guruhlar mavjud emas
-                    </Typography>
-                    <Typography className="text-text-secondary text-sm mt-1">
-                        O‘qituvchiga guruh biriktirish uchun "Qo‘shish" tugmasini bosing
-                    </Typography>
+                <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
+                    <Layers size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>
+                    <p style={{ fontSize:'0.875rem' }}>Guruh biriktirilmagan</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {groups.map((item) => (
-                        <div
-                            key={item.teacher_group_id || item.id}
-                            className="flex items-center justify-between p-4 rounded-xl bg-input-bg/40 border border-border/40 hover:border-accent/40 hover:shadow-md transition-all duration-200 group"
-                        >
-                            <div className="flex items-center gap-3">
-                                <Users className="w-5 h-5 text-accent/70 flex-shrink-0" />
-                                <div>
-                                    <Typography className="text-text-primary font-medium">
-                                        {item.group?.name || "Noma'lum guruh"}
-                                    </Typography>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px,1fr))', gap:10 }}>
+                    {groups.map(item => (
+                        <div key={item.teacher_group_id||item.id} className="data-card" style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:'12px 14px' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                                <div style={{ width:32, height:32, borderRadius:8, background:'var(--accent-soft)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                    <Layers size={14} style={{ color:'var(--accent)' }}/>
+                                </div>
+                                <div style={{ minWidth:0 }}>
+                                    <Link to={`/group/${item.group?.id||item.group_id}`} style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--text-primary)', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'block' }}
+                                        onMouseEnter={e=>e.target.style.color='var(--accent)'} onMouseLeave={e=>e.target.style.color='var(--text-primary)'}>
+                                        {item.group?.name||"Noma'lum"}
+                                    </Link>
                                     {item.group?.start_date && (
-                                        <Typography className="text-text-secondary text-xs">
-                                            Boshlanish: {new Date(item.group.start_date).toLocaleDateString('uz-UZ')}
-                                        </Typography>
+                                        <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>
+                                            {new Date(item.group.start_date).toLocaleDateString('uz-UZ')}
+                                        </div>
                                     )}
                                 </div>
                             </div>
-                            <DeleteGroup
-                                teacherGroupId={item.teacher_group_id || item.id}
-                                groupName={item.group?.name || "Guruh"}
-                                onRemove={handleRemove}
-                            />
+                            <DeleteGroup teacherGroupId={item.teacher_group_id||item.id} groupName={item.group?.name||'Guruh'} onRemove={refresh}/>
                         </div>
                     ))}
                 </div>

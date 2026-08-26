@@ -4,9 +4,14 @@ import Create from "./__components/Create";
 import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
 import AddGroup from "./__components/AddGroup";
+import ArchiveStudent from "./__components/Archive";
+import QuickPayment from "./__components/QuickPayment";
 import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Users, Eye, RefreshCw } from "lucide-react";
+import {
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+    Search, Users, Eye, RefreshCw, Camera, CameraOff,
+} from "lucide-react";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
 
@@ -18,7 +23,8 @@ export default function Student() {
     const [page, setPage] = useState(1);
     const [limit] = useState(10);
     const [search, setSearch] = useState("");
-    const [isActiveFilter, setIsActiveFilter] = useState(null);
+    // Default: show only active students
+    const [isActiveFilter, setIsActiveFilter] = useState(true);
 
     const [trigger, { data, isLoading, error }] = useLazyGetStudentsQuery();
 
@@ -30,14 +36,17 @@ export default function Student() {
 
     const handleSearch = () => { setPage(1); fetchStudents(1, search, isActiveFilter); };
     const handleKeyDown = (e) => { if (e.key === "Enter") handleSearch(); };
-    const handleClear = () => { setSearch(""); setIsActiveFilter(null); setPage(1); fetchStudents(1, "", null); };
+    const handleClear = () => { setSearch(""); setPage(1); fetchStudents(1, "", isActiveFilter); };
+
     const handleFilterChange = (e) => {
         const v = e.target.value;
-        const f = v === "active" ? true : v === "inactive" ? false : null;
+        const f = v === "active" ? true : false; // only active / inactive
         setIsActiveFilter(f);
         setPage(1);
         fetchStudents(1, search, f);
     };
+
+    const showingActive = isActiveFilter !== false; // true = active tab
 
     const students = data?.data?.records || [];
     const pagination = data?.data?.pagination || {};
@@ -61,16 +70,17 @@ export default function Student() {
                 </div>
             </div>
 
+            {/* Search + filter */}
             <div className="search-bar">
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16} />
                     <input className="search-input" type="text" placeholder="Ism yoki telefon bo'yicha..."
                         value={search} onChange={e => setSearch(e.target.value)} onKeyDown={handleKeyDown} />
                 </div>
+                {/* Simple toggle: Faol / Nofaol */}
                 <select className="search-select"
-                    value={isActiveFilter === null ? "all" : isActiveFilter ? "active" : "inactive"}
+                    value={isActiveFilter ? "active" : "inactive"}
                     onChange={handleFilterChange}>
-                    <option value="all">Barcha</option>
                     <option value="active">Faol</option>
                     <option value="inactive">Nofaol</option>
                 </select>
@@ -97,7 +107,7 @@ export default function Student() {
                                     <th>Narx</th>
                                     <th>Holat</th>
                                     <th>Guruh</th>
-                                    <th>Ota-ona</th>
+                                    <th>Kamera</th>
                                     <th>Amallar</th>
                                 </tr>
                             </thead>
@@ -108,37 +118,53 @@ export default function Student() {
                                             O'quvchilar topilmadi
                                         </td>
                                     </tr>
-                                ) : students.map((s, i) => (
-                                    <tr key={s.id}>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
-                                            {(currentPage - 1) * limit + i + 1}
-                                        </td>
-                                        <td style={{ fontWeight: 600 }}>{s.full_name}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{s.phone || "—"}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>
-                                            {s.price ? Number(s.price).toLocaleString('ru-RU') + " so\u2018m" : "—"}
-                                        </td>
-                                        <td>
-                                            <span className={s.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
-                                                {s.is_active ? "Faol" : "Nofaol"}
-                                            </span>
-                                        </td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{s.group?.name || s.group_name || "—"}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{s.parent?.full_name || s.parent_name || "—"}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                                <NavLink to={`/student/${s.id}`}>
-                                                    <button className="action-btn action-btn-ghost" title="Ko'rish">
-                                                        <Eye size={14} />
-                                                    </button>
-                                                </NavLink>
-                                                {!isTeacher && <AddGroup onAdd={fetchStudents} studentID={s.id} />}
-                                                {!isTeacher && <Edit student={s} />}
-                                                {!isTeacher && <Delete student={s} />}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                ) : students.map((s, i) => {
+                                    const cameraLinked = !!s.hikvision_code;
+                                    return (
+                                        <tr key={s.id}>
+                                            <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
+                                                {(currentPage - 1) * limit + i + 1}
+                                            </td>
+                                            <td style={{ fontWeight: 600 }}>{s.full_name}</td>
+                                            <td style={{ color: 'var(--text-secondary)' }}>{s.phone || "—"}</td>
+                                            <td style={{ color: 'var(--text-secondary)' }}>
+                                                {s.price ? Number(s.price).toLocaleString('ru-RU') + " so\u2018m" : "—"}
+                                            </td>
+                                            <td>
+                                                <span className={s.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
+                                                    {s.is_active ? "Faol" : "Nofaol"}
+                                                </span>
+                                            </td>
+                                            <td style={{ color: 'var(--text-secondary)' }}>{s.group?.name || s.group_name || "—"}</td>
+                                            {/* Camera status */}
+                                            <td>
+                                                {cameraLinked ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: 'var(--success-soft)', color: 'var(--success)' }}>
+                                                        <Camera size={11} /> Ulangan
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: 'var(--input-bg)', color: 'var(--text-muted)' }}>
+                                                        <CameraOff size={11} /> Ulanmagan
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                    <NavLink to={`/student/${s.id}`}>
+                                                        <button className="action-btn action-btn-ghost" title="Ko'rish">
+                                                            <Eye size={14} />
+                                                        </button>
+                                                    </NavLink>
+                                                    {!isTeacher && <AddGroup onAdd={() => fetchStudents(page)} studentID={s.id} />}
+                                                    {!isTeacher && <Edit student={s} />}
+                                                    {/* Faol: Arxivlash; Nofaol: Arxivdan chiqarish + O'chirish */}
+                                                    {!isTeacher && <ArchiveStudent student={s} />}
+                                                    {!isTeacher && !s.is_active && <Delete student={s} />}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

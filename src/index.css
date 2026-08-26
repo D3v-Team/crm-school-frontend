@@ -121,8 +121,8 @@
   --accent-gradient: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
 
   /* Inputs */
-  --input-bg: rgba(255,255,255,0.04);
-  --input-border: rgba(255,255,255,0.08);
+  --input-bg: #1e2235;
+  --input-border: rgba(255,255,255,0.1);
   --input-text: #f1f5f9;
   --placeholder-color: #64748b;
 
@@ -312,9 +312,21 @@ body {
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s;
+  /* Fix dark mode option bg */
+  color-scheme: light dark;
 }
 .search-select:focus {
   border-color: var(--accent);
+}
+.search-select option {
+  background-color: var(--card-bg);
+  color: var(--input-text);
+}
+
+/* Field select dark mode fix */
+.field-select option {
+  background-color: var(--card-bg);
+  color: var(--input-text);
 }
 .search-btn {
   padding: 9px 22px;
@@ -749,6 +761,7 @@ input[type="number"]::-webkit-inner-spin-button {
   display: flex;
   flex-direction: column;
   transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
 }
 .data-card:hover {
   border-color: var(--accent);
@@ -818,4 +831,35 @@ input[type="number"]::-webkit-inner-spin-button {
   width: 16px; height: 16px;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+/* =========================================
+   SELECT / OPTION — dark mode fix
+   ========================================= */
+select {
+  color-scheme: light;
+}
+.dark select {
+  color-scheme: dark;
+}
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+.dark select option {
+  background-color: #1e2235;
+  color: #f1f5f9;
+}
+/* Native select in dark mode — force proper bg */
+.dark .search-select,
+.dark .field-select,
+.dark .search-select:focus,
+.dark .field-select:focus {
+  background-color: #1e2235 !important;
+  color: #f1f5f9 !important;
+}
+.dark .search-input,
+.dark .field-input {
+  background-color: #1e2235 !important;
+  color: #f1f5f9 !important;
 }

@@ -7,7 +7,19 @@ export const weeklyTopicApi = createApi({
     baseQuery: axiosBaseQuery(),
     tagTypes: ['WeeklyTopic'],
     endpoints: (builder) => ({
-        // GET /api/weekly-topic?page=&group_id=&teacher_id=&week_start_date=
+        // GET /api/weekly-topic/my-week?week_start_date=  (teacher uchun)
+        getMyWeekTopics: builder.query({
+            query: (params) => ({
+                url: '/weekly-topic/my-week',
+                method: 'GET',
+                params,
+            }),
+            providesTags: (result, error, params) => [
+                { type: 'WeeklyTopic', id: `my-week-${params?.week_start_date}` },
+                { type: 'WeeklyTopic', id: 'LIST' },
+            ],
+        }),
+        // GET /api/weekly-topic
         getWeeklyTopics: builder.query({
             query: (params) => ({
                 url: '/weekly-topic',
@@ -19,13 +31,38 @@ export const weeklyTopicApi = createApi({
                 return [
                     ...records.map((item) => ({ type: 'WeeklyTopic', id: item.id })),
                     { type: 'WeeklyTopic', id: `week-${params?.week_start_date}-teacher-${params?.teacher_id}` },
+                    { type: 'WeeklyTopic', id: 'LIST' },
                 ];
             },
+        }),
+        // POST /api/weekly-topic
+        createWeeklyTopic: builder.mutation({
+            query: (data) => ({
+                url: '/weekly-topic',
+                method: 'POST',
+                data,
+            }),
+            invalidatesTags: [{ type: 'WeeklyTopic', id: 'LIST' }],
+        }),
+        // DELETE /api/weekly-topic/:id
+        deleteWeeklyTopic: builder.mutation({
+            query: (id) => ({
+                url: `/weekly-topic/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: (result, error, id) => [
+                { type: 'WeeklyTopic', id },
+                { type: 'WeeklyTopic', id: 'LIST' },
+            ],
         }),
     }),
 });
 
 export const {
+    useGetMyWeekTopicsQuery,
+    useLazyGetMyWeekTopicsQuery,
     useGetWeeklyTopicsQuery,
     useLazyGetWeeklyTopicsQuery,
+    useCreateWeeklyTopicMutation,
+    useDeleteWeeklyTopicMutation,
 } = weeklyTopicApi;

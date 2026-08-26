@@ -116,13 +116,14 @@ export default function Groups() {
                                     <th>Nomi</th>
                                     <th>Boshlanish sanasi</th>
                                     <th>Sinf rahbari</th>
+                                    <th>Telefon</th>
                                     <th>Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {groups.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
+                                        <td colSpan="6" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
                                             {isTeacher ? "Sizga biriktirilgan guruhlar yo'q" : "Guruhlar topilmadi"}
                                         </td>
                                     </tr>
@@ -141,6 +142,9 @@ export default function Groups() {
                                             {g.homeroom_teacher?.full_name || g.homeroom_teacher_name
                                                 /* For homeroom_groups the teacher IS the user */
                                                 || (isTeacher ? "Siz" : "—")}
+                                        </td>
+                                        <td style={{ color:'var(--text-secondary)', fontSize:'0.82rem' }}>
+                                            {g.homeroom_teacher?.phone || "—"}
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: 6 }}>
