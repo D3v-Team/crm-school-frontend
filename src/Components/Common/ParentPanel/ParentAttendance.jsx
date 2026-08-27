@@ -3,83 +3,91 @@ import { useLazyGetMyChildrenAttendanceQuery } from '../../../store/services/att
 import { useLazyGetParentQuery } from '../../../store/services/statistic.api';
 import { useLazyGetStudentAttendanceAllQuery } from '../../../store/services/student-attendance.api';
 import {
-    Users, CalendarDays, Check, X, Clock,
+    CalendarDays, Clock, Users, LogIn, LogOut, User,
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    ArrowLeft, RefreshCw,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 
+/* ── helpers ── */
 const STATUS_STYLE = {
     present: { bg: 'var(--success-soft)', color: 'var(--success)', label: 'Keldi'    },
     absent:  { bg: 'var(--danger-soft)',  color: 'var(--danger)',  label: 'Kelmadi'  },
     late:    { bg: 'var(--warning-soft)', color: 'var(--warning)', label: 'Kechikdi' },
 };
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
 const pad = (n) => String(n).padStart(2, '0');
 const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('uz-UZ') : '—';
 
-function TabBar({ active, onChange }) {
-    const tabs = [
-        { key: 'attendance', label: "Yo'qlama",    icon: CalendarDays },
-        { key: 'entryexit',  label: 'Kirdi-Chiqdi', icon: Clock        },
-    ];
+const MONTH_LBL = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentyabr','Oktyabr','Noyabr','Dekabr'];
+const DAY_LBL   = {0:'Yakshanba',1:'Dushanba',2:'Seshanba',3:'Chorshanba',4:'Payshanba',5:'Juma',6:'Shanba'};
+function parseDateInfo(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return { day: d.getDate(), month: MONTH_LBL[d.getMonth()], year: d.getFullYear(), weekday: DAY_LBL[d.getDay()], isWeekend: d.getDay() === 0 || d.getDay() === 6 };
+}
+
+/* ── Child tab bar ── */
+function ChildTabBar({ children, active, onChange }) {
     return (
-        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--input-bg)', borderRadius: 12, border: '1px solid var(--card-border)', marginBottom: 16, width: 'fit-content' }}>
-            {tabs.map(t => (
-                <button key={t.key} onClick={() => onChange(t.key)} style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 16px', borderRadius: 9, border: 'none', cursor: 'pointer',
-                    fontSize: '0.82rem', fontWeight: active === t.key ? 600 : 500,
-                    background: active === t.key ? 'var(--accent)' : 'transparent',
-                    color: active === t.key ? '#fff' : 'var(--text-secondary)',
-                    transition: 'all 0.15s',
-                }}>
-                    <t.icon size={14} />{t.label}
-                </button>
-            ))}
+        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--input-bg)', borderRadius: 12, border: '1px solid var(--card-border)', marginBottom: 20, overflowX: 'auto', flexShrink: 0 }}>
+            {children.map((child) => {
+                const isActive = active === child.student_id;
+                return (
+                    <button key={child.student_id} onClick={() => onChange(child.student_id)} style={{
+                        display: 'flex', alignItems: 'center', gap: 7,
+                        padding: '8px 16px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                        fontSize: '0.82rem', fontWeight: isActive ? 600 : 500, whiteSpace: 'nowrap',
+                        background: isActive ? 'var(--accent)' : 'transparent',
+                        color: isActive ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s',
+                        flexShrink: 0,
+                    }}>
+                        <div style={{
+                            width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                            background: isActive ? 'rgba(255,255,255,0.25)' : 'var(--accent-soft)',
+                            color: isActive ? '#fff' : 'var(--accent)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.7rem', fontWeight: 700,
+                        }}>
+                            {(child.full_name || '?').charAt(0).toUpperCase()}
+                        </div>
+                        {child.full_name}
+                    </button>
+                );
+            })}
         </div>
     );
 }
 
-/* ─── Attendance tab: /api/attendance/my-children ─── */
-function AttendanceTab() {
-    const now = new Date();
-    const [dateFrom, setDateFrom] = useState(toISO(new Date(now.getFullYear(), now.getMonth(), 1)));
-    const [dateTo,   setDateTo]   = useState(toISO(now));
-    const [fetchAtt, { data, isLoading, error }] = useLazyGetMyChildrenAttendanceQuery();
+/* ── Yo'qlama (Attendance) tab content per child ── */
+function ChildAttendance({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, onLoad }) {
+    const dates = studentData?.dates || [];
 
-    useEffect(() => { fetchAtt({ date_from: dateFrom, date_to: dateTo }); }, []);
-
-    const load = () => fetchAtt({ date_from: dateFrom, date_to: dateTo });
-
-    /* Flatten: [{student_id, full_name, dates:[{date, subjects:[{...}]}]}] */
-    const records = data?.data?.records || data?.data || [];
-
-    /* Build flat rows */
+    /* flatten rows */
     const rows = [];
-    records.forEach(student => {
-        student.dates?.forEach(de => {
-            de.subjects?.forEach(sb => {
-                rows.push({
-                    key:          `${student.student_id}-${de.date}-${sb.group_schedule_id}`,
-                    student_name: student.full_name,
-                    date:         de.date,
-                    subject_name: sb.subject_name || '—',
-                    teacher_name: sb.teacher_name || '—',
-                    status:       sb.status,
-                    comment:      sb.comment || '',
-                });
+    dates.forEach(de => {
+        de.subjects?.forEach(sb => {
+            rows.push({
+                key: `${de.date}-${sb.group_schedule_id}`,
+                date: de.date,
+                day_of_week: de.day_of_week,
+                subject_name: sb.subject_name || '—',
+                teacher_name: sb.teacher_name || '—',
+                status: sb.status,
+                comment: sb.comment || '',
             });
         });
     });
     rows.sort((a, b) => b.date.localeCompare(a.date));
 
+    const counts = { present: 0, absent: 0, late: 0 };
+    rows.forEach(r => { if (r.status && counts[r.status] !== undefined) counts[r.status]++; });
+    const total = counts.present + counts.absent + counts.late;
+    const pct   = total > 0 ? Math.round((counts.present / total) * 100) : null;
+
     const LIMIT = 20;
     const [page, setPage] = useState(1);
     const totalPages = Math.max(1, Math.ceil(rows.length / LIMIT));
     const paged = rows.slice((page - 1) * LIMIT, page * LIMIT);
-
-    const counts = rows.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] || 0) + 1 }), {});
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -95,29 +103,29 @@ function AttendanceTab() {
                     <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }}
                         className="search-input" style={{ paddingLeft: 14, width: 150 }} />
                 </div>
-                
+                <button onClick={onLoad} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 16px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
+                    Ko'rish
+                </button>
             </div>
 
             {/* Stat chips */}
-            {rows.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                    {(['present', 'absent', 'late']).map(key => {
-                        const st = STATUS_STYLE[key];
-                        return (
-                            <div key={key} style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ width: 34, height: 34, borderRadius: 9, background: st.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: st.color }}>{counts[key] || 0}</span>
-                                </div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{st.label}</div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px,1fr))', gap: 10 }}>
+                {[
+                    { key: 'present', label: 'Keldi',    color: 'var(--success)', bg: 'var(--success-soft)' },
+                    { key: 'absent',  label: 'Kelmadi',  color: 'var(--danger)',  bg: 'var(--danger-soft)'  },
+                    { key: 'late',    label: 'Kechikdi', color: 'var(--warning)', bg: 'var(--warning-soft)' },
+                    ...(pct !== null ? [{ key: 'pct', label: 'Davomat %', color: pct >= 80 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)', bg: pct >= 80 ? 'var(--success-soft)' : pct >= 50 ? 'var(--warning-soft)' : 'var(--danger-soft)', val: pct + '%' }] : []),
+                ].map(s => (
+                    <div key={s.key} style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ fontSize: '1rem', fontWeight: 800, color: s.color }}>{s.val ?? counts[s.key] ?? 0}</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>{s.label}</div>
+                    </div>
+                ))}
+            </div>
 
-            {error && <div style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10 }}>Xatolik: {error?.data?.message}</div>}
-
-            {isLoading ? <Loading /> : rows.length === 0 ? (
+            {rows.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                     <CalendarDays size={40} style={{ opacity: .2, margin: '0 auto 10px', display: 'block' }} />
                     <p>Davomat ma'lumotlari topilmadi</p>
@@ -127,29 +135,23 @@ function AttendanceTab() {
                     <div className="data-table-wrap">
                         <table className="data-table">
                             <thead>
-                                <tr>
-                                    <th>№</th><th>O'quvchi</th><th>Sana</th>
-                                    <th>Fan</th><th>O'qituvchi</th><th>Holat</th><th>Izoh</th>
-                                </tr>
+                                <tr><th>№</th><th>Sana</th><th>Fan</th><th>O'qituvchi</th><th>Holat</th><th>Izoh</th></tr>
                             </thead>
                             <tbody>
                                 {paged.map((r, i) => {
-                                    const st = STATUS_STYLE[r.status] || { bg: 'var(--input-bg)', color: 'var(--text-muted)', label: r.status };
+                                    const st = STATUS_STYLE[r.status] || { bg: 'var(--input-bg)', color: 'var(--text-muted)', label: '—' };
                                     return (
                                         <tr key={r.key}>
                                             <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>{(page - 1) * LIMIT + i + 1}</td>
-                                            <td style={{ fontWeight: 600 }}>{r.student_name}</td>
                                             <td style={{ whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>{fmtDate(r.date)}</td>
-                                            <td>{r.subject_name}</td>
+                                            <td style={{ fontWeight: 600 }}>{r.subject_name}</td>
                                             <td style={{ color: 'var(--text-secondary)' }}>{r.teacher_name}</td>
                                             <td>
                                                 {r.status ? (
                                                     <span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: st.bg, color: st.color }}>
                                                         {st.label}
                                                     </span>
-                                                ) : (
-                                                    <span style={{ color: 'var(--text-muted)' }}>—</span>
-                                                )}
+                                                ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                                             </td>
                                             <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{r.comment || '—'}</td>
                                         </tr>
@@ -176,182 +178,184 @@ function AttendanceTab() {
     );
 }
 
-/* ─── Entry/Exit tab: child list → /api/student-attendance/all?student_id= ─── */
-function ChildDetail({ student, onBack }) {
-    const [fetchAll, { data, isLoading }] = useLazyGetStudentAttendanceAllQuery();
-    const [page, setPage] = useState(1);
-    const LIMIT = 15;
-
-    useEffect(() => {
-        if (student?.id) fetchAll({ student_id: student.id });
-    }, [student?.id]);
-
-    const records = data?.data?.records || data?.data || [];
-    const totalPages = Math.max(1, Math.ceil(records.length / LIMIT));
-    const paged = records.slice((page - 1) * LIMIT, page * LIMIT);
-    const counts = records.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] || 0) + 1 }), {});
+/* ── Kirdi-Chiqdi day card ── */
+function DayCard({ record }) {
+    const { date, records: times = [] } = record;
+    const df = parseDateInfo(date);
+    const ins  = times.filter(r => r.type === 'IN');
+    const outs = times.filter(r => r.type === 'OUT');
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <button onClick={onBack} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'var(--input-bg)', border: '1.5px solid var(--card-border)',
-                borderRadius: 9, padding: '6px 14px', cursor: 'pointer',
-                fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, alignSelf: 'flex-start',
-            }}>
-                <ArrowLeft size={14} /> Orqaga
-            </button>
-
-            {/* Student card */}
-            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--accent-soft)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.1rem', flexShrink: 0 }}>
-                    {(student?.full_name || '?').charAt(0).toUpperCase()}
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            {/* Date header */}
+            <div style={{ background: df.isWeekend ? 'var(--danger-soft)' : 'var(--accent-soft)', borderBottom: '1px solid var(--card-border)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: df.isWeekend ? 'var(--danger)' : 'var(--accent)', lineHeight: 1 }}>
+                        {df.day}
+                    </span>
+                    <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: df.isWeekend ? 'var(--danger)' : 'var(--accent)' }}>{df.month} {df.year}</div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{df.weekday}</div>
+                    </div>
                 </div>
-                <div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{student?.full_name}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{student?.group?.name || '—'} · {student?.phone || '—'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: times.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)', color: times.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+                    <Clock size={11} />{times.length} qayd
                 </div>
             </div>
-
-            {/* Stat chips */}
-            {records.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                    {(['present', 'absent', 'late']).map(key => {
-                        const st = STATUS_STYLE[key];
-                        return (
-                            <div key={key} style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ width: 34, height: 34, borderRadius: 9, background: st.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: st.color }}>{counts[key] || 0}</span>
-                                </div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{st.label}</div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            {isLoading ? <Loading /> : records.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                    <Clock size={40} style={{ opacity: .2, margin: '0 auto 10px', display: 'block' }} />
-                    <p>Yo'q</p>
-                </div>
-            ) : (
-                <>
-                    <div className="data-table-wrap">
-                        <table className="data-table">
-                            <thead>
-                                <tr><th>№</th><th>Sana</th><th>Fan</th><th>Holat</th><th>Izoh</th></tr>
-                            </thead>
-                            <tbody>
-                                {paged.map((r, i) => {
-                                    const st = STATUS_STYLE[r.status] || { bg: 'var(--input-bg)', color: 'var(--text-muted)', label: r.status };
-                                    return (
-                                        <tr key={r.id || i}>
-                                            <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>{(page - 1) * LIMIT + i + 1}</td>
-                                            <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(r.date)}</td>
-                                            <td>{r.subject?.name || r.subject_name || '—'}</td>
-                                            <td><span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: st.bg, color: st.color }}>{r.status ? st.label : 'Yo\'q'}</span></td>
-                                            <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{r.comment || '—'}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    {totalPages > 1 && (
-                        <div className="pagination">
-                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Jami {records.length}</span>
-                            <div className="pagination-controls">
-                                <button className="page-btn" onClick={() => setPage(1)} disabled={page <= 1}><ChevronsLeft size={15} /></button>
-                                <button className="page-btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}><ChevronLeft size={15} /></button>
-                                <span className="page-current">{page}</span>
-                                <button className="page-btn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}><ChevronRight size={15} /></button>
-                                <button className="page-btn" onClick={() => setPage(totalPages)} disabled={page >= totalPages}><ChevronsRight size={15} /></button>
-                            </div>
+            {/* IN / OUT */}
+            <div style={{ padding: '12px 16px', display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1, background: ins.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)', border: `1.5px solid ${ins.length > 0 ? 'var(--success)' : 'var(--card-border)'}`, borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: ins.length > 0 ? 'var(--success)' : 'var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <LogIn size={13} color="#fff" />
                         </div>
-                    )}
-                </>
-            )}
-        </div>
-    );
-}
-
-function EntryExitTab() {
-    const now = new Date();
-    const [fetchParent, { data: parentData, isLoading: cl }] = useLazyGetParentQuery();
-    const [selected, setSelected] = useState(null);
-
-    useEffect(() => {
-        fetchParent({ year: now.getFullYear(), month: now.getMonth() + 1 });
-    }, []);
-
-    // /api/statistic/parent qaytaradi: [{student_id, full_name, group, ...}]
-    const children = (parentData?.data || []).map(c => ({
-        id: c.student_id,
-        full_name: c.full_name,
-        group: { name: c.group },
-        phone: c.phone || null,
-    }));
-
-    if (selected) return <ChildDetail student={selected} onBack={() => setSelected(null)} />;
-
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {cl ? <Loading /> : children.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-                    <Users size={48} style={{ opacity: .2, margin: '0 auto 12px', display: 'block' }} />
-                    <p>Farzandlar topilmadi</p>
-                </div>
-            ) : (
-                <>
-     
-                    <div className="data-table-wrap">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>№</th><th>To'liq ism</th><th>Guruh</th><th>Ko'rish</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {children.map((child, i) => (
-                                    <tr key={child.id}>
-                                        <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>{i + 1}</td>
-                                        <td style={{ fontWeight: 600 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--accent-soft)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>
-                                                    {(child.full_name || '?').charAt(0).toUpperCase()}
-                                                </div>
-                                                {child.full_name}
-                                            </div>
-                                        </td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{child.group?.name || '—'}</td>
-                                   
-                                        <td>
-                                            <button className="btn-create" style={{ padding: '5px 12px', fontSize: '0.78rem', gap: 5 }}
-                                                onClick={() => setSelected(child)}>
-                                                <Clock size={13} /> Ko'rish
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: ins.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>Kirdi</span>
                     </div>
-                </>
+                    {ins.length > 0 ? ins.map((r, i) => (
+                        <div key={i} style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)', letterSpacing: '0.04em' }}>{r.time}</div>
+                    )) : <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>—</div>}
+                </div>
+                <div style={{ flex: 1, background: outs.length > 0 ? 'var(--danger-soft)' : 'var(--input-bg)', border: `1.5px solid ${outs.length > 0 ? 'var(--danger)' : 'var(--card-border)'}`, borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: outs.length > 0 ? 'var(--danger)' : 'var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <LogOut size={13} color="#fff" />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: outs.length > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>Chiqdi</span>
+                    </div>
+                    {outs.length > 0 ? outs.map((r, i) => (
+                        <div key={i} style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--danger)', letterSpacing: '0.04em' }}>{r.time}</div>
+                    )) : <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>—</div>}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ── Kirdi-Chiqdi per child ── */
+function ChildEntryExit({ studentId }) {
+    const [fetchAll, { data, isLoading }] = useLazyGetStudentAttendanceAllQuery();
+    const [page, setPage] = useState(1);
+    const LIMIT = 12;
+
+    useEffect(() => { if (studentId) fetchAll({ student_id: studentId }); }, [studentId]);
+
+    const records    = data?.data?.records || data?.data || [];
+    const totalPages = Math.max(1, Math.ceil(records.length / LIMIT));
+    const paged      = records.slice((page - 1) * LIMIT, page * LIMIT);
+
+    if (isLoading) return <Loading />;
+    if (records.length === 0) return (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+            <Clock size={40} style={{ opacity: .2, margin: '0 auto 10px', display: 'block' }} />
+            <p>Kirdi-chiqdi ma'lumotlari topilmadi</p>
+        </div>
+    );
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+                {paged.map((record, i) => <DayCard key={record.date || i} record={record} />)}
+            </div>
+            {totalPages > 1 && (
+                <div className="pagination">
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Jami {records.length} ta kun</span>
+                    <div className="pagination-controls">
+                        <button className="page-btn" onClick={() => setPage(1)} disabled={page <= 1}><ChevronsLeft size={15} /></button>
+                        <button className="page-btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}><ChevronLeft size={15} /></button>
+                        <span className="page-current">{page}</span>
+                        <button className="page-btn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}><ChevronRight size={15} /></button>
+                        <button className="page-btn" onClick={() => setPage(totalPages)} disabled={page >= totalPages}><ChevronsRight size={15} /></button>
+                    </div>
+                </div>
             )}
         </div>
     );
 }
 
-/* ─── Main page ─── */
+/* ── Section tab bar: Yo'qlama / Kirdi-Chiqdi ── */
+function SectionTabBar({ active, onChange }) {
+    const tabs = [
+        { key: 'attendance', label: "Yo'qlama",     icon: CalendarDays },
+        { key: 'entryexit',  label: 'Kirdi-Chiqdi', icon: Clock        },
+    ];
+    return (
+        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--input-bg)', borderRadius: 12, border: '1px solid var(--card-border)', marginBottom: 16, width: 'fit-content' }}>
+            {tabs.map(t => (
+                <button key={t.key} onClick={() => onChange(t.key)} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                    fontSize: '0.82rem', fontWeight: active === t.key ? 600 : 500,
+                    background: active === t.key ? 'var(--accent)' : 'transparent',
+                    color: active === t.key ? '#fff' : 'var(--text-secondary)',
+                    transition: 'all 0.15s',
+                }}>
+                    <t.icon size={14} />{t.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+/* ── Main export ── */
 export default function ParentAttendance() {
-    const [tab, setTab] = useState('attendance');
+    const now = new Date();
+    const [section, setSection] = useState('attendance');
+    const [dateFrom, setDateFrom] = useState(toISO(new Date(now.getFullYear(), now.getMonth(), 1)));
+    const [dateTo,   setDateTo]   = useState(toISO(now));
+
+    const [fetchAtt, { data: attData, isLoading: attLoading, error: attError }] = useLazyGetMyChildrenAttendanceQuery();
+
+    const load = () => fetchAtt({ date_from: dateFrom, date_to: dateTo });
+    useEffect(() => { load(); }, []);
+
+    /* children list: [{student_id, full_name, dates}] */
+    const children = attData?.data || [];
+    const [activeChild, setActiveChild] = useState(null);
+
+    /* auto-select first child once data arrives */
+    useEffect(() => {
+        if (children.length > 0 && !activeChild) setActiveChild(children[0].student_id);
+    }, [children]);
+
+    const activeData = children.find(c => c.student_id === activeChild);
+
+    if (attLoading) return <Loading />;
+
+    if (children.length === 0) return (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+            <Users size={48} style={{ opacity: .2, margin: '0 auto 12px', display: 'block' }} />
+            <p>Farzandlar topilmadi</p>
+        </div>
+    );
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <TabBar active={tab} onChange={setTab} />
-            {tab === 'attendance' && <AttendanceTab />}
-            {tab === 'entryexit'  && <EntryExitTab />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {/* Section: Yo'qlama / Kirdi-Chiqdi */}
+            <SectionTabBar active={section} onChange={setSection} />
+
+            {/* Per-child tab bar */}
+            <ChildTabBar children={children} active={activeChild} onChange={id => { setActiveChild(id); }} />
+
+            {attError && (
+                <div style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10, marginBottom: 12 }}>
+                    Xatolik: {attError?.data?.message}
+                </div>
+            )}
+
+            {section === 'attendance' && activeData && (
+                <ChildAttendance
+                    studentData={activeData}
+                    dateFrom={dateFrom}
+                    setDateFrom={setDateFrom}
+                    dateTo={dateTo}
+                    setDateTo={setDateTo}
+                    onLoad={load}
+                />
+            )}
+
+            {section === 'entryexit' && activeChild && (
+                <ChildEntryExit studentId={activeChild} />
+            )}
         </div>
     );
 }

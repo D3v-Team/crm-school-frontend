@@ -291,12 +291,140 @@ function AttendanceTab({ studentId }) {
     );
 }
 
-/* ── Entry/Exit tab ── */
-const ATT_STYLE = {
-    present: { bg:'var(--success-soft)', color:'var(--success)', label:'Keldi'    },
-    absent:  { bg:'var(--danger-soft)',  color:'var(--danger)',  label:'Kelmadi'  },
-    late:    { bg:'var(--warning-soft)', color:'var(--warning)', label:'Kechikdi' },
+/* ── Entry/Exit tab — card layout ── */
+const MONTH_LABELS_ST = [
+    'Yanvar','Fevral','Mart','Aprel','May','Iyun',
+    'Iyul','Avgust','Sentyabr','Oktyabr','Noyabr','Dekabr',
+];
+const DAY_LABELS_ST = {
+    0:'Yakshanba',1:'Dushanba',2:'Seshanba',3:'Chorshanba',
+    4:'Payshanba',5:'Juma',6:'Shanba',
 };
+function fmtDateSt(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return {
+        day: d.getDate(),
+        month: MONTH_LABELS_ST[d.getMonth()],
+        year: d.getFullYear(),
+        weekday: DAY_LABELS_ST[d.getDay()],
+        isWeekend: d.getDay() === 0 || d.getDay() === 6,
+    };
+}
+
+function StudentDayCard({ record }) {
+    const { date, records: times = [] } = record;
+    const df = fmtDateSt(date);
+    const ins  = times.filter(r => r.type === 'IN');
+    const outs = times.filter(r => r.type === 'OUT');
+
+    return (
+        <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            borderRadius: 16,
+            overflow: 'hidden',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        }}>
+            {/* Date header */}
+            <div style={{
+                background: df.isWeekend ? 'var(--danger-soft)' : 'var(--accent-soft)',
+                borderBottom: '1px solid var(--card-border)',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{
+                        fontSize: '1.6rem', fontWeight: 800,
+                        color: df.isWeekend ? 'var(--danger)' : 'var(--accent)',
+                        lineHeight: 1,
+                    }}>
+                        {df.day}
+                    </span>
+                    <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: df.isWeekend ? 'var(--danger)' : 'var(--accent)' }}>
+                            {df.month} {df.year}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{df.weekday}</div>
+                    </div>
+                </div>
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    fontSize: '0.68rem', fontWeight: 600,
+                    padding: '3px 10px', borderRadius: 99,
+                    background: times.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)',
+                    color: times.length > 0 ? 'var(--success)' : 'var(--text-muted)',
+                }}>
+                    <CameraIcon size={11} />
+                    {times.length} ta qayd
+                </div>
+            </div>
+
+            {/* IN / OUT */}
+            <div style={{ padding: '12px 16px', display: 'flex', gap: 10 }}>
+                {/* Kirdi */}
+                <div style={{
+                    flex: 1,
+                    background: ins.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)',
+                    border: `1.5px solid ${ins.length > 0 ? 'var(--success)' : 'var(--card-border)'}`,
+                    borderRadius: 12, padding: '10px 12px',
+                    display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0,
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{
+                            width: 26, height: 26, borderRadius: 7,
+                            background: ins.length > 0 ? 'var(--success)' : 'var(--card-border)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                            <CheckCircle size={13} color="#fff" />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: ins.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+                            Kirdi
+                        </span>
+                    </div>
+                    {ins.length > 0 ? ins.map((r, i) => (
+                        <div key={i} style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)', letterSpacing: '0.04em' }}>
+                            {r.time}
+                        </div>
+                    )) : (
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>—</div>
+                    )}
+                </div>
+
+                {/* Chiqdi */}
+                <div style={{
+                    flex: 1,
+                    background: outs.length > 0 ? 'var(--danger-soft)' : 'var(--input-bg)',
+                    border: `1.5px solid ${outs.length > 0 ? 'var(--danger)' : 'var(--card-border)'}`,
+                    borderRadius: 12, padding: '10px 12px',
+                    display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0,
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{
+                            width: 26, height: 26, borderRadius: 7,
+                            background: outs.length > 0 ? 'var(--danger)' : 'var(--card-border)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                            <XCircle size={13} color="#fff" />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: outs.length > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
+                            Chiqdi
+                        </span>
+                    </div>
+                    {outs.length > 0 ? outs.map((r, i) => (
+                        <div key={i} style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--danger)', letterSpacing: '0.04em' }}>
+                            {r.time}
+                        </div>
+                    )) : (
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>—</div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function EntryExitTab({ studentId }) {
     const [page, setPage] = useState(1);
     const LIMIT = 15;
@@ -304,29 +432,12 @@ function EntryExitTab({ studentId }) {
 
     useEffect(() => { if (studentId) fetchAll({ student_id: studentId }); }, [studentId]);
 
-    const records = data?.data?.records || data?.data || [];
+    const records    = data?.data?.records || data?.data || [];
     const totalPages = Math.max(1, Math.ceil(records.length / LIMIT));
-    const paged = records.slice((page-1)*LIMIT, page*LIMIT);
-    const counts = records.reduce((a,r)=>({...a,[r.status]:(a[r.status]||0)+1}),{});
-    const fmtD = (d) => d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
+    const paged      = records.slice((page-1)*LIMIT, page*LIMIT);
 
     return (
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            {records.length>0 && (
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
-                    {(['present','absent','late']).map(k=>{
-                        const s=ATT_STYLE[k];
-                        return (
-                            <div key={k} style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
-                                <div style={{ width:34, height:34, borderRadius:9, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                                    <span style={{ fontSize:'1rem', color:s.color, fontWeight:700 }}>{counts[k]||0}</span>
-                                </div>
-                                <div style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>{s.label}</div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
             {isLoading ? <Loading/> : records.length===0 ? (
                 <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
                     <CameraIcon size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>
@@ -334,30 +445,18 @@ function EntryExitTab({ studentId }) {
                 </div>
             ) : (
                 <>
-                    <div className="data-table-wrap">
-                        <table className="data-table">
-                            <thead>
-                                <tr><th>№</th><th>Sana</th><th>Fan</th><th>Holat</th><th>Izoh</th></tr>
-                            </thead>
-                            <tbody>
-                                {paged.map((r,i)=>{
-                                    const st=ATT_STYLE[r.status]||{bg:'var(--input-bg)',color:'var(--text-muted)',label:r.status};
-                                    return (
-                                        <tr key={r.id||i}>
-                                            <td style={{ color:'var(--text-muted)', fontFamily:'monospace', fontSize:'0.78rem' }}>{(page-1)*LIMIT+i+1}</td>
-                                            <td style={{ whiteSpace:'nowrap' }}>{fmtD(r.date)}</td>
-                                            <td>{r.subject?.name||r.subject_name||'—'}</td>
-                                            <td><span style={{ fontSize:'0.72rem', fontWeight:600, padding:'3px 10px', borderRadius:99, background:st.bg, color:st.color }}>{st.label}</span></td>
-                                            <td style={{ color:'var(--text-muted)', fontSize:'0.78rem' }}>{r.comment||'—'}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                        gap: 12,
+                    }}>
+                        {paged.map((record, i) => (
+                            <StudentDayCard key={record.date || i} record={record} />
+                        ))}
                     </div>
                     {totalPages>1 && (
                         <div className="pagination">
-                            <span style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>Jami {records.length} ta yozuv</span>
+                            <span style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>Jami {records.length} ta kun</span>
                             <div className="pagination-controls">
                                 <button className="page-btn" onClick={()=>setPage(1)} disabled={page<=1}><ChevronsLeft size={15}/></button>
                                 <button className="page-btn" onClick={()=>setPage(p=>p-1)} disabled={page<=1}><ChevronLeft size={15}/></button>
