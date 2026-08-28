@@ -23,16 +23,16 @@ const labelStyle = {
 function NotifyCard({ icon: Icon, color, title, description, children }) {
     return (
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, overflow: 'hidden' }}>
-            <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 12, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon size={20} style={{ color }} />
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={19} style={{ color }} />
                 </div>
-                <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{description}</div>
+                <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{description}</div>
                 </div>
             </div>
-            <div style={{ padding: '20px 24px' }}>{children}</div>
+            <div style={{ padding: '18px 20px' }}>{children}</div>
         </div>
     );
 }
@@ -159,38 +159,38 @@ function BroadcastForm() {
                         <Plus size={12} /> Tugma qo'shish
                     </button>
                 </div>
-                {buttons.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {buttons.map((btn, i) => (
-                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
-                                <input
-                                    placeholder="Tugma matni"
-                                    value={btn.text}
-                                    onChange={e => updateButton(i, 'text', e.target.value)}
-                                    style={{ ...inputStyle, padding: '8px 12px', resize: 'none' }}
-                                    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                                    onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
-                                />
-                                <input
-                                    placeholder="URL (ixtiyoriy)"
-                                    value={btn.url}
-                                    onChange={e => updateButton(i, 'url', e.target.value)}
-                                    style={{ ...inputStyle, padding: '8px 12px', resize: 'none' }}
-                                    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                                    onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
-                                />
-                                <button type="button" onClick={() => removeButton(i)} style={{
-                                    width: 34, height: 34, borderRadius: 8, border: 'none',
-                                    background: 'var(--danger-soft)', color: 'var(--danger)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    cursor: 'pointer', flexShrink: 0,
-                                }}>
-                                    <Trash2 size={14} />
-                                </button>
+                        {buttons.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {buttons.map((btn, i) => (
+                                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <input
+                                            placeholder="Tugma matni"
+                                            value={btn.text}
+                                            onChange={e => updateButton(i, 'text', e.target.value)}
+                                            style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '1 1 120px', minWidth: 0 }}
+                                            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                                            onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
+                                        />
+                                        <input
+                                            placeholder="URL (ixtiyoriy)"
+                                            value={btn.url}
+                                            onChange={e => updateButton(i, 'url', e.target.value)}
+                                            style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '2 1 160px', minWidth: 0 }}
+                                            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                                            onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
+                                        />
+                                        <button type="button" onClick={() => removeButton(i)} style={{
+                                            width: 34, height: 34, borderRadius: 8, border: 'none',
+                                            background: 'var(--danger-soft)', color: 'var(--danger)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', flexShrink: 0,
+                                        }}>
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                )}
+                        )}
             </div>
 
             <button type="submit" disabled={isLoading || !text.trim()} style={{
@@ -297,7 +297,7 @@ export default function BotNotify() {
 
         
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
                 <NotifyCard
                     icon={Users}
                     color="var(--accent)"

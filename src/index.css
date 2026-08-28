@@ -863,3 +863,242 @@ select option {
   background-color: #1e2235 !important;
   color: #f1f5f9 !important;
 }
+
+/* =========================================
+   RESPONSIVE — Mobile first (min 365px)
+   ========================================= */
+
+/* Base: prevent horizontal overflow everywhere */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  min-width: 365px;
+  overflow-x: hidden;
+}
+
+/* ── Page header responsive ── */
+@media (max-width: 600px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .page-title {
+    font-size: 1.1rem;
+  }
+  .page-title-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+  }
+}
+
+/* ── Search bar responsive ── */
+@media (max-width: 600px) {
+  .search-bar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .search-input-wrap {
+    min-width: 100%;
+    flex: none;
+    width: 100%;
+  }
+  .search-btn, .clear-btn {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* ── Tables → horizontal scroll on mobile ── */
+.data-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 600px) {
+  .data-table th,
+  .data-table td {
+    padding: 10px 10px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+}
+
+/* ── Pagination responsive ── */
+@media (max-width: 480px) {
+  .pagination {
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .page-btn { width: 30px; height: 30px; }
+  .page-current { min-width: 30px; height: 30px; }
+}
+
+/* ── Modal responsive ── */
+@media (max-width: 600px) {
+  /* Modal component inner content */
+  [class*="modal-content"], .modal-body {
+    padding: 16px !important;
+  }
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .modal-footer .btn-cancel,
+  .modal-footer .btn-submit,
+  .modal-footer .btn-delete {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Stat/info grids responsive ── */
+@media (max-width: 600px) {
+  /* Auto-fill grids become 2 columns minimum */
+  [style*="gridTemplateColumns"][style*="auto-fill"] {
+    /* CSS custom property can't override inline, but we set minimum via class */
+  }
+}
+
+/* ── Card grids — 2 col on tablet, 1 col on phone ── */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+@media (max-width: 600px) {
+  .responsive-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ── Btn-create responsive ── */
+@media (max-width: 480px) {
+  .btn-create {
+    padding: 7px 12px;
+    font-size: 0.78rem;
+  }
+}
+
+/* ── Tab bar horizontal scroll ── */
+.tab-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tab-scroll::-webkit-scrollbar { display: none; }
+
+/* ── Page body padding on mobile ── */
+@media (max-width: 768px) {
+  /* main padding is already set inline in MainLayout for mobile */
+}
+
+/* ── Kirdi-chiqdi cards: smaller on phones ── */
+@media (max-width: 480px) {
+  .entry-exit-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+}
+
+/* ── Form fields on mobile ── */
+@media (max-width: 480px) {
+  .search-input,
+  .search-select,
+  .field-select,
+  .input-base {
+    font-size: 0.82rem;
+    padding: 8px 10px 8px 34px;
+  }
+}
+
+/* ── Page header actions wrap ── */
+@media (max-width: 480px) {
+  .page-header > *:last-child {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+/* ── Prevent tiny text on 365px ── */
+@media (max-width: 400px) {
+  body { font-size: 14px; }
+  .data-table th { font-size: 0.65rem; }
+  .data-table td { font-size: 0.75rem; }
+}
+
+/* ── Dashboard charts: span 2 → span 1 on small screens ── */
+@media (max-width: 680px) {
+  .dash-chart-wide {
+    grid-column: span 1 !important;
+  }
+}
+
+/* ── Dashboard KPI cards: min 2 per row on tiny screens ── */
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* =========================================
+   DASHBOARD GRIDS — precise breakpoints
+   ========================================= */
+
+/* ── KPI: 5 cols > 900px, 3 cols 600-900, 2 cols < 600 ── */
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .dash-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .dash-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Detail cards (payment mode): 4 cols > 1100, 2 cols 600-1100, 1 col < 600 ── */
+.dash-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .dash-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .dash-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Charts grid: area(2/3) + pie(1/3) > 900px, stacked < 900 ── */
+.dash-charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .dash-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Area and pie cards fill their grid cell */
+.dash-chart-area,
+.dash-chart-pie {
+  min-width: 0;
+  width: 100%;
+}

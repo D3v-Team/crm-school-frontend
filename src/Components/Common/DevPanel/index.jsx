@@ -212,7 +212,9 @@ export default function DevPanel() {
                                                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.name}</span>
                                                 </div>
                                             </td>
-                                            <td style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{s.createdAt}</td>
+                                            <td style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                                {s.createdAt ? new Date(s.createdAt).toLocaleDateString('uz-UZ', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—'}
+                                            </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                     <button className="action-btn action-btn-primary" onClick={() => setEditSchool(s)} title="Tahrirlash"><Pencil size={13} /></button>
@@ -266,7 +268,6 @@ export default function DevPanel() {
                             <input className="search-input" type="text" placeholder="Qidirish..."
                                 value={saSearch} onChange={e => setSaSearch(e.target.value)} />
                         </div>
-                        <button className="btn-refresh" onClick={() => fetchSuperAdmins({ role: 'super_admin', limit: 100 })}><RefreshCw size={15} /></button>
                         <button className="btn-create" onClick={() => setSaOpen(true)}>
                             <Plus size={15} /> Super Admin yaratish
                         </button>

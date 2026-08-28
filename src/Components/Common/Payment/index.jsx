@@ -90,7 +90,7 @@ export default function Payment() {
                     <span className="page-title-icon"><CreditCard size={18}/></span>
                     To'lovlar tarixi
                 </div>
-                <button className="btn-refresh" onClick={fetchPayments} title="Yangilash"><RefreshCw size={15}/></button>
+                
             </div>
 
             {/* Filters */}

@@ -118,7 +118,7 @@ export default function GroupProfile() {
             </div>
 
             {/* ── Group info card ── */}
-            <div style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:'20px 24px', marginBottom:16 }}>
+            <div style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:'16px 18px', marginBottom:16 }}>
                 <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:18, flexWrap:'wrap' }}>
                     <div style={{ display:'flex', alignItems:'flex-start', gap:18 }}>
                         <div style={{ width:60, height:60, borderRadius:14, background:'var(--accent-soft)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem', fontWeight:700, border:'2px solid var(--card-border)', flexShrink:0 }}>
@@ -181,7 +181,7 @@ export default function GroupProfile() {
             </div>
 
             {/* ── Tabs card ── */}
-            <div style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:'20px 24px' }}>
+            <div style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:'16px 18px' }}>
                 <Tabs tabs={tabs} active={tab} onChange={setTab} />
                 {tab === 'students'   && <StudentsTab students={students} />}
                 {tab === 'teachers'   && <TeachersTab />}

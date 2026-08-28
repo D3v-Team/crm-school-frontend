@@ -24,6 +24,15 @@ function parseDateInfo(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
     return { day: d.getDate(), month: MONTH_LBL[d.getMonth()], year: d.getFullYear(), weekday: DAY_LBL[d.getDay()], isWeekend: d.getDay() === 0 || d.getDay() === 6 };
 }
+/* ISO string yoki "HH:MM" ni "HH:MM" ga parse qiladi */
+function parseTime(val) {
+    if (!val) return '—';
+    if (val.includes('T') || val.includes('Z')) {
+        const d = new Date(val);
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+    return val;
+}
 
 /* ── Child tab bar ── */
 function ChildTabBar({ children, active, onChange }) {
@@ -180,51 +189,46 @@ function ChildAttendance({ studentData, dateFrom, setDateFrom, dateTo, setDateTo
 
 /* ── Kirdi-Chiqdi day card ── */
 function DayCard({ record }) {
-    const { date, records: times = [] } = record;
-    const df = parseDateInfo(date);
-    const ins  = times.filter(r => r.type === 'IN');
-    const outs = times.filter(r => r.type === 'OUT');
+    const date  = record?.date;
+    const times = record?.records || record?.entries || [];
+    const df    = parseDateInfo(date);
+    const ins   = times.filter(r => r.type === 'IN');
+    const outs  = times.filter(r => r.type === 'OUT');
 
     return (
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12, overflow: 'hidden' }}>
             {/* Date header */}
-            <div style={{ background: df.isWeekend ? 'var(--danger-soft)' : 'var(--accent-soft)', borderBottom: '1px solid var(--card-border)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: df.isWeekend ? 'var(--danger)' : 'var(--accent)', lineHeight: 1 }}>
-                        {df.day}
-                    </span>
+            <div style={{ background: df.isWeekend ? 'var(--danger-soft)' : 'var(--accent-soft)', borderBottom: '1px solid var(--card-border)', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: df.isWeekend ? 'var(--danger)' : 'var(--accent)', lineHeight: 1 }}>{df.day}</span>
                     <div>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: df.isWeekend ? 'var(--danger)' : 'var(--accent)' }}>{df.month} {df.year}</div>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{df.weekday}</div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: df.isWeekend ? 'var(--danger)' : 'var(--accent)' }}>{df.month} {df.year}</div>
+                        <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{df.weekday}</div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: times.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)', color: times.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
-                    <Clock size={11} />{times.length} qayd
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.62rem', fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: times.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)', color: times.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+                    <Clock size={9} />{times.length}
                 </div>
             </div>
             {/* IN / OUT */}
-            <div style={{ padding: '12px 16px', display: 'flex', gap: 10 }}>
-                <div style={{ flex: 1, background: ins.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)', border: `1.5px solid ${ins.length > 0 ? 'var(--success)' : 'var(--card-border)'}`, borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 7, background: ins.length > 0 ? 'var(--success)' : 'var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <LogIn size={13} color="#fff" />
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: ins.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>Kirdi</span>
+            <div style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
+                <div style={{ flex: 1, background: ins.length > 0 ? 'var(--success-soft)' : 'var(--input-bg)', border: `1px solid ${ins.length > 0 ? 'var(--success)' : 'var(--card-border)'}`, borderRadius: 8, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <LogIn size={11} style={{ color: ins.length > 0 ? 'var(--success)' : 'var(--text-muted)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.62rem', fontWeight: 700, color: ins.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>Kirdi</span>
                     </div>
                     {ins.length > 0 ? ins.map((r, i) => (
-                        <div key={i} style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)', letterSpacing: '0.04em' }}>{r.time}</div>
-                    )) : <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>—</div>}
+                        <div key={i} style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--success)', letterSpacing: '0.02em' }}>{parseTime(r.time)}</div>
+                    )) : <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>—</div>}
                 </div>
-                <div style={{ flex: 1, background: outs.length > 0 ? 'var(--danger-soft)' : 'var(--input-bg)', border: `1.5px solid ${outs.length > 0 ? 'var(--danger)' : 'var(--card-border)'}`, borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 7, background: outs.length > 0 ? 'var(--danger)' : 'var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <LogOut size={13} color="#fff" />
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: outs.length > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>Chiqdi</span>
+                <div style={{ flex: 1, background: outs.length > 0 ? 'var(--danger-soft)' : 'var(--input-bg)', border: `1px solid ${outs.length > 0 ? 'var(--danger)' : 'var(--card-border)'}`, borderRadius: 8, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <LogOut size={11} style={{ color: outs.length > 0 ? 'var(--danger)' : 'var(--text-muted)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.62rem', fontWeight: 700, color: outs.length > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>Chiqdi</span>
                     </div>
                     {outs.length > 0 ? outs.map((r, i) => (
-                        <div key={i} style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--danger)', letterSpacing: '0.04em' }}>{r.time}</div>
-                    )) : <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>—</div>}
+                        <div key={i} style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--danger)', letterSpacing: '0.02em' }}>{parseTime(r.time)}</div>
+                    )) : <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>—</div>}
                 </div>
             </div>
         </div>
@@ -235,11 +239,26 @@ function DayCard({ record }) {
 function ChildEntryExit({ studentId }) {
     const [fetchAll, { data, isLoading }] = useLazyGetStudentAttendanceAllQuery();
     const [page, setPage] = useState(1);
-    const LIMIT = 12;
+    const LIMIT = 20;
 
     useEffect(() => { if (studentId) fetchAll({ student_id: studentId }); }, [studentId]);
 
-    const records    = data?.data?.records || data?.data || [];
+    /*
+     * Normalize any response shape into [{date, records:[{type,time}]}]:
+     *  - { status, data: [{date, records}] }
+     *  - { status, data: { records: [{date, records}] } }
+     *  - { status, data: { data: [{date, records}] } }  (double-wrapped)
+     */
+    function extractRecords(resp) {
+        if (!resp) return [];
+        const d = resp?.data ?? resp;
+        if (Array.isArray(d)) return d;
+        if (Array.isArray(d?.records)) return d.records;
+        if (Array.isArray(d?.data)) return d.data;
+        if (Array.isArray(d?.data?.records)) return d.data.records;
+        return [];
+    }
+    const records    = extractRecords(data);
     const totalPages = Math.max(1, Math.ceil(records.length / LIMIT));
     const paged      = records.slice((page - 1) * LIMIT, page * LIMIT);
 
@@ -253,7 +272,7 @@ function ChildEntryExit({ studentId }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
                 {paged.map((record, i) => <DayCard key={record.date || i} record={record} />)}
             </div>
             {totalPages > 1 && (

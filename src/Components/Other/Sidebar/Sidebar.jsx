@@ -3,9 +3,9 @@ import { SIDEBAR_CONFIG } from "../../../app/navigation/sidebar.config";
 import { useAppSelector } from "../../../store/hooks";
 import { useGetUserByIdQuery } from "../../../store/services/user.api";
 import Cookies from 'js-cookie';
-import { GraduationCap, ChevronRight } from "lucide-react";
+import { GraduationCap, ChevronRight, X } from "lucide-react";
 
-export default function Sidebar({ open }) {
+export default function Sidebar({ open, mobileOpen, isMobile, onClose }) {
     const location = useLocation();
     const roleFromStore = useAppSelector((s) => s.auth?.role);
     const userId = useAppSelector((s) => s.auth?.userId);
@@ -20,13 +20,10 @@ export default function Sidebar({ open }) {
         return item.roles.includes(role);
     });
 
-    /* Check if current path matches item or any of its childPaths */
     const isItemActive = (item) => {
         const cur = location.pathname;
         if (cur === item.path || cur.startsWith(item.path + '/')) return true;
-        if (item.childPaths) {
-            return item.childPaths.some(cp => cur.startsWith(cp));
-        }
+        if (item.childPaths) return item.childPaths.some(cp => cur.startsWith(cp));
         return false;
     };
 
@@ -42,160 +39,218 @@ export default function Sidebar({ open }) {
 
     const roleInitial = roleLabel.charAt(0).toUpperCase();
 
+    // Desktop: collapsed = open prop is true → width 72px
+    // Mobile:  drawer — slides in when mobileOpen=true
+    const isCollapsed = !isMobile && open;
+    const sidebarWidth = isCollapsed ? 72 : 260;
+
+    const mobileStyle = isMobile ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        bottom: 0,
+        zIndex: 50,
+        width: 270,
+        transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+        boxShadow: mobileOpen ? 'var(--shadow-xl)' : 'none',
+    } : {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        bottom: 0,
+        zIndex: 50,
+        width: sidebarWidth,
+        transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
+    };
+
     return (
         <aside
             style={{
                 background: 'var(--sidebar-bg)',
-                borderColor: 'var(--sidebar-border)',
+                borderRight: '1px solid var(--sidebar-border)',
                 boxShadow: 'var(--shadow-lg)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                ...mobileStyle,
             }}
-            className={`
-                fixed inset-y-0 left-0 z-50
-                flex flex-col
-                border-r
-                overflow-hidden
-                transition-all duration-300 ease-in-out
-                ${open ? "w-[72px]" : "w-[260px]"}
-            `}
         >
             {/* Logo area */}
             <div
-                className={`flex items-center gap-3 px-4 py-4 flex-shrink-0 ${open ? 'justify-center px-0' : ''}`}
-                style={{ borderBottom: '1px solid var(--card-border)' }}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: isCollapsed ? '16px 0' : '14px 16px',
+                    justifyContent: isCollapsed ? 'center' : 'space-between',
+                    borderBottom: '1px solid var(--card-border)',
+                    flexShrink: 0,
+                }}
             >
-                <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                        background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
-                        boxShadow: '0 4px 12px var(--accent-glow)',
-                    }}
-                >
-                    <GraduationCap className="w-5 h-5 text-white" />
-                </div>
-                {!open && (
-                    <div className="overflow-hidden">
-                        <div className="font-bold text-sm leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
-                            {schoolName}
-                        </div>
-                        <div className="text-[11px] leading-tight truncate" style={{ color: 'var(--text-muted)' }}>
-                            Boshqaruv tizimi
-                        </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                        style={{
+                            width: 36, height: 36, borderRadius: 12,
+                            background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
+                            boxShadow: '0 4px 12px var(--accent-glow)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <GraduationCap style={{ width: 18, height: 18, color: '#fff' }} />
                     </div>
+                    {!isCollapsed && (
+                        <div style={{ overflow: 'hidden' }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
+                                {schoolName}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                Boshqaruv tizimi
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Mobile close button */}
+                {isMobile && (
+                    <button
+                        onClick={onClose}
+                        style={{
+                            width: 32, height: 32, borderRadius: 9, border: 'none',
+                            background: 'var(--accent-soft)', color: 'var(--accent)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', flexShrink: 0,
+                        }}
+                    >
+                        <X size={16} />
+                    </button>
                 )}
             </div>
 
-            {/* Navigation — flex-1, no overflow so no scroll */}
+            {/* Navigation */}
             <nav
-                className={`flex-1 py-3 flex flex-col gap-0.5 ${open ? 'px-2' : 'px-3'}`}
-                style={{ overflowY: 'auto', overflowX: 'hidden' }}
+                style={{
+                    flex: 1,
+                    padding: isCollapsed ? '12px 8px' : '12px',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                }}
             >
-                {!open && (
-                    <div className="px-2 pb-2 pt-1">
-                        <span
-                            className="text-[10px] font-semibold tracking-widest uppercase"
-                            style={{ color: 'var(--text-muted)' }}
-                        >
-                            Menyu
-                        </span>
+                {!isCollapsed && (
+                    <div style={{ padding: '0 8px 8px', color: 'var(--text-muted)', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        Menyu
                     </div>
                 )}
 
                 {menuItems.map((item, idx) => {
                     const Icon = item.icon;
-                    const forceActive = isItemActive(item);
+                    const isActive = isItemActive(item);
                     return (
                         <NavLink
                             key={item.path + idx}
                             to={item.path}
-                            title={open ? item.label : undefined}
-                            className="group relative"
+                            title={isCollapsed ? item.label : undefined}
+                            onClick={isMobile ? onClose : undefined}
                             style={{ textDecoration: 'none' }}
+                            className="group relative"
                         >
-                            {({ isActive: navActive }) => {
-                                const isActive = forceActive || navActive;
-                                return (
-                                <div
-                                    className={`
-                                        flex items-center gap-3 rounded-xl transition-all duration-200 font-medium
-                                        ${open ? 'justify-center p-3' : 'px-3 py-2.5'}
-                                    `}
-                                    style={isActive ? {
-                                        background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
-                                        boxShadow: '0 4px 14px var(--accent-glow)',
-                                        color: '#fff',
-                                    } : {
-                                        color: 'var(--text-secondary)',
-                                    }}
-                                >
-                                    {/* Hover bg for inactive */}
-                                    {!isActive && (
-                                        <span
-                                            className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none"
-                                            style={{ background: 'var(--accent-soft)' }}
-                                        />
-                                    )}
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: isCollapsed ? 0 : 10,
+                                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                                    padding: isCollapsed ? '10px' : '10px 12px',
+                                    borderRadius: 12,
+                                    transition: 'all 0.15s ease',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    background: isActive
+                                        ? 'linear-gradient(135deg, var(--accent), #7c3aed)'
+                                        : 'transparent',
+                                    boxShadow: isActive ? '0 4px 14px var(--accent-glow)' : 'none',
+                                    color: isActive ? '#fff' : 'var(--text-secondary)',
+                                }}
+                                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--accent-soft)'; }}
+                                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                                <Icon style={{ width: 18, height: 18, flexShrink: 0, position: 'relative', zIndex: 1 }} />
 
-                                    <Icon
-                                        className={`flex-shrink-0 relative z-10 transition-transform duration-200 group-hover:scale-110 ${isActive ? '' : 'group-hover:text-[var(--accent)]'}`}
-                                        style={{ width: 18, height: 18 }}
-                                    />
+                                {!isCollapsed && (
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 500, flex: 1, position: 'relative', zIndex: 1, whiteSpace: 'nowrap' }}>
+                                        {item.label}
+                                    </span>
+                                )}
 
-                                    {!open && (
-                                        <span className="text-sm relative z-10 truncate flex-1">
-                                            {item.label}
-                                        </span>
-                                    )}
+                                {isActive && !isCollapsed && (
+                                    <ChevronRight style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }} />
+                                )}
 
-                                    {isActive && !open && (
-                                        <ChevronRight
-                                            className="w-3.5 h-3.5 ml-auto relative z-10"
-                                            style={{ color: 'rgba(255,255,255,0.6)' }}
-                                        />
-                                    )}
-
-                                    {/* Tooltip for collapsed */}
-                                    {open && (
-                                        <div
-                                            className="absolute left-full ml-3 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap z-50
-                                                opacity-0 group-hover:opacity-100 pointer-events-none
-                                                transition-all duration-200 translate-x-1 group-hover:translate-x-0"
-                                            style={{
-                                                background: 'var(--card-bg)',
-                                                color: 'var(--text-primary)',
-                                                boxShadow: 'var(--shadow-md)',
-                                                border: '1px solid var(--card-border)',
-                                            }}
-                                        >
-                                            {item.label}
-                                        </div>
-                                    )}
-                                </div>
-                                );
-                            }}
+                                {/* Tooltip for collapsed desktop */}
+                                {isCollapsed && (
+                                    <div
+                                        className="group-hover:opacity-100"
+                                        style={{
+                                            position: 'absolute',
+                                            left: '100%',
+                                            marginLeft: 10,
+                                            padding: '6px 12px',
+                                            borderRadius: 9,
+                                            background: 'var(--card-bg)',
+                                            color: 'var(--text-primary)',
+                                            boxShadow: 'var(--shadow-md)',
+                                            border: '1px solid var(--card-border)',
+                                            fontSize: '0.78rem',
+                                            fontWeight: 500,
+                                            whiteSpace: 'nowrap',
+                                            opacity: 0,
+                                            pointerEvents: 'none',
+                                            zIndex: 100,
+                                            transition: 'opacity 0.15s ease',
+                                        }}
+                                    >
+                                        {item.label}
+                                    </div>
+                                )}
+                            </div>
                         </NavLink>
                     );
                 })}
             </nav>
 
-            {/* User section at bottom */}
+            {/* User section */}
             <div
-                className={`flex items-center gap-3 p-3 flex-shrink-0 ${open ? 'justify-center' : ''}`}
-                style={{ borderTop: '1px solid var(--card-border)' }}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isCollapsed ? 0 : 10,
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    padding: isCollapsed ? '12px 0' : '12px 16px',
+                    borderTop: '1px solid var(--card-border)',
+                    flexShrink: 0,
+                }}
             >
                 <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}
+                    style={{
+                        width: 36, height: 36, borderRadius: 12,
+                        background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.875rem', fontWeight: 700, color: '#fff', flexShrink: 0,
+                    }}
                 >
                     {roleInitial}
                 </div>
-                {!open && (
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                {!isCollapsed && (
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {roleLabel}
                         </div>
-                        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                            Tizimda
-                        </div>                    </div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Tizimda</div>
+                    </div>
                 )}
             </div>
         </aside>

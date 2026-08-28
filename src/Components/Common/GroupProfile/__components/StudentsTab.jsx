@@ -198,7 +198,7 @@ export default function StudentsTab({ students = [] }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Filter bar */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', padding: '12px 16px', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', padding: '10px 14px', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12 }}>
                 <Calendar size={16} style={{ color: 'var(--accent)' }} />
                 <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>To'lov holati</span>
                 <select className="search-select" value={year} onChange={e => setYear(+e.target.value)}>
@@ -213,7 +213,7 @@ export default function StudentsTab({ students = [] }) {
             </div>
 
             {/* Summary cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
                 {[
                     { icon: Wallet,      label: 'Jami kerak',   val: fmt(totals.req),  color: '#3b82f6' },
                     { icon: TrendingUp,  label: "To'langan",    val: fmt(totals.paid), color: 'var(--success)' },

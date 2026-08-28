@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../../../store/hooks";
 import { setAuth } from "../../../store/slices/auth.slice";
 import { useLoginMutation } from "../../../store/services/auth.api";
-import { User, Lock, GraduationCap, Moon, Sun, ArrowRight } from "lucide-react";
+import { User, Lock, GraduationCap, Moon, Sun, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Alert } from "../../Other/UI/Alert/Alert";
 
 export default function Login() {
@@ -15,6 +15,7 @@ export default function Login() {
 
   const [isDark, setIsDark] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -150,14 +151,14 @@ export default function Login() {
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
                   required
                   placeholder="Parolni kiriting"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all duration-200"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl text-sm outline-none transition-all duration-200"
                   style={{
                     background: 'var(--input-bg)',
                     border: `1.5px solid ${focusedField === 'password' ? 'var(--accent)' : 'var(--input-border)'}`,
@@ -165,6 +166,15 @@ export default function Login() {
                     boxShadow: focusedField === 'password' ? '0 0 0 3px var(--accent-glow)' : 'none',
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
