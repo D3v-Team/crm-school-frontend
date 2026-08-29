@@ -4,7 +4,7 @@ import Cookies from "js-cookie";
 /* ===============================
    CONFIG
 ================================ */
-export const BASE_URL = "https://edu2.udsgroup.uz";
+export const BASE_URL = "https://dev.investingschool.uz";
 
 export const $api = axios.create({
     baseURL: `${BASE_URL}/api`,
