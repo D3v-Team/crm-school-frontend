@@ -55,6 +55,18 @@ export const weeklyTopicApi = createApi({
                 { type: 'WeeklyTopic', id: 'LIST' },
             ],
         }),
+        // PUT /api/weekly-topic/:id
+        updateWeeklyTopic: builder.mutation({
+            query: ({ id, data }) => ({
+                url: `/weekly-topic/${id}`,
+                method: 'PUT',
+                data,
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'WeeklyTopic', id },
+                { type: 'WeeklyTopic', id: 'LIST' },
+            ],
+        }),
     }),
 });
 
@@ -65,4 +77,5 @@ export const {
     useLazyGetWeeklyTopicsQuery,
     useCreateWeeklyTopicMutation,
     useDeleteWeeklyTopicMutation,
+    useUpdateWeeklyTopicMutation,
 } = weeklyTopicApi;

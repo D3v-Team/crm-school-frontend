@@ -46,7 +46,7 @@ function DashCard({ children, style = {}, className = '' }) {
 
 function CardHead({ icon: Icon, title, color = 'var(--accent)' }) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px 14px' }}>
             <div style={{
                 width: 32, height: 32, borderRadius: 9,
                 padding: 6, flexShrink: 0,
