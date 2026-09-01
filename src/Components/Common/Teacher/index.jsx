@@ -7,7 +7,7 @@ import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, Users, Eye, RefreshCw, X,
+    Search, Users, Eye, RefreshCw, X, Camera, CameraOff,
 } from "lucide-react";
 
 export default function Teacher() {
@@ -70,6 +70,7 @@ export default function Teacher() {
                                     <th>To'liq ism</th>
                                     <th>Telefon</th>
                                     <th>Username</th>
+                                    <th>Kamera</th>
                                     <th>Amallar</th>
                                 </tr>
                             </thead>
@@ -77,15 +78,26 @@ export default function Teacher() {
                                 {users.length === 0 ? (
                                     <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>O'qituvchilar topilmadi</td></tr>
                                 ) : users.map((u, i) => {
+                                    const cameraLinked = !!u.hikvision_code;
                                     return (
                                         <tr key={u.id}>
                                             <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
                                                 {(currentPage - 1) * limit + i + 1}
                                             </td>
                                             <td style={{ fontWeight: 600 }}>{u.full_name}</td>
-                                           
                                             <td style={{ color: 'var(--text-secondary)' }}>{u.phone || "—"}</td>
                                             <td style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{u.username}</td>
+                                            <td>
+                                                {cameraLinked ? (
+                                                    <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:'0.72rem', fontWeight:600, padding:'3px 10px', borderRadius:99, background:'var(--success-soft)', color:'var(--success)' }}>
+                                                        <Camera size={11}/> Ulangan
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:'0.72rem', fontWeight:600, padding:'3px 10px', borderRadius:99, background:'var(--input-bg)', color:'var(--text-muted)' }}>
+                                                        <CameraOff size={11}/> Ulanmagan
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                     <NavLink to={`/teacher/${u.id}`}>

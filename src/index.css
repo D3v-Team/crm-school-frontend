@@ -1188,3 +1188,27 @@ html, body {
   .page-toolbar .btn-create,
   .page-toolbar .btn-refresh { order: 3; }
 }
+
+/* ── Teacher dashboard: today + groups grid ── */
+.teacher-dash-grid {
+  grid-template-columns: 1fr 1.6fr;
+}
+@media (max-width: 900px) {
+  .teacher-dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Teacher dashboard: 2 col wide, 1 col narrow */
+.teacher-dash-grid {
+  grid-template-columns: 1fr 1.6fr;
+}
+/* Only 1 child — full width */
+.teacher-dash-grid > *:only-child {
+  grid-column: 1 / -1;
+}
+@media (max-width: 860px) {
+  .teacher-dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

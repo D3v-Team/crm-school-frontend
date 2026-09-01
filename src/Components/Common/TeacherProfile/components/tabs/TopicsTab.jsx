@@ -76,29 +76,73 @@ export default function TopicsTab({ user }) {
                     <p style={{ fontSize:'0.875rem' }}>Bu hafta uchun mavzular yo'q</p>
                 </div>
             ) : (
-                <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(240px,1fr))',gap:10 }}>
-                    {topics.map((t,i) => (
-                        <div key={t.id||i} style={{ padding:'14px 16px',borderRadius:12,border:'1px solid var(--card-border)',background:'var(--card-bg)',transition:'border-color 0.15s' }}
-                            onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
-                            onMouseLeave={e=>e.currentTarget.style.borderColor='var(--card-border)'}>
-                            <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:8 }}>
-                                <div style={{ width:28,height:28,borderRadius:7,background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                                    <ListChecks size={13} style={{ color:'var(--accent)' }}/>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    {topics.map((t, i) => {
+                        const sch     = t.group_schedule || {};
+                        const group   = sch.group   || t.group   || {};
+                        const subject = sch.subject  || t.subject || {};
+                        const teacher = sch.teacher  || t.teacher || {};
+                        const dayFull = {
+                            monday:'Dushanba', tuesday:'Seshanba', wednesday:'Chorshanba',
+                            thursday:'Payshanba', friday:'Juma', saturday:'Shanba', sunday:'Yakshanba'
+                        }[sch.day_of_week] || sch.day_of_week || '';
+                        const fmtTime = (s) => s ? s.slice(0,5) : '';
+
+                        return (
+                            <div key={t.id||i} style={{
+                                background:'var(--card-bg)', border:'1px solid var(--card-border)',
+                                borderRadius:12, overflow:'hidden',
+                                transition:'border-color 0.15s, box-shadow 0.15s',
+                            }}
+                                onMouseEnter={e=>{ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.boxShadow='0 0 0 3px var(--accent-glow)'; }}
+                                onMouseLeave={e=>{ e.currentTarget.style.borderColor='var(--card-border)'; e.currentTarget.style.boxShadow='none'; }}>
+
+                                {/* Topic text */}
+                                <div style={{ padding:'12px 16px', background:'var(--accent-soft)', borderBottom:'1px solid var(--card-border)', display:'flex', alignItems:'flex-start', gap:10 }}>
+                                    <div style={{ width:32,height:32,borderRadius:8,background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                                        <ListChecks size={15} style={{ color:'#fff' }}/>
+                                    </div>
+                                    <div style={{ flex:1, minWidth:0 }}>
+                                        <div style={{ fontSize:'0.92rem', fontWeight:700, color:'var(--text-primary)', marginBottom:4 }}>
+                                            {t.topic || '—'}
+                                        </div>
+                                        <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                                            {subject.name && (
+                                                <span style={{ fontSize:'0.68rem', fontWeight:600, padding:'2px 8px', borderRadius:6, background:'var(--success-soft)', color:'var(--success)' }}>
+                                                    {subject.name}
+                                                </span>
+                                            )}
+                                            {group.name && (
+                                                <span style={{ fontSize:'0.68rem', fontWeight:600, padding:'2px 8px', borderRadius:6, background:'var(--accent-soft)', color:'var(--accent)' }}>
+                                                    {group.name}
+                                                </span>
+                                            )}
+                                            {dayFull && (
+                                                <span style={{ fontSize:'0.68rem', color:'var(--text-muted)', padding:'2px 8px', borderRadius:6, background:'var(--input-bg)', border:'1px solid var(--card-border)' }}>
+                                                    {dayFull}
+                                                    {sch.start_time && ` · ${fmtTime(sch.start_time)}–${fmtTime(sch.end_time)}`}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                <span style={{ fontSize:'0.82rem',fontWeight:600,color:'var(--text-primary)' }}>
-                                    {t.title||t.name||`Mavzu ${i+1}`}
-                                </span>
+
+                                {/* Meta */}
+                                <div style={{ padding:'8px 16px', display:'flex', flexWrap:'wrap', gap:12, alignItems:'center' }}>
+                                    {teacher.full_name && (
+                                        <span style={{ fontSize:'0.72rem', color:'var(--text-secondary)' }}>
+                                            👤 {teacher.full_name}
+                                        </span>
+                                    )}
+                                    {t.week_start_date && (
+                                        <span style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>
+                                            📅 {fmtDate(t.week_start_date)} haftasi
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            {t.description && (
-                                <p style={{ fontSize:'0.78rem',color:'var(--text-secondary)',margin:'0 0 8px',lineHeight:1.5 }}>{t.description}</p>
-                            )}
-                            <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginTop:4 }}>
-                                {t.group?.name && <span style={{ fontSize:'0.72rem',padding:'2px 8px',borderRadius:99,background:'var(--accent-soft)',color:'var(--accent)',fontWeight:600 }}>{t.group.name}</span>}
-                                {t.subject?.name && <span style={{ fontSize:'0.72rem',padding:'2px 8px',borderRadius:99,background:'var(--success-soft)',color:'var(--success)',fontWeight:600 }}>{t.subject.name}</span>}
-                                {t.week_start_date && <span style={{ fontSize:'0.68rem',color:'var(--text-muted)' }}>{fmtDate(t.week_start_date)}</span>}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -29,6 +29,7 @@ function PaymentModal({ student, open, onClose, onSuccess }) {
         paid_amount: '', required_amount: '', discount_percent: '',
         method: 'cash', comment: '',
     });
+    const [baseRequired, setBaseRequired] = useState(''); // chegirmasiz asl summa
     const [displayPaid, setDisplayPaid] = useState('');
     const [errors, setErrors] = useState({});
     const [createPayment, { isLoading: paying }] = useCreatePaymentMutation();
@@ -36,6 +37,7 @@ function PaymentModal({ student, open, onClose, onSuccess }) {
     useEffect(() => {
         if (open && student) {
             const req = student.required > 0 ? String(student.required) : '';
+            setBaseRequired(req);
             setForm({ year: now.getFullYear(), month: now.getMonth() + 1, paid_amount: '', required_amount: req, discount_percent: '', method: 'cash', comment: '' });
             setDisplayPaid(''); setErrors({});
         }
@@ -43,8 +45,27 @@ function PaymentModal({ student, open, onClose, onSuccess }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'paid_amount') { const c = parseNum(value); setForm(p => ({ ...p, paid_amount: c })); setDisplayPaid(fmtNum(c)); }
-        else setForm(p => ({ ...p, [name]: value }));
+        if (name === 'paid_amount') {
+            const c = parseNum(value);
+            setForm(p => ({ ...p, paid_amount: c }));
+            setDisplayPaid(fmtNum(c));
+        } else if (name === 'required_amount') {
+            const c = parseNum(value);
+            setBaseRequired(c);
+            // chegirma bor bo'lsa yangi required ni qayta hisoblash
+            setForm(p => {
+                const disc = +p.discount_percent || 0;
+                const newReq = disc > 0 ? String(Math.round(+c * (1 - disc / 100))) : c;
+                return { ...p, required_amount: newReq };
+            });
+        } else if (name === 'discount_percent') {
+            const disc = Math.min(100, Math.max(0, +value || 0));
+            const base = +baseRequired || +form.required_amount;
+            const newReq = disc > 0 ? String(Math.round(base * (1 - disc / 100))) : String(base);
+            setForm(p => ({ ...p, discount_percent: value, required_amount: newReq }));
+        } else {
+            setForm(p => ({ ...p, [name]: value }));
+        }
     };
 
     const validate = () => {
@@ -115,7 +136,7 @@ function PaymentModal({ student, open, onClose, onSuccess }) {
                         <div>
                             <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Kerakli summa</label>
                             <input name="required_amount" value={fmtNum(form.required_amount)}
-                                onChange={e => { const c = parseNum(e.target.value); setForm(p => ({ ...p, required_amount: c })); }}
+                                onChange={handleChange}
                                 placeholder="0" className="search-input" style={{ paddingLeft: 14 }} />
                             {errors.required_amount && <span style={{ fontSize: '0.72rem', color: 'var(--danger)' }}>{errors.required_amount}</span>}
                         </div>
@@ -127,8 +148,22 @@ function PaymentModal({ student, open, onClose, onSuccess }) {
                         </select>
                     </div>
                     <div>
-                        <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Chegirma (%)</label>
+                        <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                            Chegirma (%)
+                        </label>
                         <input name="discount_percent" value={form.discount_percent} onChange={handleChange} type="number" min="0" max="100" placeholder="0" className="search-input" style={{ paddingLeft: 14 }} />
+                        {/* Chegirma preview */}
+                        {+form.discount_percent > 0 && +baseRequired > 0 && (
+                            <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem' }}>
+                                <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                                    {Number(baseRequired).toLocaleString('ru-RU')} so'm
+                                </span>
+                                <span style={{ color: 'var(--danger)', fontWeight: 600 }}>−{form.discount_percent}%</span>
+                                <span style={{ color: 'var(--success)', fontWeight: 700 }}>
+                                    = {Number(form.required_amount).toLocaleString('ru-RU')} so'm
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Izoh (ixtiyoriy)</label>

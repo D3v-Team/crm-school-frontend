@@ -37,6 +37,93 @@ function NotifyCard({ icon: Icon, color, title, description, children }) {
     );
 }
 
+/* ── Telegram message preview ── */
+function TelegramPreview({ text, photoPreview, buttons }) {
+    const validButtons = buttons.filter(b => b.text.trim());
+    if (!text && !photoPreview && validButtons.length === 0) return null;
+
+    return (
+        <div style={{
+            background: '#17212b',
+            borderRadius: 16,
+            padding: 16,
+            marginTop: 4,
+        }}>
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+                <div style={{ width:34, height:34, borderRadius:99, background:'#2b5278', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.82rem', fontWeight:700, color:'#fff', flexShrink:0 }}>
+                    B
+                </div>
+                <div>
+                    <div style={{ fontSize:'0.82rem', fontWeight:700, color:'#fff' }}>Bot</div>
+                    <div style={{ fontSize:'0.65rem', color:'#6b8dad' }}>bot</div>
+                </div>
+            </div>
+
+            {/* Message bubble */}
+            <div style={{
+                background: '#182533',
+                borderRadius: '4px 12px 12px 12px',
+                overflow: 'hidden',
+                maxWidth: 320,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+            }}>
+                {/* Photo */}
+                {photoPreview && (
+                    <img
+                        src={photoPreview}
+                        alt="preview"
+                        style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }}
+                    />
+                )}
+
+                {/* Text */}
+                {text && (
+                    <div style={{
+                        padding: '10px 12px',
+                        fontSize: '0.875rem',
+                        color: '#e8eaed',
+                        lineHeight: 1.5,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                    }}>
+                        {text}
+                    </div>
+                )}
+
+                {/* Time */}
+                <div style={{ padding:'0 12px 8px', textAlign:'right', fontSize:'0.62rem', color:'#6b8dad' }}>
+                    {new Date().toLocaleTimeString('uz-UZ', { hour:'2-digit', minute:'2-digit' })} ✓✓
+                </div>
+
+                {/* Inline buttons */}
+                {validButtons.length > 0 && (
+                    <div style={{ borderTop:'1px solid #0d1b27', padding:'6px 8px', display:'flex', flexDirection:'column', gap:4 }}>
+                        {validButtons.map((btn, i) => (
+                            <div key={i} style={{
+                                background: '#2b5278',
+                                borderRadius: 6,
+                                padding: '7px 12px',
+                                textAlign: 'center',
+                                fontSize: '0.82rem',
+                                color: '#6ab3f3',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                display: 'flex', alignItems:'center', justifyContent:'center', gap:5,
+                            }}>
+                                {btn.url && <span style={{ fontSize:'0.7rem' }}>🔗</span>}
+                                {btn.text}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+       
+        </div>
+    );
+}
+
 /* ── Broadcast Form ── */
 function BroadcastForm() {
     const [text,     setText]     = useState('');
@@ -207,6 +294,16 @@ function BroadcastForm() {
                         : <><Send size={15} /> Yuborish</>
                 }
             </button>
+
+            {/* Telegram preview */}
+            {(text || photoPreview || buttons.some(b => b.text.trim())) && (
+                <div>
+                    <div style={{ fontSize:'0.72rem', fontWeight:600, color:'var(--text-muted)', marginBottom:8, display:'flex', alignItems:'center', gap:5 }}>
+                        <span>👁</span> Ko'rinish (preview)
+                    </div>
+                    <TelegramPreview text={text} photoPreview={photoPreview} buttons={buttons}/>
+                </div>
+            )}
         </form>
     );
 }

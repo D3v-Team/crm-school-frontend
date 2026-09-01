@@ -149,13 +149,13 @@ export default function TeacherDashboard({ teacherId }) {
 
             {/* ── KPI cards ── */}
             {kpiCards.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
-                    {kpiCards.map((c,i) => <StatCard key={i} {...c} large={i < 2} />)}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+                    {kpiCards.map((c,i) => <StatCard key={i} {...c} />)}
                 </div>
             )}
 
-            {/* ── Today schedule + groups — two column ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: todaySchedule.length > 0 ? '1fr 1.6fr' : '1fr', gap: 16 }}>
+            {/* ── Today schedule + groups — responsive ── */}
+            <div className="teacher-dash-grid" style={{ display: 'grid', gap: 16 }}>
 
                 {/* Today schedule */}
                 {todaySchedule.length > 0 && (
@@ -184,7 +184,7 @@ export default function TeacherDashboard({ teacherId }) {
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)' }}>
-                                            {item.start_time} – {item.end_time}
+                                            {item.start_time?.slice(0,5)} – {item.end_time?.slice(0,5)}
                                         </div>
                                         <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {item.subject?.name || '—'}
