@@ -12,7 +12,7 @@ import Modal from "../../Other/UI/Modal/Modal";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
     Search, Users, RefreshCw, Eye, MessageCircle, MessageCircleOff,
-    UserX, AlertTriangle,
+    UserX, AlertTriangle, X,
 } from "lucide-react";
 
 /* ── Remove child from parent ── */
@@ -86,27 +86,21 @@ export default function Parent() {
 
     return (
         <div>
-            <div className="page-header">
-                <div className="page-title">
+            <div className="page-toolbar">
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginRight:'auto' }}>
                     <span className="page-title-icon"><Users size={18}/></span>
-                    Ota-onalar
+                    <span style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)' }}>Ota-onalar</span>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    <Create/>
-                    <button className="btn-refresh" onClick={() => fetchUsers(page)} title="Yangilash">
-                        <RefreshCw size={15}/>
-                    </button>
-                </div>
-            </div>
-
-            <div className="search-bar">
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16}/>
-                    <input className="search-input" type="text" placeholder="Ism yoki username bo'yicha..."
-                        value={search} onChange={e => setSearch(e.target.value)} onKeyDown={handleKeyDown}/>
+                    <input className="search-input" type="text" placeholder="Ism yoki username..."
+                        value={search} onChange={e => { setSearch(e.target.value); }} onKeyDown={handleKeyDown}/>
+                    {search && (
+                        <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
+                    )}
                 </div>
-                <button className="search-btn" onClick={handleSearch}>Qidirish</button>
-                <button className="clear-btn" onClick={handleClear}>Tozalash</button>
+                <Create/>
+                <button className="btn-refresh" onClick={() => fetchUsers(page)} title="Yangilash"><RefreshCw size={15}/></button>
             </div>
 
             {isLoading && <Loading/>}

@@ -213,19 +213,19 @@ export default function StudentsTab({ students = [] }) {
             </div>
 
             {/* Summary cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {[
                     { icon: Wallet,      label: 'Jami kerak',   val: fmt(totals.req),  color: '#3b82f6' },
                     { icon: TrendingUp,  label: "To'langan",    val: fmt(totals.paid), color: 'var(--success)' },
                     { icon: TrendingDown,label: 'Qarz',          val: fmt(totals.debt), color: 'var(--danger)' },
                 ].map((c, i) => (
-                    <div key={i} style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div key={i} style={{ flex: '1 1 140px', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: c.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <c.icon size={18} style={{ color: c.color }} />
                         </div>
-                        <div>
+                        <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{c.label}</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 700, color: i === 2 && totals.debt > 0 ? 'var(--danger)' : i === 1 ? 'var(--success)' : 'var(--text-primary)' }}>{c.val}</div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: i === 2 && totals.debt > 0 ? 'var(--danger)' : i === 1 ? 'var(--success)' : 'var(--text-primary)', wordBreak: 'break-word' }}>{c.val}</div>
                         </div>
                     </div>
                 ))}
@@ -311,15 +311,7 @@ export default function StudentsTab({ students = [] }) {
                                 );
                             })}
                         </tbody>
-                        <tfoot>
-                            <tr style={{ borderTop: '2px solid var(--card-border)', background: 'var(--accent-soft)' }}>
-                                <td colSpan={3} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>Jami:</td>
-                                <td style={{ padding: '12px 16px', fontWeight: 700 }}>{fmt(totals.req)}</td>
-                                <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--success)' }}>{fmt(totals.paid)}</td>
-                                <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--danger)' }}>{fmt(totals.debt)}</td>
-                                <td colSpan={showPayment ? 3 : 2} />
-                            </tr>
-                        </tfoot>
+                        <tfoot></tfoot>
                     </table>
                 </div>
             )}

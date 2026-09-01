@@ -372,38 +372,79 @@ export default function Dashboard() {
             {ranking?.top && ranking.top.length > 0 && (
                 <DashCard>
                     <CardHead icon={Trophy} title="Top guruhlar" color="#f59e0b" />
-                    <div style={{ padding: '8px 0 0' }}>
-                        {ranking.top.slice(0, 5).map((grp, i) => (
-                            <div key={i} style={{
-                                display: 'flex', alignItems: 'center', gap: 12,
-                                padding: '11px 20px',
-                                borderTop: '1px solid var(--card-border)',
-                                transition: 'background 0.15s',
-                            }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-soft)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <div style={{
-                                    width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-                                    background: i === 0 ? '#f59e0b18' : i === 1 ? '#6366f118' : 'var(--input-bg)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontWeight: 700, fontSize: '0.78rem',
-                                    color: i === 0 ? '#f59e0b' : i === 1 ? '#6366f1' : 'var(--text-muted)',
-                                }}>
-                                    {i + 1}
-                                </div>
-                                <span style={{ flex: 1, fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {grp.name || grp.groupName || grp.title || '—'}
-                                </span>
-                                <span style={{
-                                    fontSize: '0.75rem', fontWeight: 700,
-                                    background: 'var(--accent-soft)', color: 'var(--accent)',
-                                    padding: '2px 10px', borderRadius: 99, flexShrink: 0,
-                                }}>
-                                    {grp.count ?? grp.students ?? grp.value ?? '—'}
-                                </span>
-                            </div>
-                        ))}
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                            <thead>
+                                <tr style={{ background: 'var(--accent-soft)' }}>
+                                    {['#', 'Guruh', "O'quvchilar", "O'rt. baho", 'Davomat', 'Ball'].map((h, hi) => (
+                                        <th key={hi} style={{
+                                            padding: '10px 16px', textAlign: hi === 0 ? 'center' : hi >= 2 ? 'center' : 'left',
+                                            fontWeight: 700, color: 'var(--accent)', fontSize: '0.68rem',
+                                            textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
+                                        }}>{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {ranking.top.map((grp, i) => {
+                                    const medalColors = ['#f59e0b', '#94a3b8', '#cd7f32'];
+                                    const medal = i < 3 ? medalColors[i] : null;
+                                    const scoreColor = grp.score > 500 ? 'var(--success)' : grp.score > 200 ? 'var(--warning)' : 'var(--text-muted)';
+                                    const attColor   = grp.attendance_rate >= 80 ? 'var(--success)' : grp.attendance_rate >= 50 ? 'var(--warning)' : 'var(--danger)';
+                                    const gradeColor = grp.avg_grade >= 80 ? 'var(--success)' : grp.avg_grade >= 60 ? 'var(--warning)' : 'var(--danger)';
+                                    return (
+                                        <tr key={grp.group_id || i} style={{ borderTop: '1px solid var(--card-border)', transition: 'background 0.15s' }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-soft)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                            {/* # */}
+                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                <div style={{
+                                                    width: 28, height: 28, borderRadius: 8, margin: '0 auto',
+                                                    background: medal ? medal + '20' : 'var(--input-bg)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontWeight: 800, fontSize: '0.82rem',
+                                                    color: medal || 'var(--text-muted)',
+                                                }}>
+                                                    {medal ? ['🥇','🥈','🥉'][i] : i + 1}
+                                                </div>
+                                            </td>
+                                            {/* Guruh nomi */}
+                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                {grp.group_name || grp.name || '—'}
+                                            </td>
+                                            {/* O'quvchilar */}
+                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                                    {grp.students_count ?? '—'}
+                                                </span>
+                                            </td>
+                                            {/* O'rtacha baho */}
+                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                {grp.avg_grade != null ? (
+                                                    <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '2px 10px', borderRadius: 99, background: gradeColor + '18', color: gradeColor }}>
+                                                        {grp.avg_grade}%
+                                                    </span>
+                                                ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                            </td>
+                                            {/* Davomat */}
+                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                {grp.attendance_rate != null ? (
+                                                    <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '2px 10px', borderRadius: 99, background: attColor + '18', color: attColor }}>
+                                                        {grp.attendance_rate}%
+                                                    </span>
+                                                ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                            </td>
+                                            {/* Ball */}
+                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: scoreColor }}>
+                                                    {grp.score ?? '—'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </DashCard>
             )}

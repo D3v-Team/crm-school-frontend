@@ -85,35 +85,29 @@ export default function Payment() {
 
     return (
         <div>
-            <div className="page-header">
-                <div className="page-title">
+            <div className="page-toolbar">
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginRight:'auto' }}>
                     <span className="page-title-icon"><CreditCard size={18}/></span>
-                    To'lovlar tarixi
+                    <span style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)' }}>To'lovlar tarixi</span>
                 </div>
-                
-            </div>
-
-            {/* Filters */}
-            <div className="search-bar">
                 <select style={ss} value={year} onChange={e=>{setYear(+e.target.value);setPage(1);}}>
                     {years.map(y=><option key={y} value={y}>{y}</option>)}
                 </select>
                 <select style={ss} value={month} onChange={e=>{setMonth(+e.target.value);setPage(1);}}>
                     {MONTHS.map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
                 </select>
-                <select style={{...ss, minWidth:140}} value={selectedGroupId} onChange={e=>{setSelectedGroupId(e.target.value);setPage(1);}}>
+                <select style={{...ss, minWidth:120}} value={selectedGroupId} onChange={e=>{setSelectedGroupId(e.target.value);setPage(1);}}>
                     <option value="">Barcha guruhlar</option>
                     {groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
-                <div className="search-input-wrap" style={{ position:"relative" }}>
+                <div className="search-input-wrap" style={{ position:'relative' }}>
                     <Search className="search-icon" size={16}/>
                     <input className="search-input" type="text" placeholder="O'quvchi qidirish..."
                         value={searchStudent}
                         onChange={e=>{ setSearchStudent(e.target.value); setShowDropdown(true); if(!e.target.value) setSelectedStudentId(""); }}
                         onFocus={()=>setShowDropdown(true)}/>
                     {selectedStudentId && (
-                        <button onClick={()=>{setSelectedStudentId("");setSearchStudent("");setShowDropdown(false);setPage(1);}}
-                            style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)" }}>
+                        <button className="toolbar-clear-btn" onClick={()=>{setSelectedStudentId("");setSearchStudent("");setShowDropdown(false);setPage(1);}}>
                             <X size={14}/>
                         </button>
                     )}
@@ -133,6 +127,7 @@ export default function Payment() {
                         </div>
                     )}
                 </div>
+                <button className="btn-refresh" onClick={fetchPayments} title="Yangilash"><RefreshCw size={15}/></button>
             </div>
 
             {isLoading && <Loading/>}

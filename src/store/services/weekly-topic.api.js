@@ -67,6 +67,18 @@ export const weeklyTopicApi = createApi({
                 { type: 'WeeklyTopic', id: 'LIST' },
             ],
         }),
+        // GET /api/weekly-topic/group-week?group_id=&week_start_date=
+        getGroupWeekTopics: builder.query({
+            query: (params) => ({
+                url: '/weekly-topic/group-week',
+                method: 'GET',
+                params,
+            }),
+            providesTags: (result, error, params) => [
+                { type: 'WeeklyTopic', id: `group-week-${params?.group_id}-${params?.week_start_date}` },
+                { type: 'WeeklyTopic', id: 'LIST' },
+            ],
+        }),
     }),
 });
 
@@ -78,4 +90,6 @@ export const {
     useCreateWeeklyTopicMutation,
     useDeleteWeeklyTopicMutation,
     useUpdateWeeklyTopicMutation,
+    useGetGroupWeekTopicsQuery,
+    useLazyGetGroupWeekTopicsQuery,
 } = weeklyTopicApi;

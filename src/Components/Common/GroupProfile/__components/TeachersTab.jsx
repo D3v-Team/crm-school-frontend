@@ -1,51 +1,29 @@
 import { useParams, NavLink } from 'react-router-dom';
 import { useLazyGetTeacherGroupsByGroupIdQuery } from '../../../../store/services/theacher-group.api';
 import { useLazyGetTeacherSubjectsByTeacherIdQuery } from '../../../../store/services/teacher-subject.api';
-import { useEffect, useState } from 'react';
-import { Users, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect } from 'react';
+import { Users, BookOpen } from 'lucide-react';
 import AddTeacherToGroup from './AddTeacher';
 import DeleteTeacherGroup from './DeleteTeacher';
 import Loading from '../../../Other/UI/Loadings/Loading';
 
 /* Per-teacher subjects badge list */
 function TeacherSubjects({ teacherId }) {
-    const [open, setOpen] = useState(false);
     const [fetch, { data, isLoading }] = useLazyGetTeacherSubjectsByTeacherIdQuery();
-
-    useEffect(() => {
-        if (teacherId) fetch(teacherId);
-    }, [teacherId]);
-
+    useEffect(() => { if (teacherId) fetch(teacherId); }, [teacherId]);
     const subjects = data?.data || [];
 
-    if (isLoading) return (
-        <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>Yuklanmoqda...</div>
-    );
-
-    if (!subjects.length) return (
-        <div style={{ fontSize:'0.68rem', color:'var(--text-muted)', fontStyle:'italic' }}>Fan biriktirilmagan</div>
-    );
+    if (isLoading) return <div style={{ fontSize:'0.68rem', color:'var(--text-muted)', marginTop:6 }}>Yuklanmoqda...</div>;
+    if (!subjects.length) return <div style={{ fontSize:'0.68rem', color:'var(--text-muted)', fontStyle:'italic', marginTop:6 }}>Fan biriktirilmagan</div>;
 
     return (
-        <div style={{ marginTop:6 }}>
-            <button
-                onClick={() => setOpen(p => !p)}
-                style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'var(--accent)', fontSize:'0.72rem', fontWeight:600, padding:0 }}
-            >
-                <BookOpen size={11}/>
-                {subjects.length} ta fan
-                {open ? <ChevronUp size={11}/> : <ChevronDown size={11}/>}
-            </button>
-            {open && (
-                <div style={{ marginTop:6, display:'flex', flexWrap:'wrap', gap:4 }}>
-                    {subjects.map(item => (
-                        <span key={item.teacher_subject_id || item.id}
-                            style={{ fontSize:'0.68rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background:'var(--accent-soft)', color:'var(--accent)' }}>
-                            {item.subject?.name || '—'}
-                        </span>
-                    ))}
-                </div>
-            )}
+        <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:4 }}>
+            {subjects.map(item => (
+                <span key={item.teacher_subject_id || item.id}
+                    style={{ fontSize:'0.68rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background:'var(--accent-soft)', color:'var(--accent)', display:'flex', alignItems:'center', gap:3 }}>
+                    <BookOpen size={9}/> {item.subject?.name || '—'}
+                </span>
+            ))}
         </div>
     );
 }

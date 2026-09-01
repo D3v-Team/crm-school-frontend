@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LogOut, User, ChevronDown, Moon, Sun, PanelLeftOpen, PanelLeftClose, Menu } from "lucide-react";
+import { LogOut, User, ChevronDown, Moon, Sun, PanelLeftOpen, PanelLeftClose, Menu, Camera, CameraOff, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { useAppSelector } from "../../../store/hooks";
+import { useLazyPingCameraQuery } from "../../../store/services/hikvision.api";
+
+const CAMERA_ROLES = ['admin', 'super_admin', 'hr', 'dev'];
 
 export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile = false, ...props }) {
     const navigate = useNavigate();
@@ -21,6 +24,26 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile =
         role === 'cashier'     ? 'Kassir'      :
         role === 'dev'         ? 'Developer'   :
         role ? role : 'Foydalanuvchi';
+
+    const showCamera = CAMERA_ROLES.includes(role);
+
+    /* ── Camera ping ── */
+    const [pingCamera, { data: pingData, isLoading: pinging, isFetching }] = useLazyPingCameraQuery();
+    const [pingStatus, setPingStatus] = useState(null); // null | 'online' | 'offline'
+
+    useEffect(() => {
+        if (showCamera) pingCamera();
+    }, [showCamera]);
+
+    useEffect(() => {
+        if (!pingData && !pinging && !isFetching) return;
+        if (pinging || isFetching) return;
+        // API response: { status: 200, data: { online: true } } yoki boshqacha
+        const d = pingData?.data ?? pingData;
+        const isOnline = d?.online === true || d?.status === 'online' || d?.connected === true
+            || d === true || pingData?.status === 200;
+        setPingStatus(isOnline ? 'online' : 'offline');
+    }, [pingData, pinging, isFetching]);
 
     useEffect(() => {
         const saved = localStorage.getItem("theme");
@@ -95,6 +118,56 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile =
 
             {/* Right */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+
+                {/* Camera status — faqat admin/super_admin/hr/dev uchun */}
+                {showCamera && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {/* Status badge */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '5px 10px 5px 8px',
+                            borderRadius: 10,
+                            border: `1.5px solid ${pingStatus === 'online' ? 'var(--success)' : pingStatus === 'offline' ? 'var(--danger)' : 'var(--card-border)'}`,
+                            background: pingStatus === 'online' ? 'var(--success-soft)' : pingStatus === 'offline' ? 'var(--danger-soft)' : 'var(--input-bg)',
+                        }}>
+                            {pingStatus === 'online' ? (
+                                <Camera style={{ width: 14, height: 14, color: 'var(--success)', flexShrink: 0 }} />
+                            ) : pingStatus === 'offline' ? (
+                                <CameraOff style={{ width: 14, height: 14, color: 'var(--danger)', flexShrink: 0 }} />
+                            ) : (
+                                <Camera style={{ width: 14, height: 14, color: 'var(--text-muted)', flexShrink: 0 }} />
+                            )}
+                            <span style={{
+                                fontSize: '0.7rem', fontWeight: 600,
+                                color: pingStatus === 'online' ? 'var(--success)' : pingStatus === 'offline' ? 'var(--danger)' : 'var(--text-muted)',
+                                lineHeight: 1,
+                            }}>
+                                {(pinging || isFetching) ? '...' : pingStatus === 'online' ? 'Online' : pingStatus === 'offline' ? 'Offline' : '—'}
+                            </span>
+                        </div>
+
+                        {/* Refresh ping */}
+                        <button
+                            onClick={() => { setPingStatus(null); pingCamera(); }}
+                            disabled={pinging || isFetching}
+                            title="Kamerani tekshirish"
+                            style={{
+                                width: 32, height: 32,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                borderRadius: 9, border: 'none', cursor: (pinging || isFetching) ? 'not-allowed' : 'pointer',
+                                background: 'var(--input-bg)', color: 'var(--text-muted)',
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => { if (!pinging && !isFetching) { e.currentTarget.style.background = 'var(--accent-soft)'; e.currentTarget.style.color = 'var(--accent)'; } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'var(--input-bg)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                        >
+                            <RefreshCw style={{
+                                width: 13, height: 13,
+                                animation: (pinging || isFetching) ? 'spin 1s linear infinite' : 'none',
+                            }} />
+                        </button>
+                    </div>
+                )}
                 {/* Dark mode toggle */}
                 <button
                     onClick={toggleDarkMode}

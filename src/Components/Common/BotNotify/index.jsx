@@ -297,7 +297,7 @@ export default function BotNotify() {
 
         
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 20 }}>
                 <NotifyCard
                     icon={Users}
                     color="var(--accent)"

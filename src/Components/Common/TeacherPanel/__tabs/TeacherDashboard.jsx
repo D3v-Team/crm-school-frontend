@@ -38,24 +38,28 @@ function StatCard({ icon: Icon, label, value, color, large }) {
             background: 'var(--card-bg)',
             border: `1.5px solid ${color}33`,
             borderRadius: 16,
-            padding: large ? '22px 24px' : '16px 20px',
-            display: 'flex', alignItems: 'center', gap: 16,
+            padding: '16px 18px',
+            display: 'flex', alignItems: 'center', gap: 14,
             boxShadow: 'var(--shadow-sm)',
             transition: 'box-shadow 0.15s, border-color 0.15s',
+            minWidth: 0,
         }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 0 0 3px ${color}22`; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = `${color}33`; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
         >
             <div style={{
-                width: large ? 56 : 44, height: large ? 56 : 44,
-                borderRadius: 14, background: color + '18',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                width: 44, height: 44,
+                borderRadius: 12, background: color + '18', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-                <Icon size={large ? 24 : 20} style={{ color }} />
+                <Icon size={20} style={{ color }} />
             </div>
-            <div>
-                <div style={{ fontSize: large ? '2rem' : '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{label}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</div>
+                <div style={{
+                    fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4,
+                    wordBreak: 'break-word', overflowWrap: 'anywhere', lineHeight: 1.3,
+                }}>{label}</div>
             </div>
         </div>
     );
@@ -145,7 +149,7 @@ export default function TeacherDashboard({ teacherId }) {
 
             {/* ── KPI cards ── */}
             {kpiCards.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
                     {kpiCards.map((c,i) => <StatCard key={i} {...c} large={i < 2} />)}
                 </div>
             )}

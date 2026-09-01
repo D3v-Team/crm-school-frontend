@@ -3,7 +3,7 @@ import { useLazyGetSubjectsQuery } from "../../../store/services/subject.api";
 import Create from "./__components/Create";
 import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
-import { Search, BookOpen, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { Search, BookOpen, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, RefreshCw, X } from "lucide-react";
 import Loading from "../../Other/UI/Loadings/Loading";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
@@ -38,28 +38,21 @@ export default function Subject() {
 
     return (
         <div>
-            <div className="page-header">
-                <div className="page-title">
-                    <span className="page-title-icon"><BookOpen size={18} /></span>
-                    Fanlar
+            <div className="page-toolbar">
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginRight:'auto' }}>
+                    <span className="page-title-icon"><BookOpen size={18}/></span>
+                    <span style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)' }}>Fanlar</span>
                 </div>
-                {!isTeacher && <Create />}
-            </div>
-
-            <div className="search-bar">
                 <div className="search-input-wrap">
-                    <Search className="search-icon" size={16} />
-                    <input
-                        className="search-input"
-                        type="text"
-                        placeholder="Fan nomi bo'yicha qidirish..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                    />
+                    <Search className="search-icon" size={16}/>
+                    <input className="search-input" type="text" placeholder="Fan nomi..."
+                        value={search} onChange={e => { setSearch(e.target.value); }} onKeyDown={handleKeyDown}/>
+                    {search && (
+                        <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
+                    )}
                 </div>
-                <button className="search-btn" onClick={handleSearch}>Qidirish</button>
-                <button className="clear-btn" onClick={handleClear}>Tozalash</button>
+                {!isTeacher && <Create/>}
+                <button className="btn-refresh" onClick={() => fetchSubjects(1)} title="Yangilash"><RefreshCw size={15}/></button>
             </div>
 
             {isLoading && <Loading />}

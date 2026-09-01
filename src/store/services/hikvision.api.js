@@ -51,6 +51,14 @@ export const hikvisionApi = createApi({
             }),
             invalidatesTags: (r, e, id) => [{ type: 'Face', id: `user-${id}` }],
         }),
+        // GET /api/hikvision/ping — camera online/offline
+        pingCamera: builder.query({
+            query: () => ({
+                url: '/hikvision/ping',
+                method: 'GET',
+            }),
+            providesTags: [{ type: 'Face', id: 'PING' }],
+        }),
     }),
 });
 
@@ -59,4 +67,6 @@ export const {
     useDeleteFaceMutation,
     useUploadUserFaceMutation,
     useDeleteUserFaceMutation,
+    usePingCameraQuery,
+    useLazyPingCameraQuery,
 } = hikvisionApi;

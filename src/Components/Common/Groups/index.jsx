@@ -8,7 +8,7 @@ import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, Layers, Eye, RefreshCw,
+    Search, Layers, Eye, RefreshCw, X,
 } from "lucide-react";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
@@ -63,37 +63,25 @@ export default function Groups() {
 
     return (
         <div>
-            <div className="page-header">
-                <div className="page-title">
-                    <span className="page-title-icon"><Layers size={18} /></span>
-                    {isTeacher ? "Mening guruhlarim" : "Guruhlar"}
+            <div className="page-toolbar">
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginRight:'auto' }}>
+                    <span className="page-title-icon"><Layers size={18}/></span>
+                    <span style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)' }}>
+                        {isTeacher ? "Mening guruhlarim" : "Guruhlar"}
+                    </span>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    {!isTeacher && <Create />}
-                    <button
-                        className="btn-refresh"
-                        onClick={() => isTeacher ? refetchProfile() : fetchGroups(page)}
-                        title="Yangilash"
-                    >
-                        <RefreshCw size={15} />
-                    </button>
-                </div>
-            </div>
-
-            <div className="search-bar">
                 <div className="search-input-wrap">
-                    <Search className="search-icon" size={16} />
-                    <input
-                        className="search-input"
-                        type="text"
-                        placeholder="Guruh nomi bo'yicha qidirish..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                    />
+                    <Search className="search-icon" size={16}/>
+                    <input className="search-input" type="text" placeholder="Guruh nomi..."
+                        value={search} onChange={e => { setSearch(e.target.value); if(isTeacher) handleSearch(); }} onKeyDown={handleKeyDown}/>
+                    {search && (
+                        <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
+                    )}
                 </div>
-                {!isTeacher && <button className="search-btn" onClick={handleSearch}>Qidirish</button>}
-                <button className="clear-btn" onClick={handleClear}>Tozalash</button>
+                {!isTeacher && <Create/>}
+                <button className="btn-refresh" onClick={() => isTeacher ? refetchProfile() : fetchGroups(page)} title="Yangilash">
+                    <RefreshCw size={15}/>
+                </button>
             </div>
 
             {isLoading && <Loading />}

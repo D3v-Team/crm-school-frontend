@@ -74,6 +74,17 @@ export const teacherSubjectApi = createApi({
                     : [{ type: 'TeacherSubject', id: `by-teacher-${teacherId}` }];
             },
         }),
+        // GET /api/teacher-subject/available-teachers?subject_id=&group_id=
+        getAvailableTeachers: builder.query({
+            query: (params) => ({
+                url: '/teacher-subject/available-teachers',
+                method: 'GET',
+                params,
+            }),
+            providesTags: (result, error, params) => [
+                { type: 'TeacherSubject', id: `available-${params?.subject_id}-${params?.group_id}` },
+            ],
+        }),
     }),
 });
 
@@ -88,4 +99,6 @@ export const {
     useDeleteTeacherSubjectMutation,
     useGetTeacherSubjectsByTeacherIdQuery,
     useLazyGetTeacherSubjectsByTeacherIdQuery,
+    useGetAvailableTeachersQuery,
+    useLazyGetAvailableTeachersQuery,
 } = teacherSubjectApi;

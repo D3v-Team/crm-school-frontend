@@ -10,7 +10,7 @@ import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, Users, Eye, RefreshCw, Camera, CameraOff,
+    Search, Users, Eye, RefreshCw, Camera, CameraOff, X,
 } from "lucide-react";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
@@ -57,35 +57,25 @@ export default function Student() {
 
     return (
         <div>
-            <div className="page-header">
-                <div className="page-title">
-                    <span className="page-title-icon"><Users size={18} /></span>
-                    O'quvchilar
+            <div className="page-toolbar">
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginRight:'auto' }}>
+                    <span className="page-title-icon"><Users size={18}/></span>
+                    <span style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)' }}>O'quvchilar</span>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    {!isTeacher && <Create />}
-                    <button className="btn-refresh" onClick={() => fetchStudents(page)} title="Yangilash">
-                        <RefreshCw size={15} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Search + filter */}
-            <div className="search-bar">
                 <div className="search-input-wrap">
-                    <Search className="search-icon" size={16} />
-                    <input className="search-input" type="text" placeholder="Ism yoki telefon bo'yicha..."
-                        value={search} onChange={e => setSearch(e.target.value)} onKeyDown={handleKeyDown} />
+                    <Search className="search-icon" size={16}/>
+                    <input className="search-input" type="text" placeholder="Ism yoki telefon..."
+                        value={search} onChange={e => { setSearch(e.target.value); }} onKeyDown={handleKeyDown}/>
+                    {search && (
+                        <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
+                    )}
                 </div>
-                {/* Simple toggle: Faol / Nofaol */}
-                <select className="search-select"
-                    value={isActiveFilter ? "active" : "inactive"}
-                    onChange={handleFilterChange}>
+                <select className="search-select" value={isActiveFilter ? "active" : "inactive"} onChange={handleFilterChange}>
                     <option value="active">Faol</option>
                     <option value="inactive">Nofaol</option>
                 </select>
-                <button className="search-btn" onClick={handleSearch}>Qidirish</button>
-                <button className="clear-btn" onClick={handleClear}>Tozalash</button>
+                {!isTeacher && <Create/>}
+                <button className="btn-refresh" onClick={() => fetchStudents(page)} title="Yangilash"><RefreshCw size={15}/></button>
             </div>
 
             {isLoading && <Loading />}
