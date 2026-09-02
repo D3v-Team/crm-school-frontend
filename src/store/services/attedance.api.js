@@ -63,15 +63,20 @@ export const attendanceApi = createApi({
                 method: 'GET',
                 params,
             }),
-            providesTags: (result) => {
-                // Кастомный тег для кэширования данных родителя
-                return [{ type: 'Attendance', id: 'MY_CHILDREN' }];
-            },
+            providesTags: () => [{ type: 'Attendance', id: 'MY_CHILDREN' }],
+        }),
+        // POST /api/attendance/bulk
+        bulkAttendance: builder.mutation({
+            query: (data) => ({
+                url: '/attendance/bulk',
+                method: 'POST',
+                data,
+            }),
+            invalidatesTags: [{ type: 'Attendance', id: 'LIST' }],
         }),
     }),
 });
 
-// Экспорт хуков
 export const {
     useCreateAttendanceMutation,
     useGetAttendanceQuery,
@@ -82,4 +87,5 @@ export const {
     useDeleteAttendanceMutation,
     useGetMyChildrenAttendanceQuery,
     useLazyGetMyChildrenAttendanceQuery,
+    useBulkAttendanceMutation,
 } = attendanceApi;

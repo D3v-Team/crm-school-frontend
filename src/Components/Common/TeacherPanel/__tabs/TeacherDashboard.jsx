@@ -76,15 +76,10 @@ export default function TeacherDashboard({ teacherId }) {
     const [fetchGrades,   { data: gradesData                  }] = useLazyGetGradesQuery();
     const [fetchSchedule, { data: scheduleData               }] = useLazyGetGroupScheduleByTeacherQuery();
 
-    const fmtDate = (d) => {
-        const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-        return `${y}-${m}-${dd}`;
-    };
-
     useEffect(() => {
         if (!teacherId) return;
         fetchGroups(teacherId);
-        fetchSchedule({ teacherId, date: fmtDate(now) });
+        fetchSchedule(teacherId);
     }, [teacherId]);
 
     useEffect(() => {

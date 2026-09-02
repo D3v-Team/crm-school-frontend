@@ -5,6 +5,7 @@ import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
 import Loading from "../../Other/UI/Loadings/Loading";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Users, RefreshCw } from "lucide-react";
+import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 
 const ROLES = [
     { value: "", label: "Barcha rollar" },
@@ -37,9 +38,7 @@ export default function SA_Employee() {
     };
 
     useEffect(() => { fetchUsers(1); }, []);
-
     const handleSearch = () => { setPage(1); fetchUsers(1, search, role); };
-    const handleKeyDown = (e) => { if (e.key === "Enter") handleSearch(); };
     const handleClear = () => { setSearch(""); setRole(""); setPage(1); fetchUsers(1, "", ""); };
 
     const users = data?.data?.records || [];
@@ -67,8 +66,8 @@ export default function SA_Employee() {
             <div className="search-bar">
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16} />
-                    <input className="search-input" type="text" placeholder="Ism yoki username bo'yicha..."
-                        value={search} onChange={e => setSearch(e.target.value)} onKeyDown={handleKeyDown} />
+                    <DebouncedSearchInput className="search-input" type="text" placeholder="Ism yoki username bo'yicha..."
+                        value={search} onChange={setSearch} onSearch={value => { setPage(1); fetchUsers(1, value, role); }} />
                 </div>
                 <select className="search-select" value={role} onChange={e => setRole(e.target.value)}>
                     {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}

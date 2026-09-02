@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
+import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 
 export default function Groups() {
     const roleFromStore = useAppSelector(s => s.auth?.role);
@@ -57,7 +58,6 @@ export default function Groups() {
         if (!isTeacher) triggerAll({ page: p, limit, ...(s && { search: s }) });
     };
     const handleSearch  = () => { setPage(1); fetchGroups(1, search); };
-    const handleKeyDown = (e) => { if (e.key === "Enter") handleSearch(); };
     const handleClear   = () => { setSearch(""); if (!isTeacher) { setPage(1); fetchGroups(1, ""); } };
     const goTo          = (p) => { setPage(p); fetchGroups(p); };
 
@@ -72,8 +72,8 @@ export default function Groups() {
                 </div>
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16}/>
-                    <input className="search-input" type="text" placeholder="Guruh nomi..."
-                        value={search} onChange={e => { setSearch(e.target.value); if(isTeacher) handleSearch(); }} onKeyDown={handleKeyDown}/>
+                    <DebouncedSearchInput className="search-input" type="text" placeholder="Guruh nomi..."
+                        value={search} onChange={setSearch} onSearch={value => { if (!isTeacher) { setPage(1); fetchGroups(1, value); } }}/>
                     {search && (
                         <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
                     )}

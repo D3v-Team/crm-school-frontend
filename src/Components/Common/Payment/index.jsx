@@ -60,7 +60,11 @@ export default function Payment() {
     const [fetchStudents, { data:studentsData, isLoading:studentsLoading }] = useLazyGetStudentsQuery();
     const [fetchGroups, { data:groupsData }] = useLazyGetGroupsQuery();
 
-    useEffect(() => { if (searchStudent.length > 1) fetchStudents({ search:searchStudent, limit:10 }); }, [searchStudent]);
+    useEffect(() => {
+        if (searchStudent.trim().length <= 1) return;
+        const timer = setTimeout(() => fetchStudents({ search:searchStudent, limit:10 }), 3000);
+        return () => clearTimeout(timer);
+    }, [searchStudent]);
     useEffect(() => { if (studentsData) setStudents(studentsData?.data?.records||[]); }, [studentsData]);
     useEffect(() => { fetchGroups({ limit:100 }); }, []);
 

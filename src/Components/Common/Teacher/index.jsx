@@ -5,6 +5,7 @@ import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
 import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
+import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
     Search, Users, Eye, RefreshCw, X, Camera, CameraOff,
@@ -22,9 +23,7 @@ export default function Teacher() {
     };
 
     useEffect(() => { fetchUsers(1); }, []);
-
     const handleSearch = () => { setPage(1); fetchUsers(1, search); };
-    const handleKeyDown = (e) => { if (e.key === "Enter") handleSearch(); };
     const handleClear = () => { setSearch(""); setPage(1); fetchUsers(1, ""); };
 
     const users = data?.data?.records || [];
@@ -43,8 +42,8 @@ export default function Teacher() {
                 </div>
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16}/>
-                    <input className="search-input" type="text" placeholder="Ism yoki username..."
-                        value={search} onChange={e => { setSearch(e.target.value); }} onKeyDown={handleKeyDown}/>
+                    <DebouncedSearchInput className="search-input" type="text" placeholder="Ism yoki username..."
+                        value={search} onChange={setSearch} onSearch={value => { setPage(1); fetchUsers(1, value); }}/>
                     {search && (
                         <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
                     )}

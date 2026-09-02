@@ -276,7 +276,9 @@ body {
 }
 .search-input-wrap {
   position: relative;
-  flex: 1;
+  flex: 0 1 300px;
+  width: 100%;
+  max-width: 300px;
   min-width: 200px;
 }
 .search-input-wrap .search-icon {
@@ -1211,4 +1213,10 @@ html, body {
   .teacher-dash-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* ── Search input: max 300px in toolbar ── */
+.page-toolbar .search-input-wrap {
+  max-width: 300px;
+  flex: 1 1 180px;
 }

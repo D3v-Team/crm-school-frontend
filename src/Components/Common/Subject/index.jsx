@@ -7,6 +7,7 @@ import { Search, BookOpen, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRigh
 import Loading from "../../Other/UI/Loadings/Loading";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
+import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 
 export default function Subject() {
     const roleFromStore = useAppSelector(s => s.auth?.role);
@@ -24,9 +25,7 @@ export default function Subject() {
     };
 
     useEffect(() => { fetchSubjects(1); }, []);
-
     const handleSearch = () => { setPage(1); fetchSubjects(1, search); };
-    const handleKeyDown = (e) => { if (e.key === "Enter") handleSearch(); };
     const handleClear = () => { setSearch(""); setPage(1); fetchSubjects(1, ""); };
 
     const subjects = data?.data?.records || [];
@@ -45,8 +44,8 @@ export default function Subject() {
                 </div>
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16}/>
-                    <input className="search-input" type="text" placeholder="Fan nomi..."
-                        value={search} onChange={e => { setSearch(e.target.value); }} onKeyDown={handleKeyDown}/>
+                    <DebouncedSearchInput className="search-input" type="text" placeholder="Fan nomi..."
+                        value={search} onChange={setSearch} onSearch={value => { setPage(1); fetchSubjects(1, value); }}/>
                     {search && (
                         <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
                     )}

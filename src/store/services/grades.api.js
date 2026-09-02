@@ -56,22 +56,23 @@ export const gradesApi = createApi({
             }),
             invalidatesTags: (result, error, id) => [{ type: 'Grade', id }],
         }),
-        // GET /api/grade/my-children – оценки для родителей
+        // GET /api/grade/my-children
         getMyChildrenGrades: builder.query({
-            query: (params) => ({
-                url: '/grade/my-children',
-                method: 'GET',
-                params,
+            query: (params) => ({ url: '/grade/my-children', method: 'GET', params }),
+            providesTags: () => [{ type: 'Grade', id: 'MY_CHILDREN' }],
+        }),
+        // POST /api/grade/bulk
+        bulkGrade: builder.mutation({
+            query: (data) => ({
+                url: '/grade/bulk',
+                method: 'POST',
+                data,
             }),
-            providesTags: (result) => {
-                // Можно добавить кастомный тег для данных родителя
-                return [{ type: 'Grade', id: 'MY_CHILDREN' }];
-            },
+            invalidatesTags: [{ type: 'Grade', id: 'LIST' }],
         }),
     }),
 });
 
-// Экспорт хуков
 export const {
     useCreateGradeMutation,
     useGetGradesQuery,
@@ -82,4 +83,5 @@ export const {
     useDeleteGradeMutation,
     useGetMyChildrenGradesQuery,
     useLazyGetMyChildrenGradesQuery,
+    useBulkGradeMutation,
 } = gradesApi;

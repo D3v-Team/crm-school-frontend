@@ -59,23 +59,22 @@ export const groupScheduleApi = createApi({
                     : [{ type: 'GroupSchedule', id: `by-group-${groupId}` }];
             },
         }),
-        // GET /api/group-schedule/by-teacher/{teacher_id}?date=YYYY-MM-DD
+        // GET /api/group-schedule/by-teacher/{teacher_id}
         getGroupScheduleByTeacher: builder.query({
-            query: ({ teacherId, date }) => ({
+            query: (teacherId) => ({
                 url: `/group-schedule/by-teacher/${teacherId}`,
                 method: 'GET',
-                params: { date },
             }),
-            providesTags: (result, error, { teacherId, date }) => {
+            providesTags: (result, error, teacherId) => {
                 return result
                     ? [
                         ...(result?.data?.records || []).map((item) => ({
                             type: 'GroupSchedule',
                             id: item.id,
                         })),
-                        { type: 'GroupSchedule', id: `by-teacher-${teacherId}-${date}` },
+                        { type: 'GroupSchedule', id: `by-teacher-${teacherId}` },
                     ]
-                    : [{ type: 'GroupSchedule', id: `by-teacher-${teacherId}-${date}` }];
+                    : [{ type: 'GroupSchedule', id: `by-teacher-${teacherId}` }];
             },
         }),
     }),

@@ -12,6 +12,7 @@ import {
 import Loading from '../../Other/UI/Loadings/Loading';
 import Modal from '../../Other/UI/Modal/Modal';
 import { Alert } from '../../Other/UI/Alert/Alert';
+import DebouncedSearchInput from '../../Other/UI/DebouncedSearchInput';
 
 const ROLE_OPTIONS = [
     { value: 'admin',   label: 'Admin'      },
@@ -241,9 +242,9 @@ export default function SuperAdminPanel() {
             <div className="search-bar">
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16} />
-                    <input className="search-input" type="text" placeholder="Ism yoki username..."
-                        value={search} onChange={e => setSearch(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetch(1, search, roleFilter); } }} />
+                    <DebouncedSearchInput className="search-input" type="text" placeholder="Ism yoki username..."
+                        value={search} onChange={setSearch}
+                        onSearch={value => { setPage(1); fetch(1, value, roleFilter); }} />
                 </div>
                 <select className="search-select" value={roleFilter}
                     onChange={e => { setRoleFilter(e.target.value); setPage(1); fetch(1, search, e.target.value); }}>

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
+import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 
 export default function Student() {
     const roleFromStore = useAppSelector(s => s.auth?.role);
@@ -33,9 +34,7 @@ export default function Student() {
     };
 
     useEffect(() => { fetchStudents(1); }, []);
-
     const handleSearch = () => { setPage(1); fetchStudents(1, search, isActiveFilter); };
-    const handleKeyDown = (e) => { if (e.key === "Enter") handleSearch(); };
     const handleClear = () => { setSearch(""); setPage(1); fetchStudents(1, "", isActiveFilter); };
 
     const handleFilterChange = (e) => {
@@ -64,8 +63,8 @@ export default function Student() {
                 </div>
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16}/>
-                    <input className="search-input" type="text" placeholder="Ism yoki telefon..."
-                        value={search} onChange={e => { setSearch(e.target.value); }} onKeyDown={handleKeyDown}/>
+                    <DebouncedSearchInput className="search-input" type="text" placeholder="Ism yoki telefon..."
+                        value={search} onChange={setSearch} onSearch={value => { setPage(1); fetchStudents(1, value, isActiveFilter); }}/>
                     {search && (
                         <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
                     )}

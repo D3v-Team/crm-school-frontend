@@ -158,6 +158,7 @@ function AttendanceTab({ studentId }) {
     const now = new Date();
     const [dateFrom, setDateFrom] = useState(fmtLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
     const [dateTo, setDateTo]   = useState(fmtLocal(now));
+    const [subjectFilter, setSubjectFilter] = useState('all');
 
     const [fetchAtt, { data: attData, isLoading: attLoading }] = useLazyGetAttendanceQuery();
     const [fetchGrades, { data: gradesData, isLoading: gradesLoading }] = useLazyGetGradesQuery();
@@ -193,15 +194,25 @@ function AttendanceTab({ studentId }) {
     }, [attData, gradesData, studentId]);
 
     const stats = useMemo(() => {
-        const present = rows.filter(r=>r.status==='present').length;
-        const absent  = rows.filter(r=>r.status==='absent').length;
-        const late    = rows.filter(r=>r.status==='late').length;
+        const filteredRows = subjectFilter === 'all'
+            ? rows
+            : rows.filter(r => r.subject_name === subjectFilter);
+        const present = filteredRows.filter(r=>r.status==='present').length;
+        const absent  = filteredRows.filter(r=>r.status==='absent').length;
+        const late    = filteredRows.filter(r=>r.status==='late').length;
         const marked  = present+absent+late;
         const pct     = marked > 0 ? Math.round(present/marked*100) : null;
-        const graded  = rows.filter(r=>r.grade!=null);
+        const graded  = filteredRows.filter(r=>r.grade!=null);
         const avg     = graded.length ? (graded.reduce((s,r)=>s+Number(r.grade),0)/graded.length).toFixed(1) : null;
         return { present, absent, late, pct, avg };
-    }, [rows]);
+    }, [rows, subjectFilter]);
+
+    const subjects = useMemo(() => (
+        [...new Set(rows.map(row => row.subject_name).filter(Boolean))].sort()
+    ), [rows]);
+    const filteredRows = subjectFilter === 'all'
+        ? rows
+        : rows.filter(row => row.subject_name === subjectFilter);
 
     return (
         <div>
@@ -216,6 +227,14 @@ function AttendanceTab({ studentId }) {
                     <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Gacha</label>
                     <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
                         style={{ padding:'8px 12px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', width:155 }}/>
+                </div>
+                <div>
+                    <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Fan</label>
+                    <select value={subjectFilter} onChange={e=>setSubjectFilter(e.target.value)}
+                        style={{ padding:'8px 12px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', minWidth:170 }}>
+                        <option value="all">Barcha fanlar</option>
+                        {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+                    </select>
                 </div>
                 <button onClick={load} style={{ display:'flex', alignItems:'center', gap:5, padding:'8px 16px', borderRadius:9, border:'none', background:'var(--accent)', color:'#fff', fontSize:'0.82rem', fontWeight:600, cursor:'pointer' }}>
                     Ko'rish
@@ -240,50 +259,45 @@ function AttendanceTab({ studentId }) {
 
             {isLoading && <Loading/>}
             {!isLoading && (
-                rows.length === 0 ? (
+                        filteredRows.length === 0 ? (
                     <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
                         <ClipboardList size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>
                         <p>Ma'lumot topilmadi</p>
                     </div>
                 ) : (
-                    <div className="data-table-wrap">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Sana</th>
-                                    <th>Fan</th>
-                                    <th>O'qituvchi</th>
-                                    <th>Davomat</th>
-                                    <th>Baho</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map((r, i) => {
-                                    const att = ATTENDANCE_MAP[r.status];
-                                    const gradeNum = r.grade != null ? Number(r.grade) : null;
-                                    const gradeColor = gradeNum == null ? 'var(--text-muted)' : gradeNum>=80?'var(--success)':gradeNum>=60?'var(--warning)':'var(--danger)';
-                                    return (
-                                        <tr key={i}>
-                                            <td style={{ color:'var(--text-muted)', fontSize:'0.78rem', whiteSpace:'nowrap' }}>{fmtDate(r.date)}</td>
-                                            <td style={{ fontWeight:600 }}>{r.subject_name || '—'}</td>
-                                            <td style={{ color:'var(--text-secondary)' }}>{r.teacher_name || '—'}</td>
-                                            <td>
-                                                {att ? (
-                                                    <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'3px 10px', borderRadius:99, background:att.bg, color:att.color }}>
-                                                        {att.label}
-                                                    </span>
-                                                ) : '—'}
-                                            </td>
-                                            <td>
-                                                {gradeNum != null ? (
-                                                    <span style={{ fontWeight:700, color:gradeColor }}>{gradeNum}%</span>
-                                                ) : '—'}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:12 }}>
+                        {filteredRows.map((r, i) => {
+                            const att = ATTENDANCE_MAP[r.status];
+                            const gradeNum = r.grade != null ? Number(r.grade) : null;
+                            const gradeColor = gradeNum == null ? 'var(--text-muted)' : gradeNum>=80?'var(--success)':gradeNum>=60?'var(--warning)':'var(--danger)';
+                            return (
+                                <div key={`${r.date}-${r.subject_name}-${i}`} style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:12, padding:14, display:'flex', flexDirection:'column', gap:10 }}>
+                                    <div style={{ display:'flex', justifyContent:'space-between', gap:8, alignItems:'flex-start' }}>
+                                        <div>
+                                            <div style={{ fontWeight:700, color:'var(--text-primary)' }}>{r.subject_name || 'Fan ko\'rsatilmagan'}</div>
+                                            <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:3 }}>{fmtDate(r.date)}</div>
+                                        </div>
+                                        <div style={{ fontSize:'0.72rem', color:'var(--text-secondary)', textAlign:'right' }}>{r.teacher_name || '—'}</div>
+                                    </div>
+                                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                                        <div style={{ background:att?.bg || 'var(--input-bg)', borderRadius:8, padding:'8px 10px' }}>
+                                            <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>Davomat</div>
+                                            <div style={{ fontWeight:700, color:att?.color || 'var(--text-muted)', marginTop:2 }}>{att?.label || '—'}</div>
+                                        </div>
+                                        <div style={{ background:'var(--input-bg)', borderRadius:8, padding:'8px 10px' }}>
+                                            <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>Baho</div>
+                                            <div style={{ fontWeight:700, color:gradeColor, marginTop:2 }}>{gradeNum != null ? `${gradeNum}%` : '—'}</div>
+                                        </div>
+                                    </div>
+                                    {(r.att_comment || r.grade_comment) && (
+                                        <div style={{ borderTop:'1px solid var(--card-border)', paddingTop:8, display:'flex', flexDirection:'column', gap:5 }}>
+                                            {r.att_comment && <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)' }}><strong>Davomat izohi:</strong> {r.att_comment}</div>}
+                                            {r.grade_comment && <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)' }}><strong>Baho izohi:</strong> {r.grade_comment}</div>}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )
             )}

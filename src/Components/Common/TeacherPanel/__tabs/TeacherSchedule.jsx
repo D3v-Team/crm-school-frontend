@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLazyGetGroupScheduleByTeacherQuery } from '../../../../store/services/group-schedule.api';
-import { CalendarDays, Clock, Layers, Book, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { CalendarDays, Clock, Layers, Book } from 'lucide-react';
 import Loading from '../../../Other/UI/Loadings/Loading';
 
 const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -11,11 +11,6 @@ const DAY_LABELS = {
 const DAY_SHORT = { monday: 'DU', tuesday: 'SE', wednesday: 'CH', thursday: 'PA', friday: 'JU', saturday: 'SH' };
 const JS_DAY = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const toMins = (t) => { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + m; };
-
-const fmtDate = (d) => {
-    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${dd}`;
-};
 
 const PALETTE = [
     '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e', '#06b6d4',
@@ -28,14 +23,13 @@ const colorFor = (id) => {
 };
 
 export default function TeacherSchedule({ teacherId }) {
-    const [selectedDate, setSelectedDate] = useState(fmtDate(new Date()));
     const [trigger, { data, isLoading, error }] = useLazyGetGroupScheduleByTeacherQuery();
 
-    const load = (date) => {
-        if (teacherId) trigger({ teacherId, date });
+    const load = () => {
+        if (teacherId) trigger(teacherId);
     };
 
-    useEffect(() => { load(selectedDate); }, [teacherId, selectedDate]);
+    useEffect(() => { load(); }, [teacherId]);
 
     const allSchedule = data?.data?.records || data?.data || [];
 
@@ -47,51 +41,12 @@ export default function TeacherSchedule({ teacherId }) {
         return acc;
     }, {});
 
-    const todayKey = JS_DAY[new Date(selectedDate).getDay()];
-
-    const changeDate = (days) => {
-        const d = new Date(selectedDate);
-        d.setDate(d.getDate() + days);
-        setSelectedDate(fmtDate(d));
-    };
+    const todayKey = JS_DAY[new Date().getDay()];
 
     if (isLoading) return <Loading />;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Date selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <button
-                    onClick={() => changeDate(-7)}
-                    style={{ width: 34, height: 34, borderRadius: 9, border: '1.5px solid var(--card-border)', background: 'var(--input-bg)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                    <ChevronLeft size={16} />
-                </button>
-                <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={e => setSelectedDate(e.target.value)}
-                    className="search-input"
-                    style={{ paddingLeft: 14, width: 160 }}
-                />
-                <button
-                    onClick={() => changeDate(7)}
-                    style={{ width: 34, height: 34, borderRadius: 9, border: '1.5px solid var(--card-border)', background: 'var(--input-bg)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                    <ChevronRight size={16} />
-                </button>
-                <button
-                    onClick={() => { setSelectedDate(fmtDate(new Date())); load(fmtDate(new Date())); }}
-                    className="search-btn"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                    <RefreshCw size={13} /> Bugun
-                </button>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Haftalik jadval · {new Date(selectedDate).toLocaleDateString('uz-UZ', { year: 'numeric', month: 'long' })}
-                </span>
-            </div>
-
             {error && (
                 <div style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10 }}>
                     Xatolik: {error?.data?.message}

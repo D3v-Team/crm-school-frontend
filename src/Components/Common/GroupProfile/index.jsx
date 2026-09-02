@@ -27,7 +27,6 @@ const ADMIN_TABS = [
 ];
 
 const TEACHER_TABS = [
-    { key:'schedule',   label:'Jadvallar', icon: Calendar     },
     { key:'attendance', label:'Davomat',   icon: ClipboardList },
     { key:'grades',     label:'Baholar',   icon: BookOpen     },
 ];
@@ -116,7 +115,7 @@ export default function GroupProfile() {
     const isTeacher = role === 'teacher';
 
     const tabs = isTeacher ? TEACHER_TABS : ADMIN_TABS;
-    const [tab, setTab] = useState(isTeacher ? 'schedule' : 'students');
+    const [tab, setTab] = useState(isTeacher ? 'attendance' : 'students');
     const [merged, setMerged] = useState(false);
 
     const handleTabChange = (key) => {
