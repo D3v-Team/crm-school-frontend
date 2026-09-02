@@ -99,7 +99,6 @@ export default function Parent() {
                     )}
                 </div>
                 <Create/>
-                <button className="btn-refresh" onClick={() => fetchUsers(page)} title="Yangilash"><RefreshCw size={15}/></button>
             </div>
 
             {isLoading && <Loading/>}

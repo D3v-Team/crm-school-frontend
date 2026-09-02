@@ -79,9 +79,7 @@ export default function Groups() {
                     )}
                 </div>
                 {!isTeacher && <Create/>}
-                <button className="btn-refresh" onClick={() => isTeacher ? refetchProfile() : fetchGroups(page)} title="Yangilash">
-                    <RefreshCw size={15}/>
-                </button>
+              
             </div>
 
             {isLoading && <Loading />}

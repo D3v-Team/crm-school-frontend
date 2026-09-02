@@ -74,7 +74,6 @@ export default function Student() {
                     <option value="inactive">Nofaol</option>
                 </select>
                 {!isTeacher && <Create/>}
-                <button className="btn-refresh" onClick={() => fetchStudents(page)} title="Yangilash"><RefreshCw size={15}/></button>
             </div>
 
             {isLoading && <Loading />}

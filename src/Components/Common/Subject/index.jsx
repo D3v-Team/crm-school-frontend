@@ -51,7 +51,6 @@ export default function Subject() {
                     )}
                 </div>
                 {!isTeacher && <Create/>}
-                <button className="btn-refresh" onClick={() => fetchSubjects(1)} title="Yangilash"><RefreshCw size={15}/></button>
             </div>
 
             {isLoading && <Loading />}
@@ -69,16 +68,16 @@ export default function Subject() {
                             <p>Fanlar topilmadi</p>
                         </div>
                     ) : (
-                        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:12 }}>
+                        <div className="subject-grid">
                             {subjects.map((subject) => (
-                                <div key={subject.id} className="data-card" style={{ padding:'14px 16px', position:'relative' }}>
+                                <div key={subject.id} className="data-card" style={{ padding:'14px 16px', position:'relative', minWidth:0 }}>
                                     {/* Edit + Delete — top right */}
                                     <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:5 }}>
                                         {!isTeacher && <Edit subject={subject} />}
                                         {!isTeacher && <Delete subject={subject} />}
                                     </div>
                                     {/* Name */}
-                                    <span className="data-card-name" style={{ paddingRight:60, display:'block', lineHeight:1.4 }}>
+                                    <span className="data-card-name" style={{ paddingRight:60, display:'block', lineHeight:1.4, overflowWrap:'anywhere', wordBreak:'break-word' }}>
                                         {subject.name}
                                     </span>
                                 </div>
