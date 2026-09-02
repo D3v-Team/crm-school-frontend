@@ -67,6 +67,36 @@ function AvailableTeacherSelect({ subjectId, groupId, value, onChange, error }) 
     const teachers = data?.data || data?.teachers || data || [];
     const arr = Array.isArray(teachers) ? teachers : [];
 
+    /* Auto-select if only 1 teacher available */
+    useEffect(() => {
+        if (!isLoading && arr.length === 1) {
+            const id = arr[0].id || arr[0].teacher_id || arr[0].user?.id;
+            if (id && value !== id) onChange(id);
+        }
+    }, [arr, isLoading]);
+
+    /* If only 1 teacher, show as read-only label */
+    if (!isLoading && subjectId && arr.length === 1) {
+        const t = arr[0];
+        const name = t.full_name || t.teacher?.full_name || t.user?.full_name || '—';
+        return (
+            <div>
+                <div style={{
+                    width: '100%', padding: '10px 14px', borderRadius: 10,
+                    border: `1.5px solid ${error ? 'var(--danger)' : 'var(--success)'}`,
+                    background: 'var(--input-bg)', color: 'var(--input-text)',
+                    fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 8,
+                    boxSizing: 'border-box',
+                }}>
+                    <User size={14} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>{name}</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--success)', marginLeft: 'auto' }}>avtomatik tanlandi</span>
+                </div>
+                {error && <span style={{ fontSize: '0.72rem', color: 'var(--danger)' }}>{error}</span>}
+            </div>
+        );
+    }
+
     return (
         <div>
             <select
@@ -75,7 +105,7 @@ function AvailableTeacherSelect({ subjectId, groupId, value, onChange, error }) 
                 onChange={e => onChange(e.target.value)}
                 disabled={isLoading || !subjectId}
             >
-                <option value="">{!subjectId ? 'Avval fan tanlang' : isLoading ? 'Yuklanmoqda...' : "O'qituvchi tanlang"}</option>
+                <option value="">{!subjectId ? 'Avval fan tanlang' : isLoading ? 'Yuklanmoqda...' : arr.length === 0 ? "O'qituvchi topilmadi" : "O'qituvchi tanlang"}</option>
                 {arr.map(t => {
                     const id   = t.id || t.teacher_id || t.user?.id;
                     const name = t.full_name || t.teacher?.full_name || t.user?.full_name || '—';

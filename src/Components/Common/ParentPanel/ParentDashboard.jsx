@@ -67,7 +67,7 @@ export default function ParentDashboard() {
                         </div>
 
                         {/* Current period stats */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+                        <div className="responsive-content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(0, 1fr))', gap: 14, marginBottom: 20 }}>
                             {[
                                 {
                                     icon: CheckCircle,

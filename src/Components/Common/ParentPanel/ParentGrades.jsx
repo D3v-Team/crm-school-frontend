@@ -44,6 +44,7 @@ function ChildTabBar({ children, active, onChange }) {
 
 /* ── Grades content for one child ── */
 function ChildGrades({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, onLoad }) {
+    const [subjectFilter, setSubjectFilter] = useState('all');
     const dates = studentData?.dates || [];
 
     const rows = [];
@@ -60,14 +61,16 @@ function ChildGrades({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, on
         });
     });
     rows.sort((a, b) => b.date.localeCompare(a.date));
+    const subjects = [...new Set(rows.map(row => row.subject_name).filter(Boolean))].sort();
+    const filteredRows = subjectFilter === 'all' ? rows : rows.filter(row => row.subject_name === subjectFilter);
 
-    const graded  = rows.filter(r => r.score != null);
+    const graded  = filteredRows.filter(r => r.score != null);
     const avg     = graded.length ? Math.round(graded.reduce((s, r) => s + Number(r.score), 0) / graded.length) : null;
 
     const LIMIT = 20;
     const [page, setPage] = useState(1);
-    const totalPages = Math.max(1, Math.ceil(rows.length / LIMIT));
-    const paged = rows.slice((page - 1) * LIMIT, page * LIMIT);
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / LIMIT));
+    const paged = filteredRows.slice((page - 1) * LIMIT, page * LIMIT);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -82,6 +85,13 @@ function ChildGrades({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, on
                     <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Gacha</label>
                     <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }}
                         className="search-input" style={{ paddingLeft: 14, width: 150 }} />
+                </div>
+                <div>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Fan</label>
+                    <select value={subjectFilter} onChange={e => { setSubjectFilter(e.target.value); setPage(1); }} className="search-select" style={{ minWidth: 170 }}>
+                        <option value="all">Barcha fanlar</option>
+                        {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+                    </select>
                 </div>
                 <button onClick={onLoad} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 16px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
                     Ko'rish
@@ -98,12 +108,12 @@ function ChildGrades({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, on
             </div>
 
             {/* Stats */}
-            {rows.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px,1fr))', gap: 10 }}>
+            {filteredRows.length > 0 && (
+                <div className="student-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
                     {[
-                        { label: "Jami darslar", val: rows.length,    color: 'var(--accent)',   bg: 'var(--accent-soft)'   },
+                        { label: "Jami darslar", val: filteredRows.length,    color: 'var(--accent)',   bg: 'var(--accent-soft)'   },
                         { label: "Baholangan",   val: graded.length,  color: 'var(--success)',  bg: 'var(--success-soft)'  },
-                        { label: "Baholanmagan", val: rows.length - graded.length, color: 'var(--text-muted)', bg: 'var(--input-bg)' },
+                        { label: "Baholanmagan", val: filteredRows.length - graded.length, color: 'var(--text-muted)', bg: 'var(--input-bg)' },
                         ...(avg != null ? [{ label: "O'rtacha baho", val: avg + '%', color: scoreColor(avg), bg: scoreBg(avg) }] : []),
                     ].map((s, i) => (
                         <div key={i} style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -116,43 +126,34 @@ function ChildGrades({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, on
                 </div>
             )}
 
-            {rows.length === 0 ? (
+            {filteredRows.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                     <BookOpen size={40} style={{ opacity: .2, margin: '0 auto 10px', display: 'block' }} />
                     <p>Baholar topilmadi</p>
                 </div>
             ) : (
                 <>
-                    <div className="data-table-wrap">
-                        <table className="data-table">
-                            <thead>
-                                <tr><th>№</th><th>Sana</th><th>Fan</th><th>O'qituvchi</th><th>Baho</th><th>Izoh</th></tr>
-                            </thead>
-                            <tbody>
-                                {paged.map((r, i) => (
-                                    <tr key={r.key}>
-                                        <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>{(page - 1) * LIMIT + i + 1}</td>
-                                        <td style={{ whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>{fmtDate(r.date)}</td>
-                                        <td style={{ fontWeight: 600 }}>{r.subject_name}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{r.teacher_name}</td>
-                                        <td>
-                                            {r.score != null ? (
-                                                <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: scoreBg(r.score), color: scoreColor(r.score) }}>
-                                                    {r.score}%
-                                                </span>
-                                            ) : <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>}
-                                        </td>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {r.comment || '—'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="responsive-content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                        {paged.map((r, i) => (
+                            <div key={r.key} style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                                    <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{r.subject_name}</div>
+                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>{fmtDate(r.date)}</div>
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textAlign: 'right', overflowWrap: 'anywhere' }}>{r.teacher_name}</div>
+                                </div>
+                                <div style={{ background: scoreBg(r.score), borderRadius: 8, padding: '9px 10px' }}>
+                                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Baho</div>
+                                    <div style={{ fontWeight: 700, color: scoreColor(r.score), marginTop: 2 }}>{r.score != null ? `${r.score}%` : '—'}</div>
+                                </div>
+                                {r.comment && <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: 8, fontSize: '0.75rem', color: 'var(--text-secondary)' }}><strong>Izoh:</strong> {r.comment}</div>}
+                            </div>
+                        ))}
                     </div>
                     {totalPages > 1 && (
                         <div className="pagination">
-                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Jami {rows.length} ta yozuv</span>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Jami {filteredRows.length} ta yozuv</span>
                             <div className="pagination-controls">
                                 <button className="page-btn" onClick={() => setPage(1)} disabled={page <= 1}><ChevronsLeft size={15} /></button>
                                 <button className="page-btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}><ChevronLeft size={15} /></button>

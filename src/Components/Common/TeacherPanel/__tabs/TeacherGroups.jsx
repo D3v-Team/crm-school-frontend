@@ -97,6 +97,17 @@ export default function TeacherGroups({ teacherId }) {
                                 )}
                             </div>
 
+                            {group?.homeroom_teacher && String(group.homeroom_teacher.id) !== String(teacherId) && (() => {
+                                const classTeacher = group.homeroom_teacher;
+                                return (
+                                    <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--card-border)' }}>
+                                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: 3 }}>Sinf rahbari</div>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{classTeacher.full_name || classTeacher.name || '—'}</div>
+                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 2 }}>{classTeacher.phone || "Telefon ko'rsatilmagan"}</div>
+                                    </div>
+                                );
+                            })()}
+
                             <NavLink to={`/group/${group?.id}`} style={{ textDecoration: 'none' }}>
                                 <button style={{
                                     width: '100%', padding: '8px 12px', borderRadius: 9,

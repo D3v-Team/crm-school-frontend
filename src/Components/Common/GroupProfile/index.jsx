@@ -117,6 +117,7 @@ export default function GroupProfile() {
     const tabs = isTeacher ? TEACHER_TABS : ADMIN_TABS;
     const [tab, setTab] = useState(isTeacher ? 'attendance' : 'students');
     const [merged, setMerged] = useState(false);
+    const [showInitialLoading, setShowInitialLoading] = useState(true);
 
     const handleTabChange = (key) => {
         setTab(key);
@@ -143,6 +144,15 @@ export default function GroupProfile() {
 
     /* Guruh jadvalidan unique fanlar (admin uchun) */
     const [fetchSchedule, { data: scheduleData }] = useLazyGetGroupScheduleByGroupIdQuery();
+
+    useEffect(() => {
+        if (groupLoading) {
+            setShowInitialLoading(true);
+            return undefined;
+        }
+        const timer = setTimeout(() => setShowInitialLoading(false), 400);
+        return () => clearTimeout(timer);
+    }, [groupLoading]);
 
     useEffect(() => {
         if (id) {
@@ -190,7 +200,7 @@ export default function GroupProfile() {
             .map(s => ({ id: s.subject_id, name: s.subject?.name || s.subject_name || s.subject_id }));
     }, [scheduleRecords]);
 
-    if (groupLoading) return <Loading/>;
+    if (groupLoading || showInitialLoading) return <Loading/>;
     if (groupError) return (
         <div style={{ background:'var(--danger-soft)', border:'1px solid var(--danger)', color:'var(--danger)', padding:16, borderRadius:12 }}>
             Xatolik: {groupError?.data?.message}

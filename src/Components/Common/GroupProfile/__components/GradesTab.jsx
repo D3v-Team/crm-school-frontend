@@ -86,7 +86,7 @@ export default function GradesTab({
     const activeSubjectId  = isTeacher ? teacherSubjectId : (selSubjectId||null);
     const activeScheduleId = selScheduleId||null;
 
-    const [fetchGrades, { data, isLoading, error }] = useLazyGetGradesQuery();
+    const [fetchGrades, { data, isLoading, isFetching, error }] = useLazyGetGradesQuery();
     const [bulkGrade] = useBulkGradeMutation();
 
     const load = useCallback(()=>{
@@ -142,6 +142,66 @@ export default function GradesTab({
         });
         return m;
     },[dateSubjectsTemplate,scheduleRecordsProp]);
+
+    /* Bir kunda 2+ dars bo'lgan subjectlar — scheduleRecordsProp asosida (stable, filtdan ta'sirlanmaydi).
+       day_of_week bo'yicha grouplab, bir kunda 2+ schedule bo'lsa true. */
+    const subjectHasMultiSameDay = useMemo(()=>{
+        const result={};
+        // 1. scheduleRecordsProp dan (haftalik jadval — stable)
+        const bySubDay={};
+        scheduleRecordsProp.forEach(s=>{
+            if(!s.subject_id||!s.day_of_week) return;
+            const key=`${s.subject_id}__${s.day_of_week}`;
+            bySubDay[key]=(bySubDay[key]||0)+1;
+        });
+        Object.entries(bySubDay).forEach(([key,cnt])=>{
+            if(cnt>=2){ const sid=key.split('__')[0]; result[sid]=true; }
+        });
+        // 2. dateSubjectsTemplate dan ham (API data bo'lsa aniqroq)
+        Object.values(dateSubjectsTemplate).forEach(subs=>{
+            const countBySub={};
+            subs.forEach(sb=>{ if(!sb.subject_id) return; countBySub[sb.subject_id]=(countBySub[sb.subject_id]||0)+1; });
+            Object.entries(countBySub).forEach(([sid,cnt])=>{ if(cnt>=2) result[sid]=true; });
+        });
+        return result;
+    },[scheduleRecordsProp,dateSubjectsTemplate]);
+
+    /* subjectSchedules: faqat bir kunda 2+ bo'lgan schedulelarni ko'rsatish uchun
+       scheduleRecordsProp dan bir xil (subject+day) juftlari — shu juftlikdagi schedulelar */
+    const filteredSubjectSchedules = useMemo(()=>{
+        const m={...subjectSchedules};
+        // scheduleRecordsProp asosida: bir kunda 2+ bo'lgan subject uchun
+        // faqat o'sha kundagi schedulelar
+        Object.keys(m).forEach(sid=>{
+            if(!subjectHasMultiSameDay[sid]) return;
+            // O'sha subject uchun bir kunda 2+ bo'lgan day_of_week larni topamiz
+            const dayCount={};
+            scheduleRecordsProp.filter(s=>s.subject_id===sid && s.day_of_week)
+                .forEach(s=>{ dayCount[s.day_of_week]=(dayCount[s.day_of_week]||0)+1; });
+            const multiDays=Object.keys(dayCount).filter(d=>dayCount[d]>=2);
+            if(!multiDays.length) return;
+            // dateSubjectsTemplate dan ham mos schedulelarni qo'shish
+            // scheduleRecordsProp dan o'sha kunlardagi schedulelar
+            const schedIds=new Set(
+                scheduleRecordsProp
+                    .filter(s=>s.subject_id===sid && multiDays.includes(s.day_of_week))
+                    .map(s=>s.id||s.schedule_id)
+                    .filter(Boolean)
+            );
+            // dateSubjectsTemplate dan ham (API bo'lsa)
+            Object.values(dateSubjectsTemplate).forEach(subs=>{
+                const forSubject=subs.filter(sb=>sb.subject_id===sid);
+                if(forSubject.length>=2) forSubject.forEach(sb=>schedIds.add(sb.group_schedule_id));
+            });
+            if(schedIds.size>0){
+                m[sid]=Array.from(schedIds).map(id=>{
+                    const found=subjectSchedules[sid]?.find(x=>x.id===id);
+                    return found||{ id, label:id };
+                }).filter(Boolean);
+            }
+        });
+        return m;
+    },[subjectSchedules,subjectHasMultiSameDay,scheduleRecordsProp,dateSubjectsTemplate]);
 
     const todayStr = fmtLocal(new Date());
     const allDates = useMemo(()=>{
@@ -225,11 +285,17 @@ export default function GradesTab({
 
     const yearOptions=[]; for(let y=now.getFullYear()-3;y<=now.getFullYear()+1;y++) yearOptions.push(y);
 
-    if(isLoading) return <Loading/>;
+    if(isLoading && !isFetching) return <Loading/>;
     if(error) return <div style={{color:'var(--danger)',padding:12,background:'var(--danger-soft)',borderRadius:10}}>Xatolik</div>;
 
     return (
-        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        <div style={{display:'flex',flexDirection:'column',gap:14,position:'relative'}}>
+            {/* Re-fetch loading overlay */}
+            {isFetching && (
+                <div style={{position:'absolute',inset:0,background:'var(--card-bg)',opacity:0.6,zIndex:10,borderRadius:12,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:48,pointerEvents:'all'}}>
+                    <Loading/>
+                </div>
+            )}
             {/* Toolbar */}
             <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>
                 <select className="search-select" value={selYear} onChange={e=>setSelYear(+e.target.value)}>
@@ -248,13 +314,13 @@ export default function GradesTab({
                     </select>
                 )}
 
-                {/* 2+ dars bo'lsa schedule select — saqlanadi */}
-                {!isTeacher && activeSubjectId && (subjectSchedules[activeSubjectId]||[]).length>1 && (
+                {/* Bir kunda 2+ dars bo'lsa schedule select ko'rinadi */}
+                {!isTeacher && activeSubjectId && subjectHasMultiSameDay[activeSubjectId] && (filteredSubjectSchedules[activeSubjectId]||[]).length>1 && (
                     <select className="search-select" value={selScheduleId}
                         onChange={e=>{ setSelScheduleId(e.target.value); setPending({}); }}
                         style={{minWidth:150}}>
                         <option value="">Barcha darslar</option>
-                        {(subjectSchedules[activeSubjectId]||[]).map(sc=>(
+                        {(filteredSubjectSchedules[activeSubjectId]||[]).map(sc=>(
                             <option key={sc.id} value={sc.id}>{sc.label}</option>
                         ))}
                     </select>
@@ -329,7 +395,7 @@ export default function GradesTab({
                                                                 background:hasChg?'var(--warning-soft)':scoreNum!=null?scoreBg(scoreNum):'transparent',
                                                                 border:`1px solid ${hasChg?'var(--warning)':scoreNum!=null?scoreColor(scoreNum):'var(--card-border)'}`}}>
                                                                 {/* Fan nomi */}
-                                                                <div style={{fontSize:'0.58rem',color:'var(--text-muted)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                                                                <div style={{fontSize:'0.58rem',fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                                                                     {sb.subject_name}{multi?` #${sb.lesson_number}`:''}
                                                                 </div>
                                                                 <div style={{display:'flex',alignItems:'center',gap:3}}>

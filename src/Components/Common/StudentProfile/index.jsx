@@ -102,37 +102,60 @@ function PaymentsTab({ studentId, requiredAmount, showAddButton = true }) {
                     </div>
                 ) : (
                     <>
-                        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                            {payments.map(p => (
-                                <div key={p.id} style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:12, padding:'14px 18px' }}>
-                                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-                                        <div>
-                                            <div style={{ fontSize:'1.3rem', fontWeight:700, color:'var(--text-primary)' }}>
+                        <div className="data-table-wrap">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>№</th>
+                                        <th>To'langan</th>
+                                        <th>Kerakli</th>
+                                        <th>Davr</th>
+                                        <th>Usul</th>
+                                        <th>Chegirma</th>
+                                        <th>Sana</th>
+                                        <th>Izoh</th>
+                                        <th>Amallar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {payments.map((p, i) => (
+                                        <tr key={p.id}>
+                                            <td style={{ color:'var(--text-muted)', fontSize:'0.78rem', fontFamily:'monospace' }}>
+                                                {(currentPage - 1) * 8 + i + 1}
+                                            </td>
+                                            <td style={{ color:'var(--success)', fontWeight:700 }}>
                                                 {fmt(p.paid_amount)}
-                                            </div>
-                                            <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:2 }}>
-                                                Kerakli: {fmt(p.required_amount)}
-                                            </div>
-                                            <div style={{ marginTop:6, display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-                                                <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 10px', borderRadius:99, background:'var(--success-soft)', color:'var(--success)' }}>
+                                            </td>
+                                            <td style={{ color:'var(--text-secondary)' }}>
+                                                {fmt(p.required_amount)}
+                                            </td>
+                                            <td style={{ color:'var(--text-secondary)', whiteSpace:'nowrap' }}>
+                                                {p.year}/{String(p.month).padStart(2,'0')}
+                                            </td>
+                                            <td>
+                                                <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 10px', borderRadius:99, background:'var(--success-soft)', color:'var(--success)', whiteSpace:'nowrap' }}>
                                                     {METHOD_LABELS[p.method] || p.method}
                                                 </span>
-                                                <span style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>
-                                                    {p.year}/{String(p.month).padStart(2,'0')} · {fmtDate(p.createdAt)}
-                                                </span>
-                                                {p.discount_percent > 0 && (
-                                                    <span style={{ fontSize:'0.72rem', color:'var(--accent)' }}>Chegirma: {p.discount_percent}%</span>
-                                                )}
-                                            </div>
-                                            {p.comment && <p style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:6, fontStyle:'italic' }}>{p.comment}</p>}
-                                        </div>
-                                        <div style={{ display:'flex', gap:6 }}>
-                                            <EditPayment payment={p} onUpdate={load} />
-                                            <DeletePayment paymentId={p.id} onDelete={load} />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                            </td>
+                                            <td style={{ color: p.discount_percent > 0 ? 'var(--accent)' : 'var(--text-muted)' }}>
+                                                {p.discount_percent > 0 ? `${p.discount_percent}%` : '—'}
+                                            </td>
+                                            <td style={{ fontSize:'0.78rem', color:'var(--text-muted)', whiteSpace:'nowrap' }}>
+                                                {fmtDate(p.createdAt)}
+                                            </td>
+                                            <td style={{ color:'var(--text-muted)', fontSize:'0.78rem', maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                                {p.comment || '—'}
+                                            </td>
+                                            <td>
+                                                <div style={{ display:'flex', gap:6 }}>
+                                                    <EditPayment payment={p} onUpdate={load} />
+                                                    <DeletePayment paymentId={p.id} onDelete={load} />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                         {totalPages > 1 && (
                             <div className="pagination" style={{ marginTop:14 }}>
@@ -242,7 +265,7 @@ function AttendanceTab({ studentId }) {
             </div>
 
             {/* Stats */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px,1fr))', gap:10, marginBottom:16 }}>
+            <div className="student-stats-grid" style={{ display:'grid', gridTemplateColumns:'repeat(5, minmax(0, 1fr))', gap:10, marginBottom:16 }}>
                 {[
                     { label:'Keldi', val:stats.present, color:'var(--success)' },
                     { label:'Kelmadi', val:stats.absent, color:'var(--danger)' },
@@ -265,7 +288,7 @@ function AttendanceTab({ studentId }) {
                         <p>Ma'lumot topilmadi</p>
                     </div>
                 ) : (
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:12 }}>
+                    <div className="responsive-content-grid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:12 }}>
                         {filteredRows.map((r, i) => {
                             const att = ATTENDANCE_MAP[r.status];
                             const gradeNum = r.grade != null ? Number(r.grade) : null;

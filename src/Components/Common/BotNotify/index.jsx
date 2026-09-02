@@ -22,7 +22,7 @@ const labelStyle = {
 /* ── Card wrapper ── */
 function NotifyCard({ icon: Icon, color, title, description, children }) {
     return (
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 11, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon size={19} style={{ color }} />
@@ -32,7 +32,7 @@ function NotifyCard({ icon: Icon, color, title, description, children }) {
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{description}</div>
                 </div>
             </div>
-            <div style={{ padding: '18px 20px' }}>{children}</div>
+            <div style={{ padding: '18px 20px', flex: 1 }}>{children}</div>
         </div>
     );
 }
@@ -357,7 +357,7 @@ function PaymentReminderForm() {
                             <option key={g.id} value={g.id}>{g.name}</option>
                         ))}
                     </select>
-                    <ChevronDown size={15} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                    <ChevronDown size={15} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                 </div>
             </div>
 
@@ -394,7 +394,7 @@ export default function BotNotify() {
 
         
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 20 }}>
+            <div className="bot-notify-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 20, alignItems: 'stretch' }}>
                 <NotifyCard
                     icon={Users}
                     color="var(--accent)"

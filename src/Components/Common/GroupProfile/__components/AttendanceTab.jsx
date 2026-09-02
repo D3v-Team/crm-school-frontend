@@ -151,8 +151,8 @@ export default function AttendanceTab({
     const activeScheduleId = selScheduleId||null;
 
     /* Fetch */
-    const [fetchAtt,  {data:attData,  isLoading:attLoading,  error:attError}] = useLazyGetAttendanceQuery();
-    const [fetchGrades,{data:gradesData,isLoading:gradesLoading}]             = useLazyGetGradesQuery();
+    const [fetchAtt,  {data:attData,  isLoading:attLoading,  isFetching:attFetching,  error:attError}] = useLazyGetAttendanceQuery();
+    const [fetchGrades,{data:gradesData,isLoading:gradesLoading,isFetching:gradesFetching}]             = useLazyGetGradesQuery();
     const [bulkAtt]   = useBulkAttendanceMutation();
     const [bulkGrade] = useBulkGradeMutation();
 
@@ -242,6 +242,57 @@ export default function AttendanceTab({
         return m;
     },[dateSubjectsTemplate, scheduleRecordsProp]);
 
+    /* Bir kunda 2+ dars bo'lgan subjectlar — scheduleRecordsProp asosida (stable, filtdan ta'sirlanmaydi).
+       day_of_week bo'yicha grouplab, bir kunda 2+ schedule bo'lsa true. */
+    const subjectHasMultiSameDay = useMemo(()=>{
+        const result={};
+        const bySubDay={};
+        scheduleRecordsProp.forEach(s=>{
+            if(!s.subject_id||!s.day_of_week) return;
+            const key=`${s.subject_id}__${s.day_of_week}`;
+            bySubDay[key]=(bySubDay[key]||0)+1;
+        });
+        Object.entries(bySubDay).forEach(([key,cnt])=>{
+            if(cnt>=2){ const sid=key.split('__')[0]; result[sid]=true; }
+        });
+        Object.values(dateSubjectsTemplate).forEach(subs=>{
+            const countBySub={};
+            subs.forEach(sb=>{ if(!sb.subject_id) return; countBySub[sb.subject_id]=(countBySub[sb.subject_id]||0)+1; });
+            Object.entries(countBySub).forEach(([sid,cnt])=>{ if(cnt>=2) result[sid]=true; });
+        });
+        return result;
+    },[scheduleRecordsProp,dateSubjectsTemplate]);
+
+    /* filteredSubjectSchedules: faqat bir kunda 2+ bo'lgan schedulelar */
+    const filteredSubjectSchedules = useMemo(()=>{
+        const m={...subjectSchedules};
+        Object.keys(m).forEach(sid=>{
+            if(!subjectHasMultiSameDay[sid]) return;
+            const dayCount={};
+            scheduleRecordsProp.filter(s=>s.subject_id===sid && s.day_of_week)
+                .forEach(s=>{ dayCount[s.day_of_week]=(dayCount[s.day_of_week]||0)+1; });
+            const multiDays=Object.keys(dayCount).filter(d=>dayCount[d]>=2);
+            if(!multiDays.length) return;
+            const schedIds=new Set(
+                scheduleRecordsProp
+                    .filter(s=>s.subject_id===sid && multiDays.includes(s.day_of_week))
+                    .map(s=>s.id||s.schedule_id)
+                    .filter(Boolean)
+            );
+            Object.values(dateSubjectsTemplate).forEach(subs=>{
+                const forSubject=subs.filter(sb=>sb.subject_id===sid);
+                if(forSubject.length>=2) forSubject.forEach(sb=>schedIds.add(sb.group_schedule_id));
+            });
+            if(schedIds.size>0){
+                m[sid]=Array.from(schedIds).map(id=>{
+                    const found=subjectSchedules[sid]?.find(x=>x.id===id);
+                    return found||{ id, label:id };
+                }).filter(Boolean);
+            }
+        });
+        return m;
+    },[subjectSchedules,subjectHasMultiSameDay,scheduleRecordsProp,dateSubjectsTemplate]);
+
     const visibleDates = useMemo(()=>allDates.filter(d=>dateSubjectsTemplate[d]?.length>0),[allDates,dateSubjectsTemplate]);
     const historyStudents = useMemo(()=>attRecords.map(r=>({id:r.student_id,full_name:r.full_name})),[attRecords]);
 
@@ -321,6 +372,7 @@ export default function AttendanceTab({
 
     const hasPending = Object.keys(pending).length>0;
     const isLoading  = attLoading||(merged&&gradesLoading);
+    const isFetching = attFetching||(merged&&gradesFetching);
     const tableWrapRef = useRef(null);
     useEffect(()=>{
         if (!tableWrapRef.current||!allDates.length) return;
@@ -330,11 +382,17 @@ export default function AttendanceTab({
 
     const yearOptions=[]; for(let y=now.getFullYear()-3;y<=now.getFullYear()+1;y++) yearOptions.push(y);
 
-    if (isLoading) return <Loading/>;
+    if (isLoading && !isFetching) return <Loading/>;
     if (attError)  return <div style={{color:'var(--danger)',padding:12,background:'var(--danger-soft)',borderRadius:10}}>Xatolik: {attError?.data?.message}</div>;
 
     return (
-        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        <div style={{display:'flex',flexDirection:'column',gap:14,position:'relative'}}>
+            {/* Re-fetch loading overlay */}
+            {isFetching && (
+                <div style={{position:'absolute',inset:0,background:'var(--card-bg)',opacity:0.6,zIndex:10,borderRadius:12,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:48,pointerEvents:'all'}}>
+                    <Loading/>
+                </div>
+            )}
             {/* Toolbar */}
             <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>
                 <select className="search-select" value={selYear} onChange={e=>setSelYear(+e.target.value)}>
@@ -353,13 +411,13 @@ export default function AttendanceTab({
                     </select>
                 )}
 
-                {/* 2+ dars bo'lsa schedule select — saqlanadi */}
-                {!isTeacher && activeSubjectId && (subjectSchedules[activeSubjectId]||[]).length>1 && (
+                {/* Bir kunda 2+ dars bo'lsa schedule select ko'rinadi */}
+                {!isTeacher && activeSubjectId && subjectHasMultiSameDay[activeSubjectId] && (filteredSubjectSchedules[activeSubjectId]||[]).length>1 && (
                     <select className="search-select" value={selScheduleId}
                         onChange={e=>{ setSelScheduleId(e.target.value); setPending({}); }}
                         style={{minWidth:150}}>
                         <option value="">Barcha darslar</option>
-                        {(subjectSchedules[activeSubjectId]||[]).map(sc=>(
+                        {(filteredSubjectSchedules[activeSubjectId]||[]).map(sc=>(
                             <option key={sc.id} value={sc.id}>{sc.label}</option>
                         ))}
                     </select>
@@ -442,7 +500,7 @@ export default function AttendanceTab({
                                                                 minWidth:compact?100:75,
                                                             }}>
                                                                 {/* Fan nomi */}
-                                                                <div style={{fontSize:'0.58rem',color:'var(--text-muted)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                                                                <div style={{fontSize:'0.58rem',fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                                                                     {sb.subject_name}{multi?` #${sb.lesson_number}`:''}
                                                                 </div>
                                                                 {/* Buttons row */}
