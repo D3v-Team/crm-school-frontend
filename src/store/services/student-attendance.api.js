@@ -35,6 +35,7 @@ export const studentAttendanceApi = createApi({
                 url: '/student-attendance/excel',
                 method: 'GET',
                 params,
+                responseType: 'blob',
             }),
             providesTags: () => [{ type: 'StudentAttendance', id: 'EXCEL' }],
         }),

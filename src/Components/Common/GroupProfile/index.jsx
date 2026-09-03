@@ -231,7 +231,7 @@ export default function GroupProfile() {
                         <div>
                             <h2 style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)', margin:'0 0 4px' }}>{group?.name}</h2>
                             {group?.homeroom_teacher && (
-                                <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:5 }}>
+                                <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', maxWidth:'100%' }}>
                                     <User size={13}/> Sinf rahbari: <strong style={{ color:'var(--text-primary)' }}>{group.homeroom_teacher.full_name}</strong>
                                 </div>
                             )}

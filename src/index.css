@@ -193,6 +193,39 @@ body {
   backdrop-filter: blur(12px);
 }
 
+.group-profile-subject-name {
+  text-align: center;
+  line-height: 1.2;
+}
+
+.group-profile-attendance-actions {
+  justify-content: center;
+  width: 100%;
+}
+
+@media (min-width: 901px) {
+  .group-profile-subject-card {
+    min-width: 130px !important;
+  }
+
+  .group-profile-subject-name {
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+  }
+
+  .group-profile-attendance-actions {
+    gap: 3px !important;
+    padding: 2px 3px;
+  }
+
+  .group-profile-attendance-actions > button {
+    width: 28px !important;
+    height: 28px !important;
+    flex: 1 1 0;
+    max-width: none;
+  }
+}
+
 /* Gradient text */
 .gradient-text {
   background: linear-gradient(135deg, var(--accent), #a855f7);

@@ -5,7 +5,10 @@ import { useGetStudentByIdQuery } from "../../../store/services/student.api";
 import { useLazyGetPaymentsQuery } from "../../../store/services/payment.api";
 import { useLazyGetAttendanceQuery } from "../../../store/services/attedance.api";
 import { useLazyGetGradesQuery } from "../../../store/services/grades.api";
-import { useLazyGetStudentAttendanceAllQuery } from "../../../store/services/student-attendance.api";
+import {
+    useLazyGetStudentAttendanceAllQuery,
+    useLazyGetStudentAttendanceExcelQuery,
+} from "../../../store/services/student-attendance.api";
 import Loading from "../../Other/UI/Loadings/Loading";
 import AddPayment from "./AddPayment";
 import EditPayment from "./EditPayment";
@@ -17,7 +20,7 @@ import {
     CheckCircle, XCircle, CreditCard,
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
     RefreshCw, ClipboardList, ExternalLink, MessageCircle, MessageCircleOff,
-    ArrowLeft, Camera as CameraIcon,
+    ArrowLeft, Camera as CameraIcon, Download,
 } from "lucide-react";
 
 /* ── constants ── */
@@ -448,9 +451,39 @@ function StudentDayCard({ record }) {
 function EntryExitTab({ studentId }) {
     const [page, setPage] = useState(1);
     const LIMIT = 20;
+    const now = new Date();
+    const [startDate, setStartDate] = useState(fmtLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
+    const [endDate, setEndDate] = useState(fmtLocal(now));
+    const [downloading, setDownloading] = useState(false);
     const [fetchAll, { data, isLoading }] = useLazyGetStudentAttendanceAllQuery();
+    const [fetchExcel] = useLazyGetStudentAttendanceExcelQuery();
 
-    useEffect(() => { if (studentId) fetchAll({ student_id: studentId }); }, [studentId]);
+    useEffect(() => {
+        if (studentId) {
+            fetchAll({ student_id: studentId, startDate, endDate });
+            setPage(1);
+        }
+    }, [studentId, startDate, endDate]);
+
+    const handleExcel = async () => {
+        if (!studentId || downloading) return;
+        setDownloading(true);
+        try {
+            const blob = await fetchExcel({ student_id: studentId, startDate, endDate }).unwrap();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `kirdi-chiqdi-${studentId.slice(0, 8)}-${startDate}-${endDate}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Excel yuklab olishda xatolik:', error);
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     /*
      * Normalize any response shape into [{date, records:[{type,time}]}].
@@ -474,6 +507,27 @@ function EntryExitTab({ studentId }) {
 
     return (
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end' }}>
+                <div>
+                    <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Dan</label>
+                    <input type="date" value={startDate}
+                        onChange={e=>{ setStartDate(e.target.value); setPage(1); }}
+                        className="search-input" style={{ paddingLeft:14, width:150 }} />
+                </div>
+                <div>
+                    <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Gacha</label>
+                    <input type="date" value={endDate}
+                        onChange={e=>{ setEndDate(e.target.value); setPage(1); }}
+                        className="search-input" style={{ paddingLeft:14, width:150 }} />
+                </div>
+                <button onClick={handleExcel} disabled={downloading || !studentId}
+                    style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 14px', borderRadius:9, border:'none',
+                        background:downloading?'var(--input-bg)':'#10b981', color:downloading?'var(--text-muted)':'#fff',
+                        fontSize:'0.82rem', fontWeight:600, cursor:downloading?'not-allowed':'pointer' }}>
+                    <Download size={14}/>{downloading?'Yuklanmoqda...':'Excel'}
+                </button>
+            </div>
+
             {isLoading ? <Loading/> : records.length===0 ? (
                 <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
                     <CameraIcon size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>

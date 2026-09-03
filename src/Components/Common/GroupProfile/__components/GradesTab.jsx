@@ -363,7 +363,7 @@ export default function GradesTab({
                                                                 background:hasChg?'var(--warning-soft)':scoreNum!=null?scoreBg(scoreNum):'transparent',
                                                                 border:`1px solid ${hasChg?'var(--warning)':scoreNum!=null?scoreColor(scoreNum):'var(--card-border)'}`}}>
                                                                 {/* Fan nomi */}
-                                                                <div style={{fontSize:'0.58rem',fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                                                                <div className="group-profile-subject-name" style={{fontSize:'0.68rem',fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                                                                     {sb.subject_name}{multi?` #${sb.lesson_number}`:''}
                                                                 </div>
                                                                 <div style={{display:'flex',alignItems:'center',gap:3}}>

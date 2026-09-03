@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useLazyGetTeacherGroupsByTeacherIdQuery } from '../../../../store/services/theacher-group.api';
-import { Layers, Users, Eye, Book } from 'lucide-react';
+import { Layers, Users, Eye, Book, User } from 'lucide-react';
 import Loading from '../../../Other/UI/Loadings/Loading';
 
 export default function TeacherGroups({ teacherId }) {
@@ -32,7 +32,7 @@ export default function TeacherGroups({ teacherId }) {
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 14 }}>
                 Jami <strong style={{ color: 'var(--text-primary)' }}>{groups.length}</strong> ta guruh
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: 10 }}>
                 {groups.map(item => {
                     const group = item.group || item;
                     const subjectName = item.subject?.name || group.subject?.name;
@@ -40,8 +40,8 @@ export default function TeacherGroups({ teacherId }) {
                     return (
                         <div key={item.id} style={{
                             background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-                            borderRadius: 14, padding: '16px 18px',
-                            display: 'flex', flexDirection: 'column', gap: 12,
+                            borderRadius: 12, padding: '13px 14px',
+                            display: 'flex', flexDirection: 'column', gap: 10,
                             transition: 'border-color 0.15s, box-shadow 0.15s',
                         }}
                             onMouseEnter={e => {
@@ -53,32 +53,32 @@ export default function TeacherGroups({ teacherId }) {
                                 e.currentTarget.style.boxShadow = 'none';
                             }}
                         >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <div style={{
-                                    width: 44, height: 44, borderRadius: 11,
+                                    width: 40, height: 40, borderRadius: 10,
                                     background: 'var(--accent-soft)', color: 'var(--accent)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '0.9rem', fontWeight: 700, flexShrink: 0,
+                                    fontSize: '0.82rem', fontWeight: 700, flexShrink: 0,
                                     border: '2px solid var(--card-border)',
                                 }}>
                                     {initials}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+                                    <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                                         {group?.name || '—'}
                                     </div>
                                     {subjectName && (
-                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                                             <Book size={11} /> {subjectName}
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                 {group?.start_date && (
                                     <span style={{
-                                        fontSize: '0.7rem', padding: '2px 8px', borderRadius: 7,
+                                        fontSize: '0.66rem', padding: '2px 7px', borderRadius: 6,
                                         background: 'var(--input-bg)', color: 'var(--text-muted)',
                                         border: '1px solid var(--card-border)',
                                     }}>
@@ -87,7 +87,7 @@ export default function TeacherGroups({ teacherId }) {
                                 )}
                                 {group?.students?.length != null && (
                                     <span style={{
-                                        fontSize: '0.7rem', padding: '2px 8px', borderRadius: 7,
+                                        fontSize: '0.66rem', padding: '2px 7px', borderRadius: 6,
                                         background: 'var(--accent-soft)', color: 'var(--accent)',
                                         border: '1px solid var(--card-border)',
                                         display: 'flex', alignItems: 'center', gap: 4,
@@ -100,20 +100,23 @@ export default function TeacherGroups({ teacherId }) {
                             {group?.homeroom_teacher && String(group.homeroom_teacher.id) !== String(teacherId) && (() => {
                                 const classTeacher = group.homeroom_teacher;
                                 return (
-                                    <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--card-border)' }}>
-                                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: 3 }}>Sinf rahbari</div>
-                                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{classTeacher.full_name || classTeacher.name || '—'}</div>
-                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 2 }}>{classTeacher.phone || "Telefon ko'rsatilmagan"}</div>
+                                    <div style={{ padding: '7px 9px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--card-border)', display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+                                        <User size={12} style={{ color:'var(--accent)', flexShrink:0 }} />
+                                        <div style={{ minWidth:0 }}>
+                                            <div style={{ fontSize: '0.61rem', color: 'var(--text-muted)', lineHeight:1.1 }}>Sinf rahbari</div>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{classTeacher.full_name || classTeacher.name || '—'}</div>
+                                        </div>
+                                        {classTeacher.phone && <span style={{ marginLeft:'auto', fontSize: '0.64rem', color: 'var(--text-secondary)', whiteSpace:'nowrap' }}>{classTeacher.phone}</span>}
                                     </div>
                                 );
                             })()}
 
                             <NavLink to={`/group/${group?.id}`} style={{ textDecoration: 'none' }}>
                                 <button style={{
-                                    width: '100%', padding: '8px 12px', borderRadius: 9,
+                                    width: '100%', padding: '7px 10px', borderRadius: 8,
                                     border: '1.5px solid var(--card-border)', background: 'var(--input-bg)',
                                     color: 'var(--text-secondary)', cursor: 'pointer',
-                                    fontSize: '0.78rem', fontWeight: 600,
+                                    fontSize: '0.74rem', fontWeight: 600,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                     transition: 'all 0.15s',
                                 }}

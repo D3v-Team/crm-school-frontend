@@ -233,7 +233,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
     const isTeacher = role === 'teacher';
 
     /* ── Schedule fetch ── */
-    const [trigger, { isLoading, error }] = useLazyGetGroupScheduleByGroupIdQuery();
+    const [trigger, { isLoading, isFetching, error }] = useLazyGetGroupScheduleByGroupIdQuery();
     const [deleteSchedule, { isLoading: isDeleting }] = useDeleteGroupScheduleMutation();
     const [createSchedule, { isLoading: isCreating }] = useCreateGroupScheduleMutation();
 
@@ -343,7 +343,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
         }
     };
 
-    if (isLoading) return <Loading/>;
+    if (rawData === null || isLoading || isFetching || subjectsLoading || teachersLoading) return <Loading/>;
     if (error) return <div style={{ color:'var(--danger)', padding:12, background:'var(--danger-soft)', borderRadius:10 }}>Xatolik: {error?.data?.message}</div>;
 
     return (

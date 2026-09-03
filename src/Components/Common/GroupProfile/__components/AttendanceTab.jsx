@@ -467,7 +467,7 @@ export default function AttendanceTab({
                                                         /* Card kengligiga qarab compact/normal */
                                                         const compact=merged;
                                                         return (
-                                                            <div key={schId} style={{
+                                                            <div key={schId} className="group-profile-subject-card" style={{
                                                                 display:'flex',flexDirection:'column',gap:3,
                                                                 padding:'4px 5px',borderRadius:7,
                                                                 background:hasChg?'var(--warning-soft)':hasSt?STATUS_STYLE[curStatus].bg+'40':'transparent',
@@ -475,11 +475,11 @@ export default function AttendanceTab({
                                                                 minWidth:compact?100:75,
                                                             }}>
                                                                 {/* Fan nomi */}
-                                                                <div style={{fontSize:'0.58rem',fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                                                                <div className="group-profile-subject-name" style={{fontSize:'0.68rem',fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                                                                     {sb.subject_name}{multi?` #${sb.lesson_number}`:''}
                                                                 </div>
                                                                 {/* Buttons row */}
-                                                                <div style={{display:'flex',alignItems:'center',gap:2}}>
+                                                                <div className="group-profile-attendance-actions" style={{display:'flex',alignItems:'center',gap:5}}>
                                                                     {['present','absent','late'].map(v=>(
                                                                         <StatusBtn key={v} value={v} current={curStatus} compact={compact}
                                                                             onClick={()=>setPendingField(s.id,d,schId,{status:curStatus===v?null:v})}/>
@@ -490,7 +490,7 @@ export default function AttendanceTab({
                                                                         style={{width:compact?20:22,height:compact?20:22,borderRadius:5,border:'1px solid var(--card-border)',
                                                                             background:'var(--input-bg)',color:'var(--text-muted)',
                                                                             display:'flex',alignItems:'center',justifyContent:'center',
-                                                                            cursor:'pointer',padding:0,flexShrink:0,marginLeft:'auto',
+                                                                            cursor:'pointer',padding:0,flexShrink:0,
                                                                         }}
                                                                         onMouseEnter={e=>{e.currentTarget.style.background='var(--accent-soft)';e.currentTarget.style.color='var(--accent)';}}
                                                                         onMouseLeave={e=>{e.currentTarget.style.background='var(--input-bg)';e.currentTarget.style.color='var(--text-muted)';}}>
