@@ -166,41 +166,9 @@ export default function GradesTab({
         return result;
     },[scheduleRecordsProp,dateSubjectsTemplate]);
 
-    /* subjectSchedules: faqat bir kunda 2+ bo'lgan schedulelarni ko'rsatish uchun
-       scheduleRecordsProp dan bir xil (subject+day) juftlari — shu juftlikdagi schedulelar */
+    /* Bir kunda bir nechta dars bo'lsa ham, faning boshqa kunlardagi darslarini saqlaymiz. */
     const filteredSubjectSchedules = useMemo(()=>{
-        const m={...subjectSchedules};
-        // scheduleRecordsProp asosida: bir kunda 2+ bo'lgan subject uchun
-        // faqat o'sha kundagi schedulelar
-        Object.keys(m).forEach(sid=>{
-            if(!subjectHasMultiSameDay[sid]) return;
-            // O'sha subject uchun bir kunda 2+ bo'lgan day_of_week larni topamiz
-            const dayCount={};
-            scheduleRecordsProp.filter(s=>s.subject_id===sid && s.day_of_week)
-                .forEach(s=>{ dayCount[s.day_of_week]=(dayCount[s.day_of_week]||0)+1; });
-            const multiDays=Object.keys(dayCount).filter(d=>dayCount[d]>=2);
-            if(!multiDays.length) return;
-            // dateSubjectsTemplate dan ham mos schedulelarni qo'shish
-            // scheduleRecordsProp dan o'sha kunlardagi schedulelar
-            const schedIds=new Set(
-                scheduleRecordsProp
-                    .filter(s=>s.subject_id===sid && multiDays.includes(s.day_of_week))
-                    .map(s=>s.id||s.schedule_id)
-                    .filter(Boolean)
-            );
-            // dateSubjectsTemplate dan ham (API bo'lsa)
-            Object.values(dateSubjectsTemplate).forEach(subs=>{
-                const forSubject=subs.filter(sb=>sb.subject_id===sid);
-                if(forSubject.length>=2) forSubject.forEach(sb=>schedIds.add(sb.group_schedule_id));
-            });
-            if(schedIds.size>0){
-                m[sid]=Array.from(schedIds).map(id=>{
-                    const found=subjectSchedules[sid]?.find(x=>x.id===id);
-                    return found||{ id, label:id };
-                }).filter(Boolean);
-            }
-        });
-        return m;
+        return subjectSchedules;
     },[subjectSchedules,subjectHasMultiSameDay,scheduleRecordsProp,dateSubjectsTemplate]);
 
     const todayStr = fmtLocal(new Date());
