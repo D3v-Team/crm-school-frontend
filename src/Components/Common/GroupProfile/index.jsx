@@ -114,7 +114,9 @@ export default function GroupProfile() {
     const userId    = useSelector(s => s.auth.userId);
     const isTeacher = role === 'teacher';
 
-    const tabs = isTeacher ? TEACHER_TABS : ADMIN_TABS;
+    const tabs = isTeacher ? TEACHER_TABS : ADMIN_TABS.filter(t =>
+        role !== 'cashier' || t.key === 'students'
+    );
     const [tab, setTab] = useState(isTeacher ? 'attendance' : 'students');
     const [merged, setMerged] = useState(false);
     const [showInitialLoading, setShowInitialLoading] = useState(true);

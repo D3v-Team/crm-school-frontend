@@ -71,13 +71,35 @@ export const SIDEBAR_CONFIG = [
         label: "To'lovlar tarixi",
         path: '/payments',
         icon: CreditCard,
-        roles: [SUPER_ADMIN, ADMIN, CASHIER],
+        roles: [SUPER_ADMIN, ADMIN],
     },
     {
         label: 'Bot xabarnomalar',
         path: '/bot-notify',
         icon: MessageSquare,
         roles: [ADMIN, SUPER_ADMIN],
+    },
+
+    // ── Cashier ──────────────────────────────────────────
+    {
+        label: "O'quvchilar",
+        path: '/cashier/students',
+        icon: Users,
+        roles: [CASHIER],
+        childPaths: ['/student/'],
+    },
+    {
+        label: 'Guruhlar',
+        path: '/cashier/groups',
+        icon: Layers,
+        roles: [CASHIER],
+        childPaths: ['/group/'],
+    },
+    {
+        label: "To'lovlar tarixi",
+        path: '/payments',
+        icon: CreditCard,
+        roles: [CASHIER],
     },
 
     // ── Teacher ──────────────────────────────────────────

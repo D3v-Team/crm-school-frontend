@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import {
     useLazyGetUsersQuery, useCreateUserMutation,
     useUpdateUserMutation, useDeleteUserMutation,
-    useUpdateIsPaymentMutation, useResetPasswordMutation,
+    useResetPasswordMutation,
 } from '../../../store/services/user.api';
 import {
     Users, Plus, Pencil, Trash2, AlertTriangle,
-    RefreshCw, Search, ToggleLeft, ToggleRight,
+    RefreshCw, Search,
     KeyRound, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
@@ -195,7 +195,6 @@ export default function SuperAdminPanel() {
     const [resetPwUser, setResetPwUser] = useState(null);
 
     const [trigger, { data, isLoading, error }] = useLazyGetUsersQuery();
-    const [togglePayment, { isLoading: toggling }] = useUpdateIsPaymentMutation();
 
     const fetch = (p = page, s = search, r = roleFilter) => {
         trigger({ page: p, limit: 15, ...(s && { search: s }), ...(r && { role: r }) });
@@ -210,14 +209,6 @@ export default function SuperAdminPanel() {
     const curPage    = pagination.currentPage  || 1;
 
     const goTo = (p) => { setPage(p); fetch(p); };
-
-    const handleTogglePayment = async (user) => {
-        try {
-            await togglePayment({ id: user.id, data: { is_payment: !user.is_payment } }).unwrap();
-            Alert(`To'lov holati ${!user.is_payment ? 'yoqildi' : "o'chirildi"}`, 'success');
-            fetch(curPage);
-        } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
-    };
 
     const saved = () => fetch(curPage);
 
@@ -268,13 +259,12 @@ export default function SuperAdminPanel() {
                                     <th>Username</th>
                                     <th>Telefon</th>
                                     <th>Rol</th>
-                                    <th>To'lov</th>
                                     <th>Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {users.length === 0 ? (
-                                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>Xodimlar topilmadi</td></tr>
+                                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>Xodimlar topilmadi</td></tr>
                                 ) : users.map((u, i) => {
                                     const badge = ROLE_BADGE[u.role] || { label: u.role, bg: 'var(--input-bg)', color: 'var(--text-muted)' };
                                     return (
@@ -287,24 +277,6 @@ export default function SuperAdminPanel() {
                                                 <span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: badge.bg, color: badge.color }}>
                                                     {badge.label}
                                                 </span>
-                                            </td>
-                                            <td>
-                                                <button
-                                                    onClick={() => handleTogglePayment(u)}
-                                                    disabled={toggling}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s' }}
-                                                    title={u.is_payment ? "To'lovni o'chirish" : "To'lovni yoqish"}
-                                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--input-bg)'}
-                                                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                                                >
-                                                    {u.is_payment
-                                                        ? <ToggleRight size={22} style={{ color: 'var(--success)' }} />
-                                                        : <ToggleLeft  size={22} style={{ color: 'var(--text-muted)' }} />
-                                                    }
-                                                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: u.is_payment ? 'var(--success)' : 'var(--text-muted)' }}>
-                                                        {u.is_payment ? 'Faol' : "O'chirilgan"}
-                                                    </span>
-                                                </button>
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: 5 }}>

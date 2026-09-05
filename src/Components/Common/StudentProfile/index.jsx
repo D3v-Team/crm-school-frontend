@@ -632,7 +632,10 @@ export default function StudentProfile() {
     const { data, isLoading, error, refetch } = useGetStudentByIdQuery(id, { skip: !id });
     const [tab, setTab] = useState('payments');
     const student = data?.data || data;
-    const is_payment = useSelector(s => s.auth.is_payment);
+    const authRole   = useSelector(s => s.auth.role);
+    const rawPayment = useSelector(s => s.auth.is_payment);
+    // super_admin va cashier uchun to'lov har doim ko'rsatiladi
+    const is_payment = authRole === 'super_admin' || authRole === 'cashier' ? true : rawPayment;
 
     if (isLoading) return <Loading/>;
     if (error) return (
@@ -644,11 +647,12 @@ export default function StudentProfile() {
 
     const initials = (student.full_name||"?").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
 
+    // Barcha rollar uchun bir xil tablar
     const tabDefs = [
         { key:'payments',   label:"To'lovlar",         icon: CreditCard   },
-        { key:'attendance', label:"Davomat va baholar", icon: ClipboardList },
+        ...(authRole !== 'cashier' ? [{ key:'attendance', label:"Davomat va baholar", icon: ClipboardList }] : []),
         { key:'parent',     label:"Ota-ona",            icon: Users        },
-        { key:'entryexit',  label:"Kirdi-Chiqdi",       icon: CameraIcon   },
+        ...(authRole !== 'cashier' ? [{ key:'entryexit',  label:"Kirdi-Chiqdi",       icon: CameraIcon   }] : []),
     ];
 
     return (

@@ -113,6 +113,18 @@ export const ROUTES = [
         roles: ['parent'],
     },
 
+    // ── Cashier Panel ─────────────────────────────────────
+    {
+        path: '/cashier/students',
+        component: lazy(() => import('../../Components/Common/CashierPanel/CashierStudents')),
+        roles: [CASHIER],
+    },
+    {
+        path: '/cashier/groups',
+        component: lazy(() => import('../../Components/Common/CashierPanel/CashierGroups')),
+        roles: [CASHIER],
+    },
+
     // ── Profile (hammaga) ────────────────────────────────
     {
         path: '/profile',
@@ -129,12 +141,12 @@ export const ROUTES = [
     {
         path: '/group/:id',
         component: lazy(() => import('../../Components/Common/GroupProfile')),
-        roles: [ADMIN, TEACHER],
+        roles: [ADMIN, TEACHER, CASHIER],
     },
     {
         path: '/student/:id',
         component: lazy(() => import('../../Components/Common/StudentProfile')),
-        roles: [ADMIN, TEACHER],
+        roles: [ADMIN, TEACHER, CASHIER],
     },
     {
         path: '/parent/:id',

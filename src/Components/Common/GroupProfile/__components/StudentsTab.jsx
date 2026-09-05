@@ -185,10 +185,10 @@ function PaymentModal({ student, open, onClose, onSuccess }) {
 export default function StudentsTab({ students = [] }) {
     const { id: groupId } = useParams();
     const role = useSelector(s => s.auth.role);
-    const is_payment = useSelector(s => s.auth.is_payment);
+    const rawPayment = useSelector(s => s.auth.is_payment);
     const isTeacher = role === 'teacher';
-    // To'lov columnini faqat is_payment=true bo'lsa va teacher bo'lmasa ko'rsat
-    const showPayment = !isTeacher && is_payment;
+    // super_admin va cashier uchun har doim ko'rsatiladi, teacher uchun yo'q
+    const showPayment = !isTeacher && (role === 'super_admin' || role === 'cashier' || rawPayment);
     const now = new Date();
     const [year,  setYear]  = useState(now.getFullYear());
     const [month, setMonth] = useState(now.getMonth() + 1);
