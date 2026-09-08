@@ -124,6 +124,11 @@ export const ROUTES = [
         component: lazy(() => import('../../Components/Common/CashierPanel/CashierGroups')),
         roles: [CASHIER],
     },
+    {
+        path: '/cashier/payment-reminder',
+        component: lazy(() => import('../../Components/Common/CashierPanel/CashierPaymentReminder')),
+        roles: [CASHIER],
+    },
 
     // ── Profile (hammaga) ────────────────────────────────
     {

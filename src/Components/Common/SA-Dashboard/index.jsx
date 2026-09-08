@@ -511,7 +511,7 @@ export default function Dashboard() {
 
                     {/* ── Students status detail ── */}
                     {g?.students && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
                             <Card>
                                 <CardHead icon={GraduationCap} title="O'quvchilar" color="#6366f1" />
                                 <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
@@ -535,9 +535,9 @@ export default function Dashboard() {
                 </>
             )}
 
-            {/* ══ Non-payment view (is_payment=false) ══════════ */}
-            {!is_payment && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {/* ══ Non-payment view (is_payment=false, faqat admin/hr uchun) ══ */}
+            {!is_payment && authRole !== 'cashier' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
                     {g?.students && (
                         <Card>
                             <CardHead icon={GraduationCap} title="O'quvchilar holati" color="#6366f1" />

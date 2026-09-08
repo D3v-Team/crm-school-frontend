@@ -101,6 +101,12 @@ export const SIDEBAR_CONFIG = [
         icon: CreditCard,
         roles: [CASHIER],
     },
+    {
+        label: "To'lov eslatmasi",
+        path: '/cashier/payment-reminder',
+        icon: MessageSquare,
+        roles: [CASHIER],
+    },
 
     // ── Teacher ──────────────────────────────────────────
     {

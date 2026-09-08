@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../../../store/hooks";
 import { setAuth } from "../../../store/slices/auth.slice";
 import { useLoginMutation } from "../../../store/services/auth.api";
@@ -11,8 +10,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [login, { isLoading }] = useLoginMutation();
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-
   const [isDark, setIsDark] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -40,14 +37,14 @@ export default function Login() {
       dispatch(setAuth(data));
       Alert("Xush kelibsiz!", "success");
       const role = data.user?.role;
-      if (role === "dev")         navigate("/dev/panel");
-      else if (role === "super_admin") navigate("/dashboard");
-      else if (role === "admin")  navigate("/dashboard");
-      else if (role === "teacher") navigate("/teacher/dashboard");
-      else if (role === "parent") navigate("/parent/dashboard");
-      else if (role === "hr")     navigate("/dashboard");
-      else if (role === "cashier") navigate("/dashboard");
-      else navigate("/dashboard");
+      if (role === "dev")              window.location.replace("/dev/panel");
+      else if (role === "super_admin") window.location.replace("/dashboard");
+      else if (role === "admin")       window.location.replace("/dashboard");
+      else if (role === "teacher")     window.location.replace("/teacher/dashboard");
+      else if (role === "parent")      window.location.replace("/parent/dashboard");
+      else if (role === "hr")          window.location.replace("/dashboard");
+      else if (role === "cashier")     window.location.replace("/dashboard");
+      else                             window.location.replace("/dashboard");
     } catch (err) {
       Alert(err.data?.message || "Avtorizatsiya xatosi", "error");
     }

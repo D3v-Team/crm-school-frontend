@@ -53,7 +53,10 @@ export default function Modal({ open, onClose, title, children, size = "md" }) {
                     borderRadius: 18,
                     boxShadow: "0 32px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.06)",
                     animation: "modalIn 0.25s cubic-bezier(0.34,1.4,0.64,1)",
-                    overflow: "hidden",
+                    overflow: "visible",
+                    display: "flex",
+                    flexDirection: "column",
+                    maxHeight: "calc(100vh - 40px)",
                 }}
             >
                 {/* Header */}
@@ -64,6 +67,9 @@ export default function Modal({ open, onClose, title, children, size = "md" }) {
                         justifyContent: "space-between",
                         padding: "18px 24px",
                         borderBottom: "1px solid var(--card-border)",
+                        borderRadius: "18px 18px 0 0",
+                        background: "var(--card-bg)",
+                        flexShrink: 0,
                     }}
                 >
                     <h2 style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
@@ -90,7 +96,12 @@ export default function Modal({ open, onClose, title, children, size = "md" }) {
                 </div>
 
                 {/* Body */}
-                <div style={{ padding: "20px 24px 24px" }}>
+                <div style={{
+                    padding: "20px 24px 24px",
+                    overflowY: "auto",
+                    borderRadius: "0 0 18px 18px",
+                    background: "var(--card-bg)",
+                }}>
                     {children}
                 </div>
             </div>

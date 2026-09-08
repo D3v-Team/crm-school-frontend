@@ -90,7 +90,7 @@ function PaymentModal({ student, open, onClose, onSuccess }) {
         } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
     };
 
-    const sel = { width: '100%', padding: '9px 12px', background: 'var(--input-bg)', border: '1.5px solid var(--input-border)', borderRadius: 9, color: 'var(--input-text)', fontSize: '0.82rem', outline: 'none', cursor: 'pointer' };
+    const sel = { width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'block', padding: '9px 12px', background: 'var(--input-bg)', border: '1.5px solid var(--input-border)', borderRadius: 9, color: 'var(--input-text)', fontSize: '0.82rem', outline: 'none', cursor: 'pointer' };
 
     return (
         <Modal open={open} onClose={onClose} title={`To'lov — ${student?.name || ''}`} size="sm">

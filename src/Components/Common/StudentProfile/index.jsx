@@ -699,12 +699,14 @@ export default function StudentProfile() {
                         </div>
                     </div>
 
-                    {/* Face actions — top right of card */}
-                    <FaceActions
-                        studentId={id}
-                        studentName={student.full_name}
-                        hasFace={!!student.hikvision_code}
-                    />
+                    {/* Face actions — faqat admin va super_admin uchun */}
+                    {authRole !== 'cashier' && (
+                        <FaceActions
+                            studentId={id}
+                            studentName={student.full_name}
+                            hasFace={!!student.hikvision_code}
+                        />
+                    )}
                 </div>
 
                 {/* Meta info grid */}
