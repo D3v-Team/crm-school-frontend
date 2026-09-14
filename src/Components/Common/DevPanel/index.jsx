@@ -3,10 +3,13 @@ import {
     useGetSchoolsQuery, useCreateSchoolMutation,
     useUpdateSchoolMutation, useDeleteSchoolMutation,
 } from '../../../store/services/school.api';
-import { useCreateSuperAdminMutation, useLazyGetUsersQuery } from '../../../store/services/user.api';
+import {
+    useCreateSuperAdminMutation, useLazyGetUsersQuery,
+    useResetPasswordMutation,
+} from '../../../store/services/user.api';
 import {
     Building2, Plus, Pencil, Trash2, AlertTriangle,
-    RefreshCw, Users, KeyRound, Search,
+    RefreshCw, Users, KeyRound, Search, Eye, EyeOff,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 import Modal from '../../Other/UI/Modal/Modal';
@@ -130,6 +133,72 @@ function CreateSuperAdminModal({ schools, open, onClose }) {
     );
 }
 
+/* ─── Parolni ko'rish va yangilash modal ─── */
+function ResetPasswordModal({ user, onClose }) {
+    const [newPassword, setNewPassword] = useState('');
+    const [showNew, setShowNew] = useState(false);
+    const [update, { isLoading }] = useResetPasswordMutation();
+
+    const handle = async (e) => {
+        e.preventDefault();
+        if (!newPassword.trim()) return;
+        try {
+            await update({ id: user.id, data: { new_password: newPassword } }).unwrap();
+            Alert('Parol yangilandi', 'success');
+            onClose();
+        } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
+    };
+
+    return (
+        <Modal open onClose={onClose} title={`Parol yangilash — ${user?.full_name}`} size="sm">
+            <form onSubmit={handle}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+                    {/* User info strip */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--card-border)' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
+                                {(user?.full_name || '?').charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user?.full_name}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.username} · {user?.school?.name || '—'}</div>
+                        </div>
+                    </div>
+
+                    {/* Yangi parol */}
+                    <div>
+                        <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                            Yangi parol *
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showNew ? 'text' : 'password'}
+                                value={newPassword}
+                                onChange={e => setNewPassword(e.target.value)}
+                                placeholder="Yangi parol kiriting..."
+                                className="search-input"
+                                style={{ paddingLeft: 14, paddingRight: 40 }}
+                                autoFocus
+                            />
+                            <button type="button" onClick={() => setShowNew(v => !v)}
+                                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                                {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div className="modal-footer">
+                    <button type="button" className="btn-cancel" onClick={onClose}>Bekor qilish</button>
+                    <button type="submit" className="btn-submit" disabled={isLoading || !newPassword.trim()}>
+                        <KeyRound size={14} />{isLoading ? 'Saqlanmoqda...' : 'Yangilash'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
 /* ─── Main ─── */
 export default function DevPanel() {
     const [tab, setTab] = useState('schools');
@@ -138,6 +207,7 @@ export default function DevPanel() {
     const [deleteSchool, setDeleteSchool] = useState(null);
     const [saOpen, setSaOpen] = useState(false);
     const [saSearch, setSaSearch] = useState('');
+    const [resetPwUser, setResetPwUser] = useState(null);
 
     const { data: schoolsData, isLoading: sl, refetch } = useGetSchoolsQuery({});
     const [createSchool, { isLoading: creating }] = useCreateSchoolMutation();
@@ -282,7 +352,7 @@ export default function DevPanel() {
                         <div className="data-table-wrap">
                             <table className="data-table">
                                 <thead>
-                                    <tr><th>№</th><th>To'liq ism</th><th>Username</th><th>Telefon</th><th>Maktab</th></tr>
+                                    <tr><th>№</th><th>To'liq ism</th><th>Username</th><th>Telefon</th><th>Maktab</th><th>Amallar</th></tr>
                                 </thead>
                                 <tbody>
                                     {superAdmins.map((u, i) => (
@@ -292,6 +362,15 @@ export default function DevPanel() {
                                             <td style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{u.username}</td>
                                             <td style={{ color: 'var(--text-secondary)' }}>{u.phone || '—'}</td>
                                             <td style={{ color: 'var(--text-secondary)' }}>{u.school?.name || '—'}</td>
+                                            <td>
+                                                <button
+                                                    className="action-btn action-btn-ghost"
+                                                    onClick={() => setResetPwUser(u)}
+                                                    title="Parolni yangilash"
+                                                >
+                                                    <KeyRound size={13} />
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -300,6 +379,7 @@ export default function DevPanel() {
                     )}
 
                     <CreateSuperAdminModal schools={schools} open={saOpen} onClose={() => setSaOpen(false)} />
+                    {resetPwUser && <ResetPasswordModal user={resetPwUser} onClose={() => setResetPwUser(null)} />}
                 </div>
             )}
         </div>

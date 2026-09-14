@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 import { useAppSelector } from "../../../store/hooks";
 import { useLazyPingCameraQuery } from "../../../store/services/hikvision.api";
 
-const CAMERA_ROLES = ['admin', 'super_admin', 'hr', 'dev'];
+const CAMERA_ROLES = ['admin', 'super_admin', 'hr'];
 
 export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile = false, ...props }) {
     const navigate = useNavigate();
