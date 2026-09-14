@@ -5,7 +5,7 @@ import {
 } from '../../../store/services/school.api';
 import {
     useCreateSuperAdminMutation, useLazyGetUsersQuery,
-    useResetPasswordMutation,
+    useResetPasswordMutation, useDeleteUserMutation,
 } from '../../../store/services/user.api';
 import {
     Building2, Plus, Pencil, Trash2, AlertTriangle,
@@ -199,6 +199,40 @@ function ResetPasswordModal({ user, onClose }) {
     );
 }
 
+/* ─── Super Admin o'chirish modal ─── */
+function DeleteSuperAdminModal({ user, onClose, onDeleted }) {
+    const [del, { isLoading }] = useDeleteUserMutation();
+    const handle = async () => {
+        try {
+            await del(user.id).unwrap();
+            Alert("Super Admin o'chirildi", 'success');
+            onDeleted();
+            onClose();
+        } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
+    };
+    return (
+        <Modal open onClose={onClose} title="Super Adminni o'chirish" size="sm">
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0 8px' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <AlertTriangle size={18} style={{ color: 'var(--danger)' }} />
+                </div>
+                <div>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                        <strong>{user?.full_name}</strong> ni o'chirmoqchimisiz?
+                    </p>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Bu amalni qaytarib bo'lmaydi.</p>
+                </div>
+            </div>
+            <div className="modal-footer">
+                <button className="btn-cancel" onClick={onClose}>Bekor qilish</button>
+                <button className="btn-delete" onClick={handle} disabled={isLoading}>
+                    <Trash2 size={13} />{isLoading ? "O'chirilmoqda..." : "O'chirish"}
+                </button>
+            </div>
+        </Modal>
+    );
+}
+
 /* ─── Main ─── */
 export default function DevPanel() {
     const [tab, setTab] = useState('schools');
@@ -208,6 +242,7 @@ export default function DevPanel() {
     const [saOpen, setSaOpen] = useState(false);
     const [saSearch, setSaSearch] = useState('');
     const [resetPwUser, setResetPwUser] = useState(null);
+    const [deleteUser, setDeleteUser] = useState(null);
 
     const { data: schoolsData, isLoading: sl, refetch } = useGetSchoolsQuery({});
     const [createSchool, { isLoading: creating }] = useCreateSchoolMutation();
@@ -363,13 +398,22 @@ export default function DevPanel() {
                                             <td style={{ color: 'var(--text-secondary)' }}>{u.phone || '—'}</td>
                                             <td style={{ color: 'var(--text-secondary)' }}>{u.school?.name || '—'}</td>
                                             <td>
-                                                <button
-                                                    className="action-btn action-btn-ghost"
-                                                    onClick={() => setResetPwUser(u)}
-                                                    title="Parolni yangilash"
-                                                >
-                                                    <KeyRound size={13} />
-                                                </button>
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    <button
+                                                        className="action-btn action-btn-ghost"
+                                                        onClick={() => setResetPwUser(u)}
+                                                        title="Parolni yangilash"
+                                                    >
+                                                        <KeyRound size={13} />
+                                                    </button>
+                                                    <button
+                                                        className="action-btn action-btn-danger"
+                                                        onClick={() => setDeleteUser(u)}
+                                                        title="O'chirish"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -380,6 +424,13 @@ export default function DevPanel() {
 
                     <CreateSuperAdminModal schools={schools} open={saOpen} onClose={() => setSaOpen(false)} />
                     {resetPwUser && <ResetPasswordModal user={resetPwUser} onClose={() => setResetPwUser(null)} />}
+                    {deleteUser && (
+                        <DeleteSuperAdminModal
+                            user={deleteUser}
+                            onClose={() => setDeleteUser(null)}
+                            onDeleted={() => fetchSuperAdmins({ role: 'super_admin', limit: 100, ...(saSearch && { search: saSearch }) })}
+                        />
+                    )}
                 </div>
             )}
         </div>

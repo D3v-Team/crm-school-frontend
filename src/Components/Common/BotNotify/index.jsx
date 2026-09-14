@@ -18,6 +18,7 @@ const labelStyle = {
     fontSize: '0.78rem', fontWeight: 600,
     color: 'var(--text-secondary)', display: 'block', marginBottom: 6,
 };
+const mockPaymentReminder = `⚠️ To'lov eslatmasi\n\nHurmatli *Ali Valiyev* uchun joriy oy to'lovi kutilmoqda.\nIltimos, o'z vaqtida amalga oshiring.`;
 
 /* ── Card wrapper ── */
 function NotifyCard({ icon: Icon, color, title, description, children }) {
@@ -377,6 +378,19 @@ function PaymentReminderForm() {
                         : <><Bell size={15} /> Eslatma yuborish</>
                 }
             </button>
+
+                <div style={{ marginTop: 2 }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>
+                        Xabar shabloni (mock)
+                    </div>
+                    <div style={{
+                        background: '#182533', borderRadius: 10, padding: '11px 12px',
+                        color: '#e8eaed', fontSize: '0.82rem', lineHeight: 1.5,
+                        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    }}>
+                        {mockPaymentReminder}
+                    </div>
+                </div>
         </form>
     );
 }
