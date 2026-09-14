@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAssignGroupMutation } from "../../../../store/services/student.api";
 import { useLazyGetGroupsQuery } from "../../../../store/services/group.api";
 import { Layers } from "lucide-react";
@@ -11,19 +11,55 @@ export default function AddGroup({ studentID, onAdd }) {
     const [selectedGroupId, setSelectedGroupId] = useState("");
     const [error, setError] = useState("");
     const [groups, setGroups] = useState([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const groupsListRef = useRef(null);
+    const requestedPageRef = useRef(1);
 
-    const [fetchGroups, { data: groupsData, isLoading: groupsLoading }] = useLazyGetGroupsQuery();
+    const [fetchGroups, { data: groupsData, isLoading: groupsLoading, isFetching: groupsFetching }] = useLazyGetGroupsQuery();
     const [assignGroup, { isLoading }] = useAssignGroupMutation();
 
     useEffect(() => {
-        if (open) fetchGroups({ limit: 100 });
-    }, [open]);
+        if (open) {
+            setPage(1);
+            setGroups([]);
+            requestedPageRef.current = 1;
+            fetchGroups({ page: 1, limit: 30 });
+        }
+    }, [open, fetchGroups]);
 
     useEffect(() => {
-        if (groupsData) setGroups(groupsData?.data?.records || []);
+        if (!groupsData) return;
+        const newGroups = groupsData?.data?.records || [];
+        const pagination = groupsData?.data?.pagination || {};
+        const loadedPage = pagination.currentPage || pagination.current_page || requestedPageRef.current;
+        setGroups(previous => loadedPage === 1
+            ? newGroups
+            : [...previous, ...newGroups.filter(group => !previous.some(item => item.id === group.id))]);
+        setPage(loadedPage);
+        setTotalPages(pagination.total_pages || 1);
     }, [groupsData]);
 
-    const handleClose = () => { setOpen(false); setSelectedGroupId(""); setError(""); setGroups([]); };
+    const handleGroupsScroll = (event) => {
+        const list = event.currentTarget;
+        const isNearBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 24;
+        if (isNearBottom && !groupsFetching && page < totalPages) {
+            const nextPage = page + 1;
+            requestedPageRef.current = nextPage;
+            fetchGroups({ page: nextPage, limit: 30 });
+        }
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+        setSelectedGroupId("");
+        setError("");
+        setGroups([]);
+        setPage(1);
+        setTotalPages(1);
+        requestedPageRef.current = 1;
+        if (groupsListRef.current) groupsListRef.current.scrollTop = 0;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,12 +86,14 @@ export default function AddGroup({ studentID, onAdd }) {
                             className={`field-select no-icon${error ? ' error' : selectedGroupId ? ' valid' : ''}`}
                             value={selectedGroupId}
                             onChange={e => { setSelectedGroupId(e.target.value); setError(""); }}
-                            disabled={groupsLoading}
+                            ref={groupsListRef}
+                            onScroll={handleGroupsScroll}
+                            disabled={groupsLoading && groups.length === 0}
                         >
-                            <option value="">Guruhni tanlang</option>
-                            {groupsLoading && <option disabled>Yuklanmoqda...</option>}
+                            <option value="">{groupsLoading && groups.length === 0 ? "Yuklanmoqda..." : "Guruhni tanlang"}</option>
                             {!groupsLoading && groups.length === 0 && <option disabled>Guruhlar topilmadi</option>}
-                            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                            {groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
+                            {groupsFetching && <option disabled>Yuklanmoqda...</option>}
                         </select>
                     </FormField>
                     <div className="modal-footer">
