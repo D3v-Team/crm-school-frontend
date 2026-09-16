@@ -32,7 +32,7 @@ export default function TeacherGroups({ teacherId }) {
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 14 }}>
                 Jami <strong style={{ color: 'var(--text-primary)' }}>{groups.length}</strong> ta guruh
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
                 {groups.map(item => {
                     const group = item.group || item;
                     const subjectName = item.subject?.name || group.subject?.name;

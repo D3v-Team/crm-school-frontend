@@ -32,8 +32,8 @@ const TEACHER_TABS = [
 ];
 
 /* ── Tab bar with merge button ── */
-function Tabs({ tabs, active, onChange, merged, onMergeToggle }) {
-    const showMerge = active === 'attendance' || active === 'grades' || merged;
+function Tabs({ tabs, active, onChange, merged, onMergeToggle, isTeacher }) {
+    const showMerge = !isTeacher && (active === 'attendance' || active === 'grades' || merged);
     return (
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20, flexWrap:'wrap' }}>
             {/* Tab buttons */}
@@ -70,7 +70,7 @@ function Tabs({ tabs, active, onChange, merged, onMergeToggle }) {
                 )}
             </div>
 
-            {/* Merge toggle */}
+            {/* Merge toggle — faqat admin/non-teacher uchun */}
             {showMerge && (
                 <button
                     onClick={onMergeToggle}
@@ -117,8 +117,8 @@ export default function GroupProfile() {
     const tabs = isTeacher ? TEACHER_TABS : ADMIN_TABS.filter(t =>
         role !== 'cashier' || t.key === 'students'
     );
-    const [tab, setTab] = useState(isTeacher ? 'attendance' : 'students');
-    const [merged, setMerged] = useState(false);
+    const [tab, setTab] = useState(isTeacher ? 'merged' : 'students');
+    const [merged, setMerged] = useState(isTeacher ? true : false);
     const [showInitialLoading, setShowInitialLoading] = useState(true);
 
     const handleTabChange = (key) => {
@@ -274,6 +274,7 @@ export default function GroupProfile() {
                     onChange={handleTabChange}
                     merged={merged}
                     onMergeToggle={handleMergeToggle}
+                    isTeacher={isTeacher}
                 />
 
                 {tab === 'students'              && <StudentsTab students={students} />}
