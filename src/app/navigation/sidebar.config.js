@@ -2,7 +2,7 @@ import { ROLES } from '../permissions/roles';
 import {
     Users, LayoutDashboard, Book, Layers,
     CreditCard, UserCheck, MessageSquare, CalendarDays,
-    BookOpen, Building2,
+    BookOpen, Building2, TrendingDown,
 } from 'lucide-react';
 
 const { DEV, SUPER_ADMIN, ADMIN, TEACHER, HR, CASHIER } = ROLES;
@@ -105,6 +105,12 @@ export const SIDEBAR_CONFIG = [
         label: "To'lov eslatmasi",
         path: '/cashier/payment-reminder',
         icon: MessageSquare,
+        roles: [CASHIER],
+    },
+    {
+        label: 'Xarajatlar',
+        path: '/cashier/expenses',
+        icon: TrendingDown,
         roles: [CASHIER],
     },
 

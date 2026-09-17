@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useSendBroadcastMutation, useSendPaymentReminderMutation } from '../../../store/services/bot.api';
 import { useGetGroupsQuery } from '../../../store/services/group.api';
 import { Alert } from '../../Other/UI/Alert/Alert';
@@ -126,17 +127,17 @@ function TelegramPreview({ text, photoPreview, buttons }) {
 }
 
 /* ── Broadcast Form ── */
-function BroadcastForm() {
-    const [text,     setText]     = useState('');
-    const [photo,    setPhoto]    = useState(null);
+function BroadcastForm({ isAdmin }) {
+    const [text,         setText]         = useState('');
+    const [photo,        setPhoto]        = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
-    const [buttons,  setButtons]  = useState([]); // [{text, url}]
-    const [sent,     setSent]     = useState(false);
+    const [buttons,      setButtons]      = useState([]);
+    const [sent,         setSent]         = useState(false);
     const fileRef = useRef();
 
     const [sendBroadcast, { isLoading }] = useSendBroadcastMutation();
 
-    const addButton = () => setButtons(b => [...b, { text: '', url: '' }]);
+    const addButton    = () => setButtons(b => [...b, { text: '', url: '' }]);
     const removeButton = (i) => setButtons(b => b.filter((_, idx) => idx !== i));
     const updateButton = (i, field, val) =>
         setButtons(b => b.map((btn, idx) => idx === i ? { ...btn, [field]: val } : btn));
@@ -156,21 +157,14 @@ function BroadcastForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!text.trim()) { Alert('Xabar matni majburiy', 'error'); return; }
-
-        // Validate buttons
         const validButtons = buttons.filter(b => b.text.trim());
-
         const formData = new FormData();
         formData.append('text', text.trim());
-
         if (validButtons.length > 0) {
-            // Convert to Telegram inline_keyboard format
             const inlineKeyboard = validButtons.map(b => ([{ text: b.text, url: b.url || undefined }]));
             formData.append('buttons', JSON.stringify(inlineKeyboard));
         }
-
         if (photo) formData.append('photo', photo);
-
         try {
             await sendBroadcast(formData).unwrap();
             Alert('Xabar muvaffaqiyatli yuborildi', 'success');
@@ -182,7 +176,9 @@ function BroadcastForm() {
         }
     };
 
-    return (
+    const hasPreview = text || photoPreview || buttons.some(b => b.text.trim());
+
+    const formContent = (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Text */}
             <div>
@@ -194,7 +190,7 @@ function BroadcastForm() {
                     placeholder="Barcha foydalanuvchilarga yuboriladi..."
                     style={inputStyle}
                     onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                    onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
+                    onBlur={e  => e.target.style.borderColor = 'var(--input-border)'}
                 />
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'right' }}>
                     {text.length} belgi
@@ -205,16 +201,15 @@ function BroadcastForm() {
             <div>
                 <label style={labelStyle}>Rasm (ixtiyoriy)</label>
                 {photoPreview ? (
-                    <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <img src={photoPreview} alt="preview" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1.5px solid var(--card-border)' }} />
+                    <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                        <img src={photoPreview} alt="preview" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1.5px solid var(--card-border)' }}/>
                         <button type="button" onClick={removePhoto} style={{
                             position: 'absolute', top: 6, right: 6,
                             width: 26, height: 26, borderRadius: 99, border: 'none',
                             background: 'rgba(0,0,0,0.6)', color: '#fff',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                         }}>
-                            <X size={14} />
+                            <X size={14}/>
                         </button>
                     </div>
                 ) : (
@@ -228,10 +223,10 @@ function BroadcastForm() {
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                     >
-                        <Image size={16} /> Rasm yuklash
+                        <Image size={16}/> Rasm yuklash
                     </button>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
+                <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }}/>
             </div>
 
             {/* Inline buttons */}
@@ -244,41 +239,37 @@ function BroadcastForm() {
                         background: 'var(--accent-soft)', color: 'var(--accent)',
                         fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
                     }}>
-                        <Plus size={12} /> Tugma qo'shish
+                        <Plus size={12}/> Tugma qo'shish
                     </button>
                 </div>
-                        {buttons.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {buttons.map((btn, i) => (
-                                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <input
-                                            placeholder="Tugma matni"
-                                            value={btn.text}
-                                            onChange={e => updateButton(i, 'text', e.target.value)}
-                                            style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '1 1 120px', minWidth: 0 }}
-                                            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                                            onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
-                                        />
-                                        <input
-                                            placeholder="URL (ixtiyoriy)"
-                                            value={btn.url}
-                                            onChange={e => updateButton(i, 'url', e.target.value)}
-                                            style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '2 1 160px', minWidth: 0 }}
-                                            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                                            onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
-                                        />
-                                        <button type="button" onClick={() => removeButton(i)} style={{
-                                            width: 34, height: 34, borderRadius: 8, border: 'none',
-                                            background: 'var(--danger-soft)', color: 'var(--danger)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            cursor: 'pointer', flexShrink: 0,
-                                        }}>
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                ))}
+                {buttons.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {buttons.map((btn, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <input placeholder="Tugma matni" value={btn.text}
+                                    onChange={e => updateButton(i, 'text', e.target.value)}
+                                    style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '1 1 120px', minWidth: 0 }}
+                                    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                                    onBlur={e  => e.target.style.borderColor = 'var(--input-border)'}
+                                />
+                                <input placeholder="URL (ixtiyoriy)" value={btn.url}
+                                    onChange={e => updateButton(i, 'url', e.target.value)}
+                                    style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '2 1 160px', minWidth: 0 }}
+                                    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                                    onBlur={e  => e.target.style.borderColor = 'var(--input-border)'}
+                                />
+                                <button type="button" onClick={() => removeButton(i)} style={{
+                                    width: 34, height: 34, borderRadius: 8, border: 'none',
+                                    background: 'var(--danger-soft)', color: 'var(--danger)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', flexShrink: 0,
+                                }}>
+                                    <Trash2 size={14}/>
+                                </button>
                             </div>
-                        )}
+                        ))}
+                    </div>
+                )}
             </div>
 
             <button type="submit" disabled={isLoading || !text.trim()} style={{
@@ -289,17 +280,16 @@ function BroadcastForm() {
                 opacity: (isLoading || !text.trim()) ? 0.5 : 1, transition: 'opacity 0.15s',
             }}>
                 {sent
-                    ? <><CheckCircle size={16} /> Yuborildi!</>
-                    : isLoading
-                        ? 'Yuborilmoqda...'
-                        : <><Send size={15} /> Yuborish</>
+                    ? <><CheckCircle size={16}/> Yuborildi!</>
+                    : isLoading ? 'Yuborilmoqda...'
+                    : <><Send size={15}/> Yuborish</>
                 }
             </button>
 
-            {/* Telegram preview */}
-            {(text || photoPreview || buttons.some(b => b.text.trim())) && (
+            {/* Preview — non-admin ichida (pastda, faqat kontent bo'lsa) */}
+            {!isAdmin && hasPreview && (
                 <div>
-                    <div style={{ fontSize:'0.72rem', fontWeight:600, color:'var(--text-muted)', marginBottom:8, display:'flex', alignItems:'center', gap:5 }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span>👁</span> Ko'rinish (preview)
                     </div>
                     <TelegramPreview text={text} photoPreview={photoPreview} buttons={buttons}/>
@@ -307,6 +297,36 @@ function BroadcastForm() {
             )}
         </form>
     );
+
+    /* Admin: forma + preview yon-yonma, preview doim ko'rinadi */
+    if (isAdmin) {
+        return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,340px)', gap: 20, alignItems: 'start' }}>
+                {/* Forma */}
+                <div>{formContent}</div>
+
+                {/* Preview panel — sticky */}
+                <div style={{ position: 'sticky', top: 80 }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span>👁</span> Ko'rinish (preview)
+                    </div>
+                    {hasPreview ? (
+                        <TelegramPreview text={text} photoPreview={photoPreview} buttons={buttons}/>
+                    ) : (
+                        <div style={{
+                            background: '#17212b', borderRadius: 16, padding: '32px 20px',
+                            textAlign: 'center', color: '#6b8dad', fontSize: '0.82rem',
+                        }}>
+                            <div style={{ fontSize: '1.8rem', marginBottom: 10 }}>💬</div>
+                            Xabar yozing — preview shu yerda ko'rinadi
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    return formContent;
 }
 
 /* ── Payment Reminder Form ── */
@@ -397,6 +417,10 @@ function PaymentReminderForm() {
 
 /* ── Main Page ── */
 export default function BotNotify() {
+    const role = useSelector(s => s.auth?.role);
+    const isAdmin        = role === 'admin' || role === 'super_admin';
+    const canSeeReminder = role === 'cashier' || role === 'super_admin';
+
     return (
         <div>
             <div className="page-header">
@@ -406,27 +430,56 @@ export default function BotNotify() {
                 </div>
             </div>
 
-        
-
-            <div className="bot-notify-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 20, alignItems: 'stretch' }}>
+            {/* Admin: Broadcast karta to'liq kenglikda (ichida preview yon-yonma) */}
+            {isAdmin && !canSeeReminder && (
                 <NotifyCard
                     icon={Users}
                     color="var(--accent)"
                     title="Ommaviy xabar (Broadcast)"
                     description="Barcha foydalanuvchilarga xabar, rasm va inline tugmalar bilan yuborish"
                 >
-                    <BroadcastForm />
+                    <BroadcastForm isAdmin={true}/>
                 </NotifyCard>
+            )}
 
-                <NotifyCard
-                    icon={DollarSign}
-                    color="#f59e0b"
-                    title="To'lov eslatmasi"
-                    description="Guruh bo'yicha qarzdor ota-onalarga eslatma yuborish"
-                >
-                    <PaymentReminderForm />
-                </NotifyCard>
-            </div>
+            {/* Super-admin: Broadcast to'liq keng + To'lov eslatmasi alohida qatorda */}
+            {canSeeReminder && (
+                <>
+                    <NotifyCard
+                        icon={Users}
+                        color="var(--accent)"
+                        title="Ommaviy xabar (Broadcast)"
+                        description="Barcha foydalanuvchilarga xabar, rasm va inline tugmalar bilan yuborish"
+                    >
+                        <BroadcastForm isAdmin={true}/>
+                    </NotifyCard>
+
+                    <div style={{ marginTop: 20 }}>
+                        <NotifyCard
+                            icon={DollarSign}
+                            color="#f59e0b"
+                            title="To'lov eslatmasi"
+                            description="Guruh bo'yicha qarzdor ota-onalarga eslatma yuborish"
+                        >
+                            <PaymentReminderForm/>
+                        </NotifyCard>
+                    </div>
+                </>
+            )}
+
+            {/* Boshqa rollar (agar kelsa): oddiy 2 ustun grid */}
+            {!isAdmin && !canSeeReminder && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,600px)', gap: 20 }}>
+                    <NotifyCard
+                        icon={Users}
+                        color="var(--accent)"
+                        title="Ommaviy xabar (Broadcast)"
+                        description="Barcha foydalanuvchilarga xabar, rasm va inline tugmalar bilan yuborish"
+                    >
+                        <BroadcastForm isAdmin={false}/>
+                    </NotifyCard>
+                </div>
+            )}
         </div>
     );
 }

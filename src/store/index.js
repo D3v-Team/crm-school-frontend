@@ -19,6 +19,7 @@ import { hikvisionApi } from './services/hikvision.api';
 import { studentAttendanceApi } from './services/student-attendance.api';
 import { schoolApi } from './services/school.api';
 import { userAttendanceApi } from './services/user-attendance.api';
+import { expenseApi } from './services/expense.api';
 
 export const store = configureStore({
     reducer: {
@@ -41,6 +42,7 @@ export const store = configureStore({
         [studentAttendanceApi.reducerPath]: studentAttendanceApi.reducer,
         [schoolApi.reducerPath]: schoolApi.reducer,
         [userAttendanceApi.reducerPath]: userAttendanceApi.reducer,
+        [expenseApi.reducerPath]: expenseApi.reducer,
     },
     middleware: (g) =>
         g().concat(
@@ -62,6 +64,7 @@ export const store = configureStore({
             studentAttendanceApi.middleware,
             schoolApi.middleware,
             userAttendanceApi.middleware,
+            expenseApi.middleware,
         ),
 });
 

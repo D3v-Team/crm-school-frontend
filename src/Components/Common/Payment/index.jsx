@@ -4,12 +4,13 @@ import { useLazyGetStudentsQuery } from "../../../store/services/student.api";
 import { useLazyGetGroupsQuery } from "../../../store/services/group.api";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, RefreshCw, CreditCard, X, Trash, AlertTriangle,
+    Search, RefreshCw, CreditCard, X, Trash, AlertTriangle, Download,
 } from "lucide-react";
 import Loading from "../../Other/UI/Loadings/Loading";
 import EditPayment from "./__components/EditPayment";
 import { Alert } from "../../Other/UI/Alert/Alert";
 import Modal from "../../Other/UI/Modal/Modal";
+import $api from "../../../store/api";
 
 const MONTHS = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
 const METHOD_LABELS = { cash:"Naqd", card:"Karta", transfer:"Pul o'tkazmasi", bank_account:"Bank hisobi" };
@@ -87,6 +88,31 @@ export default function Payment() {
     const years = Array.from({length:7}, (_,i) => now.getFullYear()-3+i);
     const ss = { padding:"9px 12px", background:"var(--input-bg)", border:"1.5px solid var(--input-border)", borderRadius:9, color:"var(--input-text)", fontSize:"0.82rem", outline:"none", cursor:"pointer" };
 
+    const [exporting, setExporting] = useState(false);
+    const handleExcelExport = useCallback(async () => {
+        setExporting(true);
+        try {
+            const res = await $api.get("/payment/export/excel", {
+                params: {
+                    year, month,
+                    ...(selectedGroupId   && { group_id:   selectedGroupId }),
+                    ...(selectedStudentId && { student_id: selectedStudentId }),
+                },
+                responseType: "blob",
+            });
+            const url  = URL.createObjectURL(res.data);
+            const link = document.createElement("a");
+            link.href  = url;
+            link.download = `tolovlar_${year}_${String(month).padStart(2,"0")}.xlsx`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            Alert("Excel yuklab olishda xatolik", "error");
+        } finally {
+            setExporting(false);
+        }
+    }, [year, month, selectedGroupId, selectedStudentId]);
+
     return (
         <div>
             <div className="page-toolbar">
@@ -132,6 +158,22 @@ export default function Payment() {
                     )}
                 </div>
                 <button className="btn-refresh" onClick={fetchPayments} title="Yangilash"><RefreshCw size={15}/></button>
+                <button
+                    onClick={handleExcelExport}
+                    disabled={exporting}
+                    title="Excel yuklab olish"
+                    style={{
+                        display:"flex", alignItems:"center", gap:6,
+                        padding:"8px 14px", borderRadius:9, cursor: exporting ? "not-allowed" : "pointer",
+                        border:"1.5px solid var(--card-border)", background:"var(--input-bg)",
+                        color:"var(--text-secondary)", fontSize:"0.82rem", fontWeight:600,
+                        opacity: exporting ? 0.6 : 1, transition:"all 0.15s",
+                    }}
+                    onMouseEnter={e=>{ if(!exporting){ e.currentTarget.style.borderColor="var(--accent)"; e.currentTarget.style.color="var(--accent)"; }}}
+                    onMouseLeave={e=>{ e.currentTarget.style.borderColor="var(--card-border)"; e.currentTarget.style.color="var(--text-secondary)"; }}
+                >
+                    <Download size={14}/>{exporting ? "Yuklanmoqda..." : "Excel"}
+                </button>
             </div>
 
             {isLoading && <Loading/>}

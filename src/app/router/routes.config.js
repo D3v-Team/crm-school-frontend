@@ -66,7 +66,7 @@ export const ROUTES = [
     {
         path: '/bot-notify',
         component: lazy(() => import('../../Components/Common/BotNotify')),
-        roles: [ADMIN, SUPER_ADMIN],
+        roles: [ADMIN, SUPER_ADMIN, CASHIER],
     },
 
     // ── Teacher Panel ────────────────────────────────────
@@ -127,6 +127,11 @@ export const ROUTES = [
     {
         path: '/cashier/payment-reminder',
         component: lazy(() => import('../../Components/Common/CashierPanel/CashierPaymentReminder')),
+        roles: [CASHIER],
+    },
+    {
+        path: '/cashier/expenses',
+        component: lazy(() => import('../../Components/Common/CashierPanel/CashierExpense')),
         roles: [CASHIER],
     },
 
