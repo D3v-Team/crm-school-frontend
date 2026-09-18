@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import {
-    useLazyGetUsersQuery, useCreateUserMutation,
+    useLazyGetUsersQuery, useGetUsersQuery, useCreateUserMutation,
     useUpdateUserMutation, useDeleteUserMutation,
     useResetPasswordMutation,
 } from '../../../store/services/user.api';
@@ -8,6 +9,7 @@ import {
     Users, Plus, Pencil, Trash2, AlertTriangle,
     RefreshCw, Search,
     KeyRound, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+    ShieldCheck, GraduationCap, Banknote, UserCog,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 import Modal from '../../Other/UI/Modal/Modal';
@@ -32,8 +34,19 @@ const ROLE_BADGE = {
     super_admin: { label: 'Super Admin', bg: '#fdf4ff',              color: '#9333ea'          },
 };
 
-// Jadvalda ko'rinmasligi kerak bo'lgan rollar
+// Jadvalda ko'rinmasligi kerak bo'lgan rollar (server ham filtrlaydi, lekin fallback)
 const HIDDEN_ROLES = ['super_admin', 'dev', 'parent'];
+
+// API ga yuborilishi kerak bo'lgan rollar (parent va boshqalar chiqariladi)
+const ALLOWED_ROLES = ['admin', 'teacher', 'hr', 'cashier'];
+
+// Rol bo'yicha statistika badges — har bir rol uchun rang
+const STAT_BADGES = {
+    admin:   { label: 'Admin',      icon: ShieldCheck,  color: 'var(--accent)'   },
+    teacher: { label: "O'qituvchi", icon: GraduationCap,color: 'var(--success)'  },
+    hr:      { label: 'HR',         icon: UserCog,      color: 'var(--warning)'  },
+    cashier: { label: 'Kassir',     icon: Banknote,     color: '#16a34a'          },
+};
 
 const sel = { width: '100%', padding: '9px 12px', background: 'var(--input-bg)', border: '1.5px solid var(--input-border)', borderRadius: 9, color: 'var(--input-text)', fontSize: '0.82rem', outline: 'none', cursor: 'pointer' };
 
@@ -186,31 +199,75 @@ function ResetPasswordModal({ user, onClose }) {
 
 /* ─── Main ─── */
 export default function SuperAdminPanel() {
-    const [page, setPage]     = useState(1);
-    const [search, setSearch] = useState('');
+    const [page, setPage]             = useState(1);
+    const [search, setSearch]         = useState('');
     const [roleFilter, setRoleFilter] = useState('');
-    const [addOpen, setAddOpen]     = useState(false);
-    const [editUser, setEditUser]   = useState(null);
+    const [addOpen, setAddOpen]       = useState(false);
+    const [editUser, setEditUser]     = useState(null);
     const [deleteUser, setDeleteUser] = useState(null);
     const [resetPwUser, setResetPwUser] = useState(null);
 
+    const authRole = useSelector(s => s.auth?.role);
+
     const [trigger, { data, isLoading, error }] = useLazyGetUsersQuery();
 
-    const fetch = (p = page, s = search, r = roleFilter) => {
-        trigger({ page: p, limit: 15, ...(s && { search: s }), ...(r && { role: r }) });
+    // Foydalanuvchi roliga qarab qaysi stat ko'rsatilishini aniqlash
+    const statsToShow = authRole === 'super_admin'
+        ? ['admin', 'teacher']
+        : authRole === 'admin'
+            ? ['teacher']
+            : authRole === 'cashier'
+                ? ['teacher']
+                : [];
+
+    const fetch = (p, s, r) => {
+        const pg   = p ?? page;
+        const srch = s ?? search;
+        const rol  = r ?? roleFilter;
+        const roles = rol ? [rol] : ALLOWED_ROLES;
+        trigger({ page: pg, limit: 15, ...(srch && { search: srch }), role: roles });
     };
 
-    useEffect(() => { fetch(1); }, []);
+    // Statistika uchun alohida so'rov — role bo'yicha total_count
+    const [triggerAll, { data: allData }] = useLazyGetUsersQuery();
 
-    // Faqat xodim rollarini ko'rsatamiz — super_admin, dev, parent chiqmasin
+    useEffect(() => {
+        fetch(1, '', '');
+        if (statsToShow.length > 0) {
+            // Har bir rol uchun alohida so'rov
+            statsToShow.forEach(r => {
+                triggerAll({ page: 1, limit: 1, role: [r] });
+            });
+        }
+    }, []);
+
     const users      = (data?.data?.records || []).filter(u => !HIDDEN_ROLES.includes(u.role));
     const pagination = data?.data?.pagination || {};
-    const totalPages = pagination.total_pages  || 1;
-    const curPage    = pagination.currentPage  || 1;
+    const totalPages = pagination.total_pages || 1;
+    const curPage    = pagination.currentPage || page;
+    const totalCount = pagination.total_count || 0;
 
-    const goTo = (p) => { setPage(p); fetch(p); };
+    // allData oxirgi so'rov natijasini saqlaydi — ishonchsiz
+    // O'rniga har bir rol uchun alohida hook ishlatamiz
+    const { data: adminData  } = useGetUsersQuery({ page: 1, limit: 1, role: ['admin']   }, { skip: !statsToShow.includes('admin')   });
+    const { data: teacherData } = useGetUsersQuery({ page: 1, limit: 1, role: ['teacher'] }, { skip: !statsToShow.includes('teacher') });
 
-    const saved = () => fetch(curPage);
+    const adminCount   = adminData?.data?.pagination?.total_count   ?? 0;
+    const teacherCount = teacherData?.data?.pagination?.total_count ?? 0;
+
+    const roleCounts = { admin: adminCount, teacher: teacherCount };
+
+    const goTo = (p) => {
+        const next = Math.max(1, Math.min(p, totalPages));
+        setPage(next);
+        fetch(next, search, roleFilter);
+    };
+
+    const saved = () => fetch(curPage, search, roleFilter);
+
+    const visibleStats = statsToShow.map(r => ({
+        role: r, count: roleCounts[r] ?? 0, ...STAT_BADGES[r],
+    }));
 
     return (
         <div>
@@ -223,30 +280,77 @@ export default function SuperAdminPanel() {
                     <button className="btn-create" onClick={() => setAddOpen(true)}>
                         <Plus size={15} /> Xodim qo'shish
                     </button>
-                    <button className="btn-refresh" onClick={() => fetch(curPage)} title="Yangilash">
+                    <button className="btn-refresh" onClick={() => fetch(curPage, search, roleFilter)} title="Yangilash">
                         <RefreshCw size={15} />
                     </button>
                 </div>
             </div>
 
+            {/* ── Rol statistikasi ── */}
+            {visibleStats.length > 0 && (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+                    {visibleStats.map(({ role, label, icon: Icon, color, count }) => (
+                        <div key={role} style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '12px 18px', borderRadius: 12,
+                            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                            flex: '1 1 160px', minWidth: 0,
+                        }}>
+                            <div style={{
+                                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                                background: color + '18',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <Icon size={16} style={{ color }}/>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                                    {count}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                    {label}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
             {/* Filters */}
             <div className="search-bar">
                 <div className="search-input-wrap">
                     <Search className="search-icon" size={16} />
-                    <DebouncedSearchInput className="search-input" type="text" placeholder="Ism yoki username..."
-                        value={search} onChange={setSearch}
-                        onSearch={value => { setPage(1); fetch(1, value, roleFilter); }} />
+                    <DebouncedSearchInput
+                        className="search-input" type="text" placeholder="Ism yoki username..."
+                        value={search}
+                        onChange={setSearch}
+                        onSearch={value => {
+                            setPage(1);
+                            fetch(1, value, roleFilter);
+                        }}
+                    />
                 </div>
                 <select className="search-select" value={roleFilter}
-                    onChange={e => { setRoleFilter(e.target.value); setPage(1); fetch(1, search, e.target.value); }}>
+                    onChange={e => {
+                        const r = e.target.value;
+                        setRoleFilter(r);
+                        setPage(1);
+                        fetch(1, search, r);
+                    }}>
                     {ROLE_FILTER.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 <button className="search-btn" onClick={() => { setPage(1); fetch(1, search, roleFilter); }}>Qidirish</button>
-                <button className="clear-btn" onClick={() => { setSearch(''); setRoleFilter(''); setPage(1); fetch(1, '', ''); }}>Tozalash</button>
+                <button className="clear-btn" onClick={() => {
+                    setSearch(''); setRoleFilter(''); setPage(1);
+                    fetch(1, '', '');
+                }}>Tozalash</button>
             </div>
 
             {isLoading && <Loading />}
-            {error && <div style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10 }}>Xatolik: {error?.data?.message}</div>}
+            {error && (
+                <div style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10 }}>
+                    Xatolik: {error?.data?.message}
+                </div>
+            )}
 
             {!isLoading && !error && (
                 <>
@@ -264,12 +368,18 @@ export default function SuperAdminPanel() {
                             </thead>
                             <tbody>
                                 {users.length === 0 ? (
-                                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>Xodimlar topilmadi</td></tr>
+                                    <tr>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
+                                            Xodimlar topilmadi
+                                        </td>
+                                    </tr>
                                 ) : users.map((u, i) => {
                                     const badge = ROLE_BADGE[u.role] || { label: u.role, bg: 'var(--input-bg)', color: 'var(--text-muted)' };
                                     return (
                                         <tr key={u.id}>
-                                            <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>{(curPage - 1) * 15 + i + 1}</td>
+                                            <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                                                {(curPage - 1) * 15 + i + 1}
+                                            </td>
                                             <td style={{ fontWeight: 600 }}>{u.full_name}</td>
                                             <td style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{u.username}</td>
                                             <td style={{ color: 'var(--text-secondary)' }}>{u.phone || '—'}</td>
@@ -281,7 +391,7 @@ export default function SuperAdminPanel() {
                                             <td>
                                                 <div style={{ display: 'flex', gap: 5 }}>
                                                     <button className="action-btn action-btn-primary" onClick={() => setEditUser(u)} title="Tahrirlash"><Pencil size={13} /></button>
-                                                    <button className="action-btn action-btn-ghost" onClick={() => setResetPwUser(u)} title="Parolni yangilash" style={{ fontSize: 11 }}><KeyRound size={13} /></button>
+                                                    <button className="action-btn action-btn-ghost" onClick={() => setResetPwUser(u)} title="Parolni yangilash"><KeyRound size={13} /></button>
                                                     <button className="action-btn action-btn-danger" onClick={() => setDeleteUser(u)} title="O'chirish"><Trash2 size={13} /></button>
                                                 </div>
                                             </td>
@@ -294,22 +404,30 @@ export default function SuperAdminPanel() {
 
                     <div className="pagination">
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            {users.length > 0 && `Jami ${users.length} ta xodim (shu sahifada)`}
+                            {totalCount > 0 && `Jami ${totalCount} ta xodim`}
                         </span>
                         <div className="pagination-controls">
-                            <button className="page-btn" onClick={() => goTo(1)} disabled={curPage <= 1}><ChevronsLeft size={15} /></button>
-                            <button className="page-btn" onClick={() => goTo(curPage - 1)} disabled={curPage <= 1}><ChevronLeft size={15} /></button>
-                            <span className="page-current">{curPage}</span>
-                            <button className="page-btn" onClick={() => goTo(curPage + 1)} disabled={curPage >= totalPages}><ChevronRight size={15} /></button>
-                            <button className="page-btn" onClick={() => goTo(totalPages)} disabled={curPage >= totalPages}><ChevronsRight size={15} /></button>
+                            <button className="page-btn" onClick={() => goTo(1)} disabled={curPage <= 1}>
+                                <ChevronsLeft size={15} />
+                            </button>
+                            <button className="page-btn" onClick={() => goTo(curPage - 1)} disabled={curPage <= 1}>
+                                <ChevronLeft size={15} />
+                            </button>
+                            <span className="page-current">{curPage} / {totalPages}</span>
+                            <button className="page-btn" onClick={() => goTo(curPage + 1)} disabled={curPage >= totalPages}>
+                                <ChevronRight size={15} />
+                            </button>
+                            <button className="page-btn" onClick={() => goTo(totalPages)} disabled={curPage >= totalPages}>
+                                <ChevronsRight size={15} />
+                            </button>
                         </div>
                     </div>
                 </>
             )}
 
-            {addOpen    && <UserFormModal onClose={() => setAddOpen(false)}    onSaved={saved} />}
-            {editUser   && <UserFormModal user={editUser}  onClose={() => setEditUser(null)}   onSaved={saved} />}
-            {deleteUser && <DeleteUserModal user={deleteUser} onClose={() => setDeleteUser(null)} onSaved={saved} />}
+            {addOpen     && <UserFormModal onClose={() => setAddOpen(false)} onSaved={saved} />}
+            {editUser    && <UserFormModal user={editUser} onClose={() => setEditUser(null)} onSaved={saved} />}
+            {deleteUser  && <DeleteUserModal user={deleteUser} onClose={() => setDeleteUser(null)} onSaved={saved} />}
             {resetPwUser && <ResetPasswordModal user={resetPwUser} onClose={() => setResetPwUser(null)} />}
         </div>
     );

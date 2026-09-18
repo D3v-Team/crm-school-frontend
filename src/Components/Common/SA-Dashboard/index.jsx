@@ -246,7 +246,12 @@ export default function Dashboard() {
     const totalRequired = pay?.monthly?.total_required ?? 0;
     const totalDebt     = pay?.monthly?.total_debt     ?? 0;
 
-    const totalUsers = g?.users ? Object.values(g.users).reduce((a, b) => a + b, 0) : 0;
+    // g.users ichida parent va boshqa xodim bo'lmagan rollarni chiqarib tashlash
+    const totalUsers = g?.users
+        ? Object.entries(g.users)
+            .filter(([role]) => !['parent', 'super_admin', 'dev'].includes(role))
+            .reduce((a, [, v]) => a + v, 0)
+        : 0;
 
     const yearOptions = [];
     for (let y = now.getFullYear() - 3; y <= now.getFullYear() + 1; y++) yearOptions.push(y);
