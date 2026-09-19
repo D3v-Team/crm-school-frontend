@@ -22,6 +22,7 @@ import {
 import { Alert } from '../../../Other/UI/Alert/Alert';
 import Modal from '../../../Other/UI/Modal/Modal';
 import Loading from '../../../Other/UI/Loadings/Loading';
+import { mergeParallelItems } from '../../../../utils/schedule';
 
 /* ── constants ── */
 const DAYS_ORDER = ['monday','tuesday','wednesday','thursday','friday','saturday'];
@@ -433,11 +434,13 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                                 )
                             ) : (
                                 <div>
-                                    {items.map(item => {
+                                    {mergeParallelItems(items).map(parallelItems => {
+                                        const item = parallelItems[0];
                                         const color = colorFor(item.subject_id);
                                         const subName = subjectsMap[item.subject_id] || item.subject?.name || item.subject_id?.slice(0,8);
                                         const teacherName = item.teacher?.full_name || teachersMap[item.teacher_id] || '—';
                                         const topicD = topicMap[item.id] || null;
+                                        const isParallel = parallelItems.length > 1;
 
                                         /* Teacher faqat o'z darsiga mavzu kira oladi */
                                         const canEditTopic = isTeacher
@@ -445,9 +448,10 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                                             : true; // admin/super_admin hammaga
 
                                         return (
-                                            <div key={item.id} style={{ padding:'10px 14px', borderTop:'1px solid var(--card-border)' }}
+                                            <div key={parallelItems.map(i => i.id).join('-')} style={{ padding:'10px 14px', borderTop:'1px solid var(--card-border)', background:isParallel ? 'var(--warning-soft)' : 'transparent' }}
                                                 onMouseEnter={e=>{e.currentTarget.style.background='var(--input-bg)'; const btn=e.currentTarget.querySelector('.del-btn'); if(btn)btn.style.opacity='1';}}
                                                 onMouseLeave={e=>{e.currentTarget.style.background='transparent'; const btn=e.currentTarget.querySelector('.del-btn'); if(btn)btn.style.opacity='0';}}>
+                                                {isParallel && <div style={{ fontSize:'0.64rem', fontWeight:700, color:'var(--warning)', marginBottom:6 }}>Parallel darslar · {parallelItems.length} ta</div>}
                                                 <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
                                                     <div style={{ display:'flex', gap:10, minWidth:0, flex:1 }}>
                                                         <div style={{ width:3, borderRadius:99, background:color, flexShrink:0, alignSelf:'stretch', marginTop:2 }}/>
@@ -481,6 +485,12 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                                                         </button>
                                                     )}
                                                 </div>
+                                                {parallelItems.slice(1).map(other => (
+                                                    <div key={other.id} style={{ margin:'8px 0 0 13px', paddingTop:8, borderTop:'1px dashed var(--warning)', fontSize:'0.72rem', color:'var(--text-secondary)' }}>
+                                                        <strong>{subjectsMap[other.subject_id] || other.subject?.name || '—'}</strong> · {teachersMap[other.teacher_id] || other.teacher?.full_name || '—'} · {fmtTime(other.start_time)}–{fmtTime(other.end_time)}
+                                                        {(topicMap[other.id]?.topic || other.topic?.topic || other.topic) && <div style={{ marginTop:3, color:'var(--text-muted)', fontStyle:'italic' }}>Mavzu: {topicMap[other.id]?.topic || other.topic?.topic || other.topic}</div>}
+                                                    </div>
+                                                ))}
                                             </div>
                                         );
                                     })}

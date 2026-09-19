@@ -27,6 +27,7 @@ const ADMIN_TABS = [
 ];
 
 const TEACHER_TABS = [
+    { key:'schedule',   label:'Jadvallar', icon: Calendar     },
     { key:'attendance', label:'Davomat',   icon: ClipboardList },
     { key:'grades',     label:'Baholar',   icon: BookOpen     },
 ];

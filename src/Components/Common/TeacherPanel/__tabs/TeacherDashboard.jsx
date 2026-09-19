@@ -8,6 +8,7 @@ import {
     Star, CheckCircle, TrendingUp, Clock,
 } from 'lucide-react';
 import Loading from '../../../Other/UI/Loadings/Loading';
+import { mergeParallelItems } from '../../../../utils/schedule';
 
 const MONTHS = [
     'Yanvar','Fevral','Mart','Aprel','May','Iyun',
@@ -172,24 +173,23 @@ export default function TeacherDashboard({ teacherId }) {
                             </span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {todaySchedule.map(item => (
-                                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--card-border)' }}>
-                                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                        <Clock size={15} style={{ color: '#fff' }} />
+                            {mergeParallelItems(todaySchedule).map(parallelItems => {
+                                return (
+                                    <div key={parallelItems.map(lesson => lesson.id).join('-')} style={{ padding:'10px 14px', borderRadius:12, background: parallelItems.length > 1 ? 'var(--warning-soft)' : 'var(--accent-soft)', border:'1px solid var(--card-border)' }}>
+                                        {parallelItems.length > 1 && <div style={{ fontSize:'0.64rem', fontWeight:700, color:'var(--warning)', marginBottom:6 }}>Parallel darslar · {parallelItems.length} ta</div>}
+                                        {parallelItems.map(lesson => (
+                                            <div key={lesson.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'4px 0' }}>
+                                                <div style={{ width:36, height:36, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Clock size={15} style={{ color:'#fff' }}/></div>
+                                                <div style={{ flex:1, minWidth:0 }}>
+                                                    <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--accent)' }}>{lesson.start_time?.slice(0,5)} – {lesson.end_time?.slice(0,5)}</div>
+                                                    <div style={{ fontSize:'0.875rem', fontWeight:700, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{lesson.subject?.name || '—'}</div>
+                                                    <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4 }}><Layers size={10}/> {lesson.group?.name || '—'}</div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)' }}>
-                                            {item.start_time?.slice(0,5)} – {item.end_time?.slice(0,5)}
-                                        </div>
-                                        <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {item.subject?.name || '—'}
-                                        </div>
-                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            <Layers size={10} /> {item.group?.name || '—'}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}

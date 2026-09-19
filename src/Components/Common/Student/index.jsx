@@ -22,7 +22,7 @@ export default function Student() {
     const isTeacher = role === 'teacher';
 
     const [page, setPage] = useState(1);
-    const [limit] = useState(10);
+    const [limit] = useState(30);
     const [search, setSearch] = useState("");
     // Default: show only active students
     const [isActiveFilter, setIsActiveFilter] = useState(true);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLazyGetMyChildrenGradesQuery } from '../../../store/services/grades.api';
+import { useGetSubjectsQuery } from '../../../store/services/subject.api';
+import { useLazyGetParentQuery } from '../../../store/services/statistic.api';
 import { BookOpen, Users, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 
@@ -43,7 +45,7 @@ function ChildTabBar({ children, active, onChange }) {
 }
 
 /* ── Grades content for one child ── */
-function ChildGrades({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, onLoad }) {
+function ChildGrades({ studentData, availableSubjects, dateFrom, setDateFrom, dateTo, setDateTo, onLoad }) {
     const [subjectFilter, setSubjectFilter] = useState('all');
     const dates = studentData?.dates || [];
 
@@ -61,7 +63,10 @@ function ChildGrades({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, on
         });
     });
     rows.sort((a, b) => b.date.localeCompare(a.date));
-    const subjects = [...new Set(rows.map(row => row.subject_name).filter(Boolean))].sort();
+    const subjects = [...new Set([
+        ...availableSubjects.map(subject => subject.name),
+        ...rows.map(row => row.subject_name),
+    ].filter(Boolean))].sort();
     const filteredRows = subjectFilter === 'all' ? rows : rows.filter(row => row.subject_name === subjectFilter);
 
     const graded  = filteredRows.filter(r => r.score != null);
@@ -176,12 +181,27 @@ export default function ParentGrades() {
     const [dateTo,   setDateTo]   = useState(toISO(new Date(now.getFullYear(), now.getMonth() + 1, 0)));
 
     const [fetchGrades, { data, isLoading, error }] = useLazyGetMyChildrenGradesQuery();
+    const [fetchParent, { data: parentData, isLoading: parentLoading }] = useLazyGetParentQuery();
+    const { data: subjectsData } = useGetSubjectsQuery({ limit: 200 });
 
     const load = () => fetchGrades({ date_from: dateFrom, date_to: dateTo });
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        load();
+        fetchParent({ year: now.getFullYear(), month: now.getMonth() + 1 });
+    }, []);
 
     /* children list: [{student_id, full_name, dates}] */
-    const children = data?.data || [];
+    const responseData = data?.data ?? data;
+    const gradeChildren = Array.isArray(responseData) ? responseData : responseData?.records || [];
+    const parentChildren = parentData?.data || [];
+    const children = gradeChildren.length > 0 ? gradeChildren : parentChildren.map(child => ({
+        student_id: child.student_id,
+        full_name: child.full_name,
+        dates: [],
+    }));
+    const availableSubjects = (subjectsData?.data?.records || subjectsData?.data || [])
+        .map(subject => ({ id: subject.id, name: subject.name }))
+        .filter(subject => subject.name);
     const [activeChild, setActiveChild] = useState(null);
 
     useEffect(() => {
@@ -190,7 +210,7 @@ export default function ParentGrades() {
 
     const activeData = children.find(c => c.student_id === activeChild);
 
-    if (isLoading) return <Loading />;
+    if (isLoading || parentLoading) return <Loading />;
 
     if (error) return (
         <div style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10 }}>
@@ -214,6 +234,7 @@ export default function ParentGrades() {
             {activeData && (
                 <ChildGrades
                     studentData={activeData}
+                    availableSubjects={availableSubjects}
                     dateFrom={dateFrom}
                     setDateFrom={setDateFrom}
                     dateTo={dateTo}

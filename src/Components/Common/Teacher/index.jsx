@@ -1,20 +1,69 @@
 import { useEffect, useState } from "react";
-import { useLazyGetUsersQuery } from "../../../store/services/user.api";
+import { useLazyGetUsersQuery, useResetPasswordMutation } from "../../../store/services/user.api";
 import Create from "./__components/Create";
 import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
 import Loading from "../../Other/UI/Loadings/Loading";
+import Modal from "../../Other/UI/Modal/Modal";
+import { Alert } from "../../Other/UI/Alert/Alert";
 import { NavLink } from "react-router-dom";
 import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, Users, Eye, RefreshCw, X, Camera, CameraOff,
+    Search, Users, Eye, EyeOff, X, Camera, CameraOff, KeyRound, Check,
 } from "lucide-react";
+
+/* ── Reset password modal ── */
+function ResetPasswordModal({ user, onClose }) {
+    const [newPassword, setNewPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [resetPw, { isLoading }] = useResetPasswordMutation();
+
+    const handle = async (e) => {
+        e.preventDefault();
+        if (newPassword.trim().length < 4) { Alert("Parol kamida 4 ta belgi bo'lishi kerak", 'error'); return; }
+        try {
+            await resetPw({ id: user.id, data: { new_password: newPassword } }).unwrap();
+            Alert(`${user.full_name} paroli yangilandi`, 'success');
+            onClose();
+        } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
+    };
+
+    return (
+        <Modal open onClose={onClose} title={`Parolni yangilash`} size="sm">
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 14 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>{user?.full_name}</strong> uchun yangi parol
+            </div>
+            <form onSubmit={handle}>
+                <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Yangi parol *</label>
+                    <div style={{ position: 'relative' }}>
+                        <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                            placeholder="Yangi parol kiriting" className="search-input" style={{ paddingLeft: 14, paddingRight: 42 }} autoFocus />
+                        <button type="button" onClick={() => setShowPassword(value => !value)}
+                            title={showPassword ? 'Parolni yashirish' : 'Parolni ko\'rsatish'}
+                            aria-label={showPassword ? 'Parolni yashirish' : 'Parolni ko\'rsatish'}
+                            style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                    </div>
+                </div>
+                <div className="modal-footer">
+                    <button type="button" className="btn-cancel" onClick={onClose}>Bekor qilish</button>
+                    <button type="submit" className="btn-submit" disabled={isLoading || !newPassword.trim()}>
+                        <Check size={14}/>{isLoading ? 'Yangilanmoqda...' : 'Saqlash'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
 
 export default function Teacher() {
     const [page, setPage] = useState(1);
-    const [limit] = useState(10);
+    const [limit] = useState(30);
     const [search, setSearch] = useState("");
+    const [resetPwUser, setResetPwUser] = useState(null);
 
     const [trigger, { data, isLoading, error }] = useLazyGetUsersQuery();
 
@@ -103,6 +152,9 @@ export default function Teacher() {
                                                             <Eye size={14} />
                                                         </button>
                                                     </NavLink>
+                                                    <button className="action-btn action-btn-ghost" onClick={() => setResetPwUser(u)} title="Parolni yangilash">
+                                                        <KeyRound size={14}/>
+                                                    </button>
                                                     <Edit user={u} />
                                                     <Delete user={u} />
                                                 </div>
@@ -126,6 +178,7 @@ export default function Teacher() {
                     </div>
                 </>
             )}
+            {resetPwUser && <ResetPasswordModal user={resetPwUser} onClose={() => setResetPwUser(null)}/>} 
         </div>
     );
 }

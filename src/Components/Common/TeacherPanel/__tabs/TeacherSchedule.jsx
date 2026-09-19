@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLazyGetGroupScheduleByTeacherQuery } from '../../../../store/services/group-schedule.api';
 import { CalendarDays, Clock, Layers, Book } from 'lucide-react';
 import Loading from '../../../Other/UI/Loadings/Loading';
+import { mergeParallelItems } from '../../../../utils/schedule';
 
 const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const DAY_LABELS = {
@@ -100,28 +101,26 @@ export default function TeacherSchedule({ teacherId }) {
                                 </div>
                             ) : (
                                 <div>
-                                    {items.map(item => {
-                                        const clr = colorFor(item.subject_id || item.subject?.id);
-                                        return (
-                                            <div key={item.id} style={{
-                                                display: 'flex', alignItems: 'flex-start', gap: 10,
-                                                padding: '10px 14px', borderTop: '1px solid var(--card-border)',
-                                            }}>
-                                                <div style={{ width: 3, borderRadius: 99, background: clr, flexShrink: 0, alignSelf: 'stretch' }} />
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                        <Clock size={10} /> {item.start_time} – {item.end_time}
+                                    {mergeParallelItems(items).map((parallelItems, groupIndex) => (
+                                        <div key={parallelItems.map(item => item.id).join('-')} style={{ borderTop:'1px solid var(--card-border)', padding:'8px 10px', background:parallelItems.length > 1 ? 'var(--warning-soft)' : 'transparent' }}>
+                                            {parallelItems.length > 1 && <div style={{ fontSize:'0.64rem', fontWeight:700, color:'var(--warning)', marginBottom:6 }}>Parallel darslar · {parallelItems.length} ta</div>}
+                                            {parallelItems.map(item => {
+                                                const clr = colorFor(item.subject_id || item.subject?.id);
+                                                return (
+                                                    <div key={item.id || groupIndex} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'4px 4px' }}>
+                                                        <div style={{ width:3, borderRadius:99, background:clr, flexShrink:0, alignSelf:'stretch' }} />
+                                                        <div style={{ flex:1, minWidth:0 }}>
+                                                            <div style={{ fontSize:'0.72rem', fontWeight:600, color:'var(--accent)', marginBottom:3, display:'flex', alignItems:'center', gap:4 }}>
+                                                                <Clock size={10}/> {item.start_time?.slice(0,5)} – {item.end_time?.slice(0,5)}
+                                                            </div>
+                                                            <div style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--text-primary)', marginBottom:2 }}>{item.subject?.name || '—'}</div>
+                                                            <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4 }}><Layers size={10}/> {item.group?.name || '—'}</div>
+                                                        </div>
                                                     </div>
-                                                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
-                                                        {item.subject?.name || '—'}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                        <Layers size={10} /> {item.group?.name || '—'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>

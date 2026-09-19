@@ -12,6 +12,7 @@ import {
 import { Clock, BookOpen, User, CalendarDays, CalendarCheck2, Pencil, Check, X, Layers } from 'lucide-react';
 import { Alert } from '../../../../Other/UI/Alert/Alert';
 import Loading from '../../../../Other/UI/Loadings/Loading';
+import { mergeParallelItems } from '../../../../../utils/schedule';
 
 const DAYS_ORDER = ['monday','tuesday','wednesday','thursday','friday','saturday'];
 const DAY_LABELS = { monday:'Dushanba', tuesday:'Seshanba', wednesday:'Chorshanba', thursday:'Payshanba', friday:'Juma', saturday:'Shanba' };
@@ -273,13 +274,16 @@ export default function ScheduleTab({ user }) {
                                 <div style={{ padding:'24px 0', textAlign:'center', color:'var(--text-muted)', fontSize:'0.78rem' }}>Dars yo'q</div>
                             ) : (
                                 <div>
-                                    {items.map((item, ii) => {
+                                    {mergeParallelItems(items).map((parallelItems, ii) => {
+                                        const item = parallelItems[0];
                                         const color   = colorFor(item.subject_id);
+                                        const isParallel = parallelItems.length > 1;
                                         const subName = item.subject?.name || item.subject_id?.slice(0,8) || '—';
                                         return (
-                                            <div key={item.id || ii} style={{ padding:'10px 14px', borderTop:'1px solid var(--card-border)' }}
+                                            <div key={parallelItems.map(i => i.id).join('-') || ii} style={{ padding:'10px 14px', borderTop:'1px solid var(--card-border)', background:isParallel ? 'var(--warning-soft)' : 'transparent' }}
                                                 onMouseEnter={e=>e.currentTarget.style.background='var(--input-bg)'}
                                                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                                                {isParallel && <div style={{ fontSize:'0.64rem', fontWeight:700, color:'var(--warning)', marginBottom:6 }}>Parallel darslar · {parallelItems.length} ta</div>}
                                                 <div style={{ display:'flex', gap:10 }}>
                                                     <div style={{ width:3, borderRadius:99, background:color, alignSelf:'stretch', flexShrink:0, marginTop:2 }}/>
                                                     <div style={{ flex:1, minWidth:0 }}>
@@ -301,6 +305,12 @@ export default function ScheduleTab({ user }) {
                                                             weekStart={weekStart}
                                                             onSaved={reloadTopics}
                                                         />
+                                                        {parallelItems.slice(1).map(other => (
+                                                            <div key={other.id} style={{ margin:'8px 0 0 13px', paddingTop:8, borderTop:'1px dashed var(--warning)', fontSize:'0.72rem', color:'var(--text-secondary)' }}>
+                                                                <strong>{other.subject?.name || other.subject_id?.slice(0,8) || '—'}</strong> · Guruh: {other.group?.name || '—'} · {fmtTime(other.start_time)}–{fmtTime(other.end_time)}
+                                                                {(topicMaps[other.id]?.topic || other.topic?.topic || other.topic) && <div style={{ marginTop:3, color:'var(--text-muted)', fontStyle:'italic' }}>Mavzu: {topicMaps[other.id]?.topic || other.topic?.topic || other.topic}</div>}
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             </div>

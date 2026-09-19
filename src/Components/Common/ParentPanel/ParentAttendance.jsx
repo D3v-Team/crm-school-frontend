@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLazyGetMyChildrenAttendanceQuery } from '../../../store/services/attedance.api';
 import { useLazyGetParentQuery } from '../../../store/services/statistic.api';
 import { useLazyGetStudentAttendanceAllQuery } from '../../../store/services/student-attendance.api';
+import { useGetSubjectsQuery } from '../../../store/services/subject.api';
 import {
     CalendarDays, Clock, Users, LogIn, LogOut, User,
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -68,7 +69,7 @@ function ChildTabBar({ children, active, onChange }) {
 }
 
 /* ── Yo'qlama (Attendance) tab content per child ── */
-function ChildAttendance({ studentData, dateFrom, setDateFrom, dateTo, setDateTo, onLoad }) {
+function ChildAttendance({ studentData, availableSubjects, dateFrom, setDateFrom, dateTo, setDateTo, onLoad }) {
     const [subjectFilter, setSubjectFilter] = useState('all');
     const dates = studentData?.dates || [];
 
@@ -88,7 +89,10 @@ function ChildAttendance({ studentData, dateFrom, setDateFrom, dateTo, setDateTo
         });
     });
     rows.sort((a, b) => b.date.localeCompare(a.date));
-    const subjects = [...new Set(rows.map(row => row.subject_name).filter(Boolean))].sort();
+    const subjects = [...new Set([
+        ...availableSubjects.map(subject => subject.name),
+        ...rows.map(row => row.subject_name),
+    ].filter(Boolean))].sort();
     const filteredRows = subjectFilter === 'all' ? rows : rows.filter(row => row.subject_name === subjectFilter);
 
     const counts = { present: 0, absent: 0, late: 0 };
@@ -326,12 +330,27 @@ export default function ParentAttendance() {
     const [dateTo,   setDateTo]   = useState(toISO(now));
 
     const [fetchAtt, { data: attData, isLoading: attLoading, error: attError }] = useLazyGetMyChildrenAttendanceQuery();
+    const [fetchParent, { data: parentData, isLoading: parentLoading }] = useLazyGetParentQuery();
+    const { data: subjectsData } = useGetSubjectsQuery({ limit: 200 });
 
     const load = () => fetchAtt({ date_from: dateFrom, date_to: dateTo });
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        load();
+        fetchParent({ year: now.getFullYear(), month: now.getMonth() + 1 });
+    }, []);
 
     /* children list: [{student_id, full_name, dates}] */
-    const children = attData?.data || [];
+    const responseData = attData?.data ?? attData;
+    const attendanceChildren = Array.isArray(responseData) ? responseData : responseData?.records || [];
+    const parentChildren = parentData?.data || [];
+    const children = attendanceChildren.length > 0 ? attendanceChildren : parentChildren.map(child => ({
+        student_id: child.student_id,
+        full_name: child.full_name,
+        dates: [],
+    }));
+    const availableSubjects = (subjectsData?.data?.records || subjectsData?.data || [])
+        .map(subject => ({ id: subject.id, name: subject.name }))
+        .filter(subject => subject.name);
     const [activeChild, setActiveChild] = useState(null);
 
     /* auto-select first child once data arrives */
@@ -341,7 +360,7 @@ export default function ParentAttendance() {
 
     const activeData = children.find(c => c.student_id === activeChild);
 
-    if (attLoading) return <Loading />;
+    if (attLoading || parentLoading) return <Loading />;
 
     if (children.length === 0) return (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
@@ -367,6 +386,7 @@ export default function ParentAttendance() {
             {section === 'attendance' && activeData && (
                 <ChildAttendance
                     studentData={activeData}
+                    availableSubjects={availableSubjects}
                     dateFrom={dateFrom}
                     setDateFrom={setDateFrom}
                     dateTo={dateTo}

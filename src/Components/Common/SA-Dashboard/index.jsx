@@ -246,12 +246,14 @@ export default function Dashboard() {
     const totalRequired = pay?.monthly?.total_required ?? 0;
     const totalDebt     = pay?.monthly?.total_debt     ?? 0;
 
-    // g.users ichida parent va boshqa xodim bo'lmagan rollarni chiqarib tashlash
-    const totalUsers = g?.users
-        ? Object.entries(g.users)
-            .filter(([role]) => !['parent', 'super_admin', 'dev'].includes(role))
-            .reduce((a, [, v]) => a + v, 0)
-        : 0;
+    const userCounts = g?.users || {};
+    const employeeRoles = [
+        { key:'teacher', label:"O'qituvchilar", color:'#3b82f6' },
+        { key:'admin', label:'Adminlar', color:'#10b981' },
+        { key:'hr', label:'HR', color:'#f59e0b' },
+        { key:'cashier', label:'Cashierlar', color:'#ec4899' },
+    ];
+    const totalUsers = employeeRoles.reduce((total, role) => total + (userCounts[role.key] || 0), 0);
 
     const yearOptions = [];
     for (let y = now.getFullYear() - 3; y <= now.getFullYear() + 1; y++) yearOptions.push(y);
@@ -314,8 +316,20 @@ export default function Dashboard() {
                     sub={g?.students ? `Faol: ${g.students.active ?? 0} · Nofaol: ${g.students.inactive ?? 0}` : undefined}
                 />
                 <KpiCard
-                    icon={Users} label="Xodimlar" color="#10b981"
-                    value={totalUsers}
+                    icon={Users}
+                    label={authRole === 'super_admin' ? 'Xodimlar' : "O'qituvchilar"}
+                    color="#10b981"
+                    value={authRole === 'super_admin' ? totalUsers : userCounts.teacher || 0}
+                    sub={authRole === 'super_admin' ? (
+                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px 12px' }}>
+                            {employeeRoles.map(role => (
+                                <div key={role.key} style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+                                    <span>{role.label}</span>
+                                    <strong style={{ color:role.color }}>{userCounts[role.key] || 0}</strong>
+                                </div>
+                            ))}
+                        </div>
+                    ) : undefined}
                 />
                 <KpiCard
                     icon={BookOpen} label="Guruhlar" color="#f59e0b"
@@ -331,6 +345,7 @@ export default function Dashboard() {
                     sub={g?.parents ? `Bot: ${g.parents.linked_to_bot ?? 0} · Ulanmagan: ${g.parents.not_linked ?? 0}` : undefined}
                 />
             </div>
+
 
             {/* ══ Payment section (only if is_payment) ════════ */}
             {is_payment && (

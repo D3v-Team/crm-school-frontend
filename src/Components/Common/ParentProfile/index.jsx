@@ -1,15 +1,18 @@
 import { useParams, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useGetUserByIdQuery } from '../../../store/services/user.api';
+import { useUnassignParentMutation } from '../../../store/services/student.api';
 import { useLazyGetParentQuery } from '../../../store/services/statistic.api';
 import { useLazyGetPaymentsQuery } from '../../../store/services/payment.api';
 import { useLazyGetAttendanceQuery } from '../../../store/services/attedance.api';
 import Loading from '../../Other/UI/Loadings/Loading';
+import Modal from '../../Other/UI/Modal/Modal';
+import { Alert } from '../../Other/UI/Alert/Alert';
 import {
     User, Phone, AtSign, Calendar, MessageCircle, MessageCircleOff,
     Users, CreditCard, ClipboardList, BarChart2, TrendingUp, TrendingDown,
     Wallet, CheckCircle2, XCircle, Timer, Award, RefreshCw,
-    Camera, CameraOff, ArrowLeft,
+    Camera, CameraOff, ArrowLeft, UserX, AlertTriangle,
 } from 'lucide-react';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
@@ -183,8 +186,46 @@ function StatsTab({ parentId }) {
     );
 }
 
+/* ── Unassign confirm modal ── */
+function UnassignChildModal({ student, onClose, onSuccess }) {
+    const [unassign, { isLoading }] = useUnassignParentMutation();
+
+    const handle = async () => {
+        try {
+            await unassign(student.id).unwrap();
+            Alert(`${student.full_name} ajratildi`, 'success');
+            onSuccess?.();
+            onClose();
+        } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
+    };
+
+    return (
+        <Modal open onClose={onClose} title="Farzandni ajratish" size="sm">
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0 8px' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <AlertTriangle size={18} style={{ color: 'var(--danger)' }}/>
+                </div>
+                <div>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                        <strong style={{ color: 'var(--danger)' }}>{student?.full_name}</strong> ni ota-onadan ajratmoqchisiz.
+                    </p>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Qayta biriktirish mumkin.</p>
+                </div>
+            </div>
+            <div className="modal-footer">
+                <button className="btn-cancel" onClick={onClose}>Bekor qilish</button>
+                <button className="btn-delete" onClick={handle} disabled={isLoading}>
+                    <UserX size={13}/>{isLoading ? 'Ajratilmoqda...' : 'Ajratish'}
+                </button>
+            </div>
+        </Modal>
+    );
+}
+
 /* ── Children Tab ── */
-function ChildrenTab({ students = [] }) {
+function ChildrenTab({ students = [], onUnassign }) {
+    const [toUnassign, setToUnassign] = useState(null);
+
     if (students.length === 0) return (
         <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
             <Users size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>
@@ -192,29 +233,30 @@ function ChildrenTab({ students = [] }) {
         </div>
     );
     return (
-        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {students.map(s => {
-                const cameraLinked = !!s.hikvision_code;
-                const initials = (s.full_name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-                return (
-                    <NavLink key={s.id} to={`/student/${s.id}`} style={{ textDecoration:'none' }}>
-                        <div style={{
+        <>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {students.map(s => {
+                    const cameraLinked = !!s.hikvision_code;
+                    const initials = (s.full_name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+                    return (
+                        <div key={s.id} style={{
                             background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:14,
                             padding:'16px 20px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap',
-                            transition:'border-color 0.15s, box-shadow 0.15s', cursor:'pointer',
-                        }}
-                            onMouseEnter={e=>{ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.boxShadow='0 0 0 3px var(--accent-glow)'; }}
-                            onMouseLeave={e=>{ e.currentTarget.style.borderColor='var(--card-border)'; e.currentTarget.style.boxShadow='none'; }}>
-
+                            transition:'border-color 0.15s',
+                        }}>
                             {/* Avatar */}
                             <div style={{ width:46, height:46, borderRadius:12, background:'var(--accent-soft)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:'1.1rem', flexShrink:0 }}>
                                 {initials}
                             </div>
 
                             {/* Name + status */}
-                            <div style={{ flex:1, minWidth:150 }}>
-                                <div style={{ fontWeight:700, color:'var(--text-primary)', fontSize:'0.95rem', marginBottom:4 }}>{s.full_name}</div>
-                                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                            <div style={{ flex:1, minWidth:140 }}>
+                                <NavLink to={`/student/${s.id}`} style={{ fontWeight:700, color:'var(--text-primary)', textDecoration:'none', fontSize:'0.95rem' }}
+                                    onMouseEnter={e=>e.target.style.color='var(--accent)'}
+                                    onMouseLeave={e=>e.target.style.color='var(--text-primary)'}>
+                                    {s.full_name}
+                                </NavLink>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
                                     <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background: s.is_active?'var(--success-soft)':'var(--danger-soft)', color: s.is_active?'var(--success)':'var(--danger)' }}>
                                         {s.is_active ? 'Faol' : 'Nofaol'}
                                     </span>
@@ -224,15 +266,12 @@ function ChildrenTab({ students = [] }) {
                                         </span>
                                     )}
                                     <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background: cameraLinked?'var(--success-soft)':'var(--input-bg)', color: cameraLinked?'var(--success)':'var(--text-muted)', display:'inline-flex', alignItems:'center', gap:4 }}>
-                                        {cameraLinked
-                                            ? <><Camera size={10}/> Kamera ulangan</>
-                                            : <><CameraOff size={10}/> Kamera yo'q</>
-                                        }
+                                        {cameraLinked ? <><Camera size={10}/> Kamera</> : <><CameraOff size={10}/> Kamera yo'q</>}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Meta info */}
+                            {/* Meta */}
                             <div style={{ display:'flex', flexWrap:'wrap', gap:14 }}>
                                 {s.phone && (
                                     <div>
@@ -243,25 +282,40 @@ function ChildrenTab({ students = [] }) {
                                 {s.price && (
                                     <div>
                                         <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>To'lov narxi</div>
-                                        <div style={{ fontSize:'0.82rem', fontWeight:500, color:'var(--text-primary)' }}>
-                                            {Number(s.price).toLocaleString('ru-RU')} so'm
-                                        </div>
-                                    </div>
-                                )}
-                                {s.createdAt && (
-                                    <div>
-                                        <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>Qo'shilgan</div>
-                                        <div style={{ fontSize:'0.82rem', fontWeight:500, color:'var(--text-primary)' }}>
-                                            {new Date(s.createdAt).toLocaleDateString('uz-UZ')}
-                                        </div>
+                                        <div style={{ fontSize:'0.82rem', fontWeight:500, color:'var(--text-primary)' }}>{Number(s.price).toLocaleString('ru-RU')} so'm</div>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Ajratish tugmasi */}
+                            <button
+                                onClick={() => setToUnassign(s)}
+                                title="Ota-onadan ajratish"
+                                style={{
+                                    display:'flex', alignItems:'center', gap:5,
+                                    padding:'6px 12px', borderRadius:8, cursor:'pointer',
+                                    border:'1.5px solid var(--danger)', background:'var(--danger-soft)',
+                                    color:'var(--danger)', fontSize:'0.75rem', fontWeight:600,
+                                    transition:'all 0.15s', flexShrink:0,
+                                }}
+                                onMouseEnter={e=>{ e.currentTarget.style.background='var(--danger)'; e.currentTarget.style.color='#fff'; }}
+                                onMouseLeave={e=>{ e.currentTarget.style.background='var(--danger-soft)'; e.currentTarget.style.color='var(--danger)'; }}
+                            >
+                                <UserX size={13}/> Ajratish
+                            </button>
                         </div>
-                    </NavLink>
-                );
-            })}
-        </div>
+                    );
+                })}
+            </div>
+
+            {toUnassign && (
+                <UnassignChildModal
+                    student={toUnassign}
+                    onClose={() => setToUnassign(null)}
+                    onSuccess={() => { setToUnassign(null); onUnassign?.(); }}
+                />
+            )}
+        </>
     );
 }
 
@@ -269,7 +323,7 @@ function ChildrenTab({ students = [] }) {
 export default function ParentProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { data: userData, isLoading, error } = useGetUserByIdQuery(id, { skip: !id });
+    const { data: userData, isLoading, error, refetch } = useGetUserByIdQuery(id, { skip: !id });
 
     const user     = userData?.data || userData;
     const students = user?.students || [];
@@ -347,7 +401,7 @@ export default function ParentProfile() {
                 <div style={{ fontSize:'0.875rem', fontWeight:700, color:'var(--text-primary)', marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
                     <Users size={16} style={{ color:'var(--accent)' }}/> Farzandlar
                 </div>
-                <ChildrenTab students={students}/>
+                <ChildrenTab students={students} onUnassign={refetch}/>
             </div>
         </div>
     );
