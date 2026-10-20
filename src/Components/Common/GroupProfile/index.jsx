@@ -8,7 +8,7 @@ import { useLazyGetStudentsQuery } from '../../../store/services/student.api';
 import { useLazyGetGroupScheduleByGroupIdQuery } from '../../../store/services/group-schedule.api';
 import {
     Users, User, Calendar, BookOpen, Layers,
-    ClipboardList, ArrowLeft, SplitSquareHorizontal, Columns2,
+    ClipboardList, ArrowLeft, SplitSquareHorizontal, Columns2, DoorOpen,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 import StudentsTab   from './__components/StudentsTab';
@@ -16,6 +16,7 @@ import ScheduleTab   from './__components/ScheduleTab';
 import AttendanceTab from './__components/AttendanceTab';
 import GradesTab     from './__components/GradesTab';
 import TeachersTab   from './__components/TeachersTab';
+import EntryExitTab  from './__components/EntryExitTab';
 
 /* ── Admin tabs ── */
 const ADMIN_TABS = [
@@ -24,6 +25,7 @@ const ADMIN_TABS = [
     { key:'schedule',   label:'Jadvallar',      icon: Calendar     },
     { key:'attendance', label:'Davomat',        icon: ClipboardList },
     { key:'grades',     label:'Baholar',        icon: BookOpen     },
+    { key:'entryexit',  label:'Kirdi-chiqdi',   icon: DoorOpen     },
 ];
 
 const TEACHER_TABS = [
@@ -284,6 +286,7 @@ export default function GroupProfile() {
                 {tab === 'attendance' && !merged  && <AttendanceTab groupId={id} students={students} merged={false} groupSubjects={groupSubjects} teacherSubjectId={teacherSubjectId} scheduleRecords={Array.isArray(scheduleRecords) ? scheduleRecords : []} />}
                 {tab === 'grades'     && !merged  && <GradesTab students={students} groupSubjects={groupSubjects} teacherSubjectId={teacherSubjectId} scheduleRecords={Array.isArray(scheduleRecords) ? scheduleRecords : []} />}
                 {(tab === 'merged' || merged)     && <AttendanceTab groupId={id} students={students} merged={true} groupSubjects={groupSubjects} teacherSubjectId={teacherSubjectId} scheduleRecords={Array.isArray(scheduleRecords) ? scheduleRecords : []} />}
+                {tab === 'entryexit'              && <EntryExitTab groupId={id} />}
             </div>
         </div>
     );

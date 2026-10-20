@@ -39,6 +39,17 @@ export const studentAttendanceApi = createApi({
             }),
             providesTags: () => [{ type: 'StudentAttendance', id: 'EXCEL' }],
         }),
+        // GET /api/student-attendance/group/{group_id}?startDate=&endDate=
+        getGroupEntryExit: builder.query({
+            query: ({ group_id, ...params }) => ({
+                url: `/student-attendance/group/${group_id}`,
+                method: 'GET',
+                params, // startDate, endDate
+            }),
+            providesTags: (result, error, { group_id }) => [
+                { type: 'StudentAttendance', id: `entry-exit-${group_id}` },
+            ],
+        }),
     }),
 });
 
@@ -49,4 +60,6 @@ export const {
     useLazyGetStudentAttendancePageQuery,
     useGetStudentAttendanceExcelQuery,
     useLazyGetStudentAttendanceExcelQuery,
+    useGetGroupEntryExitQuery,
+    useLazyGetGroupEntryExitQuery,
 } = studentAttendanceApi;
