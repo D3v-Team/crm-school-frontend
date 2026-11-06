@@ -7,6 +7,7 @@ import RoleGuard from './RoleGuard';
 import { ROUTES } from './routes.config';
 import Loading from '../../Components/Other/UI/Loadings/Loading';
 import Login from '../../Components/Common/Login';
+import StudentTest from '../../Components/Common/Tests/StudentTest';
 
 export default function AppRouter() {
     return (
@@ -15,6 +16,8 @@ export default function AppRouter() {
                 {/* Default root → redirect to login */}
                 <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/tests-students" element={<StudentTest />} />
+                <Route path="/tests-students/:code" element={<StudentTest />} />
 
                 <Route element={<MainLayout />}>
                     {ROUTES.map(r => (

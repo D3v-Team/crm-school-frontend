@@ -95,6 +95,11 @@ export const ROUTES = [
         component: lazy(() => import('../../Components/Common/TeacherPanel/TeacherSubjectsPage')),
         roles: [TEACHER],
     },
+    {
+        path: '/tests',
+        component: lazy(() => import('../../Components/Common/Tests/TestManager')),
+        roles: [SUPER_ADMIN, ADMIN, TEACHER],
+    },
 
     // ── Parent Panel ─────────────────────────────────────
     {

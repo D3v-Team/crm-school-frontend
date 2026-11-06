@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LogOut, User, ChevronDown, Moon, Sun, PanelLeftOpen, PanelLeftClose, Menu, Camera, CameraOff, RefreshCw } from "lucide-react";
+import { LogOut, User, ChevronDown, Moon, Sun, PanelLeftOpen, PanelLeftClose, Menu, Camera, CameraOff, RefreshCw, ClipboardCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { useAppSelector } from "../../../store/hooks";
@@ -167,6 +167,21 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile =
                             }} />
                         </button>
                     </div>
+                )}
+                {role === 'teacher' && (
+                    <button
+                        onClick={() => navigate('/tests')}
+                        style={{
+                            width: 36, height: 36,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: 10, border: 'none', cursor: 'pointer',
+                            background: 'var(--accent-soft)', color: 'var(--accent)',
+                        }}
+                        title="O‘quvchilarga test o‘tkazish"
+                        aria-label="O‘quvchilarga test o‘tkazish"
+                    >
+                        <ClipboardCheck style={{ width: 16, height: 16 }} />
+                    </button>
                 )}
                 {/* Dark mode toggle */}
                 <button

@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useAppDispatch } from "../../../store/hooks";
 import { setAuth } from "../../../store/slices/auth.slice";
 import { useLoginMutation } from "../../../store/services/auth.api";
-import { User, Lock, GraduationCap, Moon, Sun, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { User, UserRound, Lock, GraduationCap, Moon, Sun, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Alert } from "../../Other/UI/Alert/Alert";
+import { Link } from "react-router-dom";
 
 export default function Login() {
   const [loginField, setLoginField] = useState("");
@@ -98,7 +99,7 @@ export default function Login() {
               CRM School
             </h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-              Tizimga kirish uchun ma'lumotlarni kiriting
+              Tizimga kirish uchun ma&apos;lumotlarni kiriting
             </p>
           </div>
 
@@ -197,6 +198,10 @@ export default function Login() {
                 </>
               )}
             </button>
+            <Link to="/tests-students" className="login-student-test-link">
+              <UserRound className="w-4 h-4" />
+              O‘quvchilar uchun test
+            </Link>
           </form>
 
           <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>

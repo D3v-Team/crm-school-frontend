@@ -2,7 +2,7 @@ import { ROLES } from '../permissions/roles';
 import {
     Users, LayoutDashboard, Book, Layers,
     CreditCard, UserCheck, MessageSquare, CalendarDays,
-    BookOpen, Building2, TrendingDown,
+    BookOpen, Building2, TrendingDown, ClipboardCheck,
 } from 'lucide-react';
 
 const { DEV, SUPER_ADMIN, ADMIN, TEACHER, HR, CASHIER } = ROLES;
@@ -66,6 +66,12 @@ export const SIDEBAR_CONFIG = [
         icon: Layers,
         roles: [ADMIN],
         childPaths: ['/group/'],
+    },
+    {
+        label: 'Testlar',
+        path: '/tests',
+        icon: ClipboardCheck,
+        roles: [ADMIN, SUPER_ADMIN],
     },
     {
         label: "To'lovlar tarixi",
@@ -145,6 +151,12 @@ export const SIDEBAR_CONFIG = [
         label: 'Fanlar',
         path: '/teacher/subjects',
         icon: Book,
+        roles: [TEACHER],
+    },
+    {
+        label: 'Testlar',
+        path: '/tests',
+        icon: ClipboardCheck,
         roles: [TEACHER],
     },
 
