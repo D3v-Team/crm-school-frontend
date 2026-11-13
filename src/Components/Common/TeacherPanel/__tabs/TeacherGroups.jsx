@@ -1,17 +1,17 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { useLazyGetTeacherGroupsByTeacherIdQuery } from '../../../../store/services/theacher-group.api';
-import { Layers, Users, Eye, Book, User } from 'lucide-react';
+import { useLazyGetGroupsQuery } from '../../../../store/services/group.api';
+import { Layers, Users, Eye, Book } from 'lucide-react';
 import Loading from '../../../Other/UI/Loadings/Loading';
 
 export default function TeacherGroups({ teacherId }) {
-    const [fetchGroups, { data, isLoading, error }] = useLazyGetTeacherGroupsByTeacherIdQuery();
+    const [fetchGroups, { data, isLoading, error }] = useLazyGetGroupsQuery();
 
     useEffect(() => {
-        if (teacherId) fetchGroups(teacherId);
-    }, [teacherId]);
+        if (teacherId) fetchGroups({ teacher_id: teacherId, page: 1, limit: 200 });
+    }, [teacherId, fetchGroups]);
 
-    const groups = data?.data?.records || data?.data || [];
+    const groups = data?.data?.records || [];
 
     if (isLoading) return <Loading />;
     if (error) return (
@@ -33,12 +33,11 @@ export default function TeacherGroups({ teacherId }) {
                 Jami <strong style={{ color: 'var(--text-primary)' }}>{groups.length}</strong> ta guruh
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
-                {groups.map(item => {
-                    const group = item.group || item;
-                    const subjectName = item.subject?.name || group.subject?.name;
+                {groups.map(group => {
+                    const subjectName = group.subject?.name;
                     const initials = (group?.name || '?').slice(0, 2).toUpperCase();
                     return (
-                        <div key={item.id} style={{
+                        <div key={group.id} style={{
                             background: 'var(--card-bg)', border: '1px solid var(--card-border)',
                             borderRadius: 12, padding: '13px 14px',
                             display: 'flex', flexDirection: 'column', gap: 10,
@@ -85,31 +84,17 @@ export default function TeacherGroups({ teacherId }) {
                                         {new Date(group.start_date).toLocaleDateString('uz-UZ')}
                                     </span>
                                 )}
-                                {group?.students?.length != null && (
+                                {(group?.students_count != null || group?.students?.length != null) && (
                                     <span style={{
                                         fontSize: '0.66rem', padding: '2px 7px', borderRadius: 6,
                                         background: 'var(--accent-soft)', color: 'var(--accent)',
                                         border: '1px solid var(--card-border)',
                                         display: 'flex', alignItems: 'center', gap: 4,
                                     }}>
-                                        <Users size={10} /> {group.students.length} ta
+                                        <Users size={10} /> {group.students_count ?? group.students?.length ?? 0} ta
                                     </span>
                                 )}
                             </div>
-
-                            {group?.homeroom_teacher && String(group.homeroom_teacher.id) !== String(teacherId) && (() => {
-                                const classTeacher = group.homeroom_teacher;
-                                return (
-                                    <div style={{ padding: '7px 9px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--card-border)', display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
-                                        <User size={12} style={{ color:'var(--accent)', flexShrink:0 }} />
-                                        <div style={{ minWidth:0 }}>
-                                            <div style={{ fontSize: '0.61rem', color: 'var(--text-muted)', lineHeight:1.1 }}>Sinf rahbari</div>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{classTeacher.full_name || classTeacher.name || '—'}</div>
-                                        </div>
-                                        {classTeacher.phone && <span style={{ marginLeft:'auto', fontSize: '0.64rem', color: 'var(--text-secondary)', whiteSpace:'nowrap' }}>{classTeacher.phone}</span>}
-                                    </div>
-                                );
-                            })()}
 
                             <NavLink to={`/group/${group?.id}`} style={{ textDecoration: 'none' }}>
                                 <button style={{

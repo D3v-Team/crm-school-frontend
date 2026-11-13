@@ -1,4 +1,3 @@
-// store/services/group.api.js
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from '../baseQuary/axiosBaseQuery';
 
@@ -7,7 +6,6 @@ export const groupApi = createApi({
     baseQuery: axiosBaseQuery(),
     tagTypes: ['Group'],
     endpoints: (builder) => ({
-        // POST /api/group
         createGroup: builder.mutation({
             query: (data) => ({
                 url: '/group',
@@ -16,7 +14,6 @@ export const groupApi = createApi({
             }),
             invalidatesTags: [{ type: 'Group', id: 'LIST' }],
         }),
-        // GET /api/group
         getGroups: builder.query({
             query: (params) => ({
                 url: '/group',
@@ -24,14 +21,13 @@ export const groupApi = createApi({
                 params,
             }),
             providesTags: (result) => {
-                if (!result) return [{ type: 'Group', id: 'LIST' }];
                 const records = result?.data?.records || [];
-                if (records.length === 0) return [{ type: 'Group', id: 'LIST' }];
-                const groupTags = records.map((group) => ({ type: 'Group', id: group.id }));
-                return [...groupTags, { type: 'Group', id: 'LIST' }];
+                return [
+                    ...records.map((group) => ({ type: 'Group', id: group.id })),
+                    { type: 'Group', id: 'LIST' },
+                ];
             },
         }),
-        // GET /api/group/{id}
         getGroupById: builder.query({
             query: (id) => ({
                 url: `/group/${id}`,
@@ -39,33 +35,68 @@ export const groupApi = createApi({
             }),
             providesTags: (result, error, id) => [{ type: 'Group', id }],
         }),
-        // PUT /api/group/{id}
+        getGroupStudents: builder.query({
+            query: (id) => ({
+                url: `/group/${id}/students`,
+                method: 'GET',
+            }),
+            providesTags: (result, error, id) => [{ type: 'Group', id }],
+        }),
+        addStudentToGroup: builder.mutation({
+            query: ({ groupId, student_id }) => ({
+                url: `/group/${groupId}/students`,
+                method: 'POST',
+                data: { student_id },
+            }),
+            invalidatesTags: (result, error, { groupId }) => [
+                { type: 'Group', id: groupId },
+                { type: 'Group', id: 'LIST' },
+            ],
+        }),
+        removeStudentFromGroup: builder.mutation({
+            query: ({ groupId, studentId }) => ({
+                url: `/group/${groupId}/students/${studentId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: (result, error, { groupId }) => [
+                { type: 'Group', id: groupId },
+                { type: 'Group', id: 'LIST' },
+            ],
+        }),
         updateGroup: builder.mutation({
             query: ({ id, data }) => ({
                 url: `/group/${id}`,
                 method: 'PUT',
                 data,
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'Group', id }],
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Group', id },
+                { type: 'Group', id: 'LIST' },
+            ],
         }),
-        // DELETE /api/group/{id}
         deleteGroup: builder.mutation({
             query: (id) => ({
                 url: `/group/${id}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: (result, error, id) => [{ type: 'Group', id }],
+            invalidatesTags: (result, error, id) => [
+                { type: 'Group', id },
+                { type: 'Group', id: 'LIST' },
+            ],
         }),
     }),
 });
 
-// Экспорт хуков
 export const {
     useCreateGroupMutation,
     useGetGroupsQuery,
     useLazyGetGroupsQuery,
     useGetGroupByIdQuery,
     useLazyGetGroupByIdQuery,
+    useGetGroupStudentsQuery,
+    useLazyGetGroupStudentsQuery,
+    useAddStudentToGroupMutation,
+    useRemoveStudentFromGroupMutation,
     useUpdateGroupMutation,
     useDeleteGroupMutation,
 } = groupApi;

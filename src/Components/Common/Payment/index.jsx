@@ -201,7 +201,7 @@ export default function Payment() {
                                         <tr key={p.id}>
                                             <td style={{ color:"var(--text-muted)", fontSize:"0.78rem", fontFamily:"monospace" }}>{(currentPage-1)*10+i+1}</td>
                                             <td style={{ fontWeight:600 }}>{p.student?.full_name||"—"}</td>
-                                            <td style={{ color:"var(--text-secondary)" }}>{p.student?.group?.name||"—"}</td>
+                                            <td style={{ color:"var(--text-secondary)" }}>{(p.student?.groups || []).map((group) => group.name).filter(Boolean).join(", ") || "—"}</td>
                                             <td style={{ color:"var(--text-secondary)", whiteSpace:"nowrap" }}>{p.year}/{String(p.month).padStart(2,"0")}</td>
                                             <td style={{ color:"var(--success)", fontWeight:600 }}>{fmt(p.paid_amount)}</td>
                                             <td style={{ color:"var(--text-secondary)" }}>{fmt(p.required_amount)}</td>

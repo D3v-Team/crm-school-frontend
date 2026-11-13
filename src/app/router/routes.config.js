@@ -41,7 +41,7 @@ export const ROUTES = [
     {
         path: '/ad/student',
         component: lazy(() => import('../../Components/Common/Student')),
-        roles: [ADMIN],
+        roles: [ADMIN, SUPER_ADMIN],
     },
     {
         path: '/ad/subjects',
@@ -51,7 +51,7 @@ export const ROUTES = [
     {
         path: '/ad/groups',
         component: lazy(() => import('../../Components/Common/Groups')),
-        roles: [ADMIN],
+        roles: [ADMIN, SUPER_ADMIN],
     },
     {
         path: '/parents',
@@ -156,12 +156,12 @@ export const ROUTES = [
     {
         path: '/group/:id',
         component: lazy(() => import('../../Components/Common/GroupProfile')),
-        roles: [ADMIN, TEACHER, CASHIER],
+        roles: [ADMIN, SUPER_ADMIN, TEACHER, CASHIER],
     },
     {
         path: '/student/:id',
         component: lazy(() => import('../../Components/Common/StudentProfile')),
-        roles: [ADMIN, TEACHER, CASHIER],
+        roles: [ADMIN, SUPER_ADMIN, TEACHER, CASHIER],
     },
     {
         path: '/parent/:id',

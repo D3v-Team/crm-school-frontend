@@ -1,27 +1,23 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useGetGroupByIdQuery } from '../../../store/services/group.api';
-import { useLazyGetTeacherGroupsByGroupIdQuery } from '../../../store/services/theacher-group.api';
-import { useLazyGetTeacherSubjectsByTeacherIdQuery } from '../../../store/services/teacher-subject.api';
-import { useLazyGetStudentsQuery } from '../../../store/services/student.api';
 import { useLazyGetGroupScheduleByGroupIdQuery } from '../../../store/services/group-schedule.api';
 import {
     Users, User, Calendar, BookOpen, Layers,
     ClipboardList, ArrowLeft, SplitSquareHorizontal, Columns2, DoorOpen,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
-import StudentsTab   from './__components/StudentsTab';
+import GroupStudentsTab from './__components/GroupStudentsTab';
+import GroupDebtorsTab from './__components/StudentsTab';
 import ScheduleTab   from './__components/ScheduleTab';
 import AttendanceTab from './__components/AttendanceTab';
 import GradesTab     from './__components/GradesTab';
-import TeachersTab   from './__components/TeachersTab';
 import EntryExitTab  from './__components/EntryExitTab';
 
 /* ── Admin tabs ── */
 const ADMIN_TABS = [
     { key:'students',   label:"O'quvchilar",   icon: Users        },
-    { key:'teachers',   label:"O'qituvchilar", icon: Users        },
     { key:'schedule',   label:'Jadvallar',      icon: Calendar     },
     { key:'attendance', label:'Davomat',        icon: ClipboardList },
     { key:'grades',     label:'Baholar',        icon: BookOpen     },
@@ -29,6 +25,7 @@ const ADMIN_TABS = [
 ];
 
 const TEACHER_TABS = [
+    { key:'students',   label:"O'quvchilar", icon: Users },
     { key:'schedule',   label:'Jadvallar', icon: Calendar     },
     { key:'attendance', label:'Davomat',   icon: ClipboardList },
     { key:'grades',     label:'Baholar',   icon: BookOpen     },
@@ -96,25 +93,10 @@ function Tabs({ tabs, active, onChange, merged, onMergeToggle, isTeacher }) {
     );
 }
 
-function TeacherSubjectsInline({ teacherId }) {
-    const [fetch, { data, isLoading }] = useLazyGetTeacherSubjectsByTeacherIdQuery();
-    useEffect(() => { if (teacherId) fetch(teacherId); }, [teacherId]);
-    const subjects = data?.data || [];
-    if (isLoading || !subjects.length) return null;
-    const names = subjects.map(i => i.subject?.name).filter(Boolean).join(', ');
-    if (!names) return null;
-    return (
-        <div style={{ fontSize:'0.68rem', color:'var(--accent)', fontWeight:600, marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {names}
-        </div>
-    );
-}
-
 export default function GroupProfile() {
     const { id } = useParams();
     const navigate  = useNavigate();
     const role      = useSelector(s => s.auth.role);
-    const userId    = useSelector(s => s.auth.userId);
     const isTeacher = role === 'teacher';
 
     const tabs = isTeacher ? TEACHER_TABS : ADMIN_TABS.filter(t =>
@@ -142,11 +124,6 @@ export default function GroupProfile() {
     };
 
     const { data: groupData, isLoading: groupLoading, error: groupError } = useGetGroupByIdQuery(id, { skip: !id });
-    const [fetchTeachers, { data: teachersData }] = useLazyGetTeacherGroupsByGroupIdQuery();
-
-    /* Teacher uchun o'z subject_id larini olish */
-    const [fetchMySubjects, { data: mySubjectsData }] = useLazyGetTeacherSubjectsByTeacherIdQuery();
-
     /* Guruh jadvalidan unique fanlar (admin uchun) */
     const [fetchSchedule, { data: scheduleData }] = useLazyGetGroupScheduleByGroupIdQuery();
 
@@ -160,22 +137,14 @@ export default function GroupProfile() {
     }, [groupLoading]);
 
     useEffect(() => {
-        if (id) {
-            fetchTeachers(id);
-            fetchSchedule(id);
-            if (isTeacher && userId) fetchMySubjects(userId);
-        }
-    }, [id]);
+        if (id) fetchSchedule(id);
+    }, [id, fetchSchedule]);
 
     const group    = groupData?.data || groupData;
     // Faqat guruhga tegishli studentlar — group.students to'g'ri ma'lumot
     const students = group?.students || [];
 
-    /* Teacher uchun — o'zining birinchi subject_id si */
-    const mySubjects = mySubjectsData?.data?.records || mySubjectsData?.data || [];
-    const teacherSubjectId = mySubjects.length > 0
-        ? (mySubjects[0]?.subject?.id || mySubjects[0]?.subject_id)
-        : null;
+    const teacherSubjectId = group?.subject_id || group?.subject?.id || null;
 
     /* Admin uchun — guruh jadvalidan unique fanlar */
     const scheduleRecords = useMemo(() => {
@@ -197,13 +166,15 @@ export default function GroupProfile() {
         return [];
     }, [scheduleData]);
     const groupSubjects = useMemo(() => {
+        const groupSubject = group?.subject || (group?.subject_id ? { id: group.subject_id, name: group.subject_name } : null);
+        if (groupSubject?.id) return [{ id: groupSubject.id, name: groupSubject.name || "Fan" }];
         if (!Array.isArray(scheduleRecords) || !scheduleRecords.length) return [];
         const seen = new Set();
         return scheduleRecords
             .filter(s => s.subject_id && (s.subject?.name || s.subject_name))
             .filter(s => { if (seen.has(s.subject_id)) return false; seen.add(s.subject_id); return true; })
             .map(s => ({ id: s.subject_id, name: s.subject?.name || s.subject_name || s.subject_id }));
-    }, [scheduleRecords]);
+    }, [group, scheduleRecords]);
 
     if (groupLoading || showInitialLoading) return <Loading/>;
     if (groupError) return (
@@ -235,11 +206,12 @@ export default function GroupProfile() {
                         </div>
                         <div>
                             <h2 style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)', margin:'0 0 4px' }}>{group?.name}</h2>
-                            {group?.homeroom_teacher && (
-                                <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', maxWidth:'100%' }}>
-                                    <User size={13}/> Sinf rahbari: <strong style={{ color:'var(--text-primary)' }}>{group.homeroom_teacher.full_name}</strong>
+                            <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', maxWidth:'100%' }}>
+                                    <User size={13}/> O'qituvchi: <strong style={{ color:'var(--text-primary)' }}>{group?.teacher?.full_name || "Belgilanmagan"}</strong>
+                            </div>
+                            <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', maxWidth:'100%', marginTop:4 }}>
+                                    <BookOpen size={13}/> Fan: <strong style={{ color:'var(--text-primary)' }}>{group?.subject?.name || "Fan belgilanmagan"}</strong>
                                 </div>
-                            )}
                         </div>
                     </div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:14 }}>
@@ -280,8 +252,7 @@ export default function GroupProfile() {
                     isTeacher={isTeacher}
                 />
 
-                {tab === 'students'              && <StudentsTab students={students} />}
-                {tab === 'teachers'              && <TeachersTab />}
+                {tab === 'students'              && <><GroupStudentsTab groupId={id} />{!isTeacher && <div style={{ marginTop: 24 }}><GroupDebtorsTab /></div>}</>}
                 {tab === 'schedule'              && <ScheduleTab groupId={id} />}
                 {tab === 'attendance' && !merged  && <AttendanceTab groupId={id} students={students} merged={false} groupSubjects={groupSubjects} teacherSubjectId={teacherSubjectId} scheduleRecords={Array.isArray(scheduleRecords) ? scheduleRecords : []} />}
                 {tab === 'grades'     && !merged  && <GradesTab students={students} groupSubjects={groupSubjects} teacherSubjectId={teacherSubjectId} scheduleRecords={Array.isArray(scheduleRecords) ? scheduleRecords : []} />}

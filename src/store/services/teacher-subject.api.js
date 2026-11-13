@@ -74,7 +74,7 @@ export const teacherSubjectApi = createApi({
                     : [{ type: 'TeacherSubject', id: `by-teacher-${teacherId}` }];
             },
         }),
-        // GET /api/teacher-subject/available-teachers?subject_id=&group_id=
+        // GET /api/teacher-subject/available-teachers?subject_id=
         getAvailableTeachers: builder.query({
             query: (params) => ({
                 url: '/teacher-subject/available-teachers',
@@ -82,7 +82,7 @@ export const teacherSubjectApi = createApi({
                 params,
             }),
             providesTags: (result, error, params) => [
-                { type: 'TeacherSubject', id: `available-${params?.subject_id}-${params?.group_id}` },
+                { type: 'TeacherSubject', id: `available-${params?.subject_id}` },
             ],
         }),
     }),

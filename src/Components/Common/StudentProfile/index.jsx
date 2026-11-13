@@ -15,12 +15,14 @@ import EditPayment from "./EditPayment";
 import DeletePayment from "./DeletePayment";
 import FaceActions from "./FaceActions";
 import UnassignParent from "./UnassignParent";
+import GroupsSection from "./GroupsSection";
+import StudentScheduleTab from "./StudentScheduleTab";
 import {
     User, Phone, Users, DollarSign, Calendar,
     CheckCircle, XCircle, CreditCard,
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
     RefreshCw, ClipboardList, ExternalLink, MessageCircle, MessageCircleOff,
-    ArrowLeft, Camera as CameraIcon, Download,
+    ArrowLeft, Camera as CameraIcon, Download, CalendarDays,
 } from "lucide-react";
 
 /* ── constants ── */
@@ -650,6 +652,7 @@ export default function StudentProfile() {
     // Barcha rollar uchun bir xil tablar
     const tabDefs = [
         { key:'payments',   label:"To'lovlar",         icon: CreditCard   },
+        ...(authRole !== 'cashier' ? [{ key:'schedule', label:'Haftalik jadval', icon: CalendarDays }] : []),
         ...(authRole !== 'cashier' ? [{ key:'attendance', label:"Davomat va baholar", icon: ClipboardList }] : []),
         { key:'parent',     label:"Ota-ona",            icon: Users        },
         ...(authRole !== 'cashier' ? [{ key:'entryexit',  label:"Kirdi-Chiqdi",       icon: CameraIcon   }] : []),
@@ -714,7 +717,6 @@ export default function StudentProfile() {
                     {[
                         { icon:Phone,      label:'Telefon',    value:student.phone },
                         { icon:DollarSign, label:"To'lov",     value: student.price ? fmt(student.price) : null },
-                        { icon:Users,      label:'Guruh',      value:student.group?.name || student.group_name },
                         { icon:User,       label:'Ota-ona',    value:student.parent?.full_name },
                         { icon:Calendar,   label:"Qo'shilgan", value:fmtDate(student.createdAt) },
                     ].filter(m => m.value).map(({ icon:Icon, label, value }) => (
@@ -726,6 +728,7 @@ export default function StudentProfile() {
                                 <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>{label}</div>
                                 <div style={{ fontSize:'0.82rem', fontWeight:500, color:'var(--text-primary)' }}>{value}</div>
                             </div>
+                            <GroupsSection student={student} onRefresh={refetch} />
                         </div>
                     ))}
                 </div>
@@ -735,6 +738,7 @@ export default function StudentProfile() {
             <div style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:'20px 24px' }}>
                 <Tabs tabs={tabDefs} active={tab} onChange={setTab} />
                 {tab === 'payments'   && <PaymentsTab studentId={id} requiredAmount={student.price} showAddButton={is_payment} />}
+                {tab === 'schedule'   && <StudentScheduleTab studentId={id} />}
                 {tab === 'attendance' && <AttendanceTab studentId={id} />}
                 {tab === 'parent'     && <ParentInfo student={student} onRefetch={refetch} />}
                 {tab === 'entryexit'  && <EntryExitTab studentId={id} />}

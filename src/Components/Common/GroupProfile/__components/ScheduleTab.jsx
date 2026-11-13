@@ -5,10 +5,10 @@ import {
     useLazyGetGroupScheduleByGroupIdQuery,
     useDeleteGroupScheduleMutation,
     useCreateGroupScheduleMutation,
+    useUpdateGroupScheduleMutation,
 } from '../../../../store/services/group-schedule.api';
 import { useGetSubjectsQuery } from '../../../../store/services/subject.api';
-import { useLazyGetUsersQuery } from '../../../../store/services/user.api';
-import { useLazyGetAvailableTeachersQuery } from '../../../../store/services/teacher-subject.api';
+import { useGetGroupByIdQuery } from '../../../../store/services/group.api';
 import {
     useLazyGetGroupWeekTopicsQuery,
     useCreateWeeklyTopicMutation,
@@ -55,71 +55,10 @@ const getMondayOf = (date) => {
     return `${y}-${m}-${dd}`;
 };
 
-const EMPTY = { subject_id:'', teacher_id:'', day_of_week:'monday', start_time:'', end_time:'' };
-
-/* ── Fan tanlanganda available teacherlarni ko'rsatadi ── */
-function AvailableTeacherSelect({ subjectId, groupId, value, onChange, error }) {
-    const [fetch, { data, isLoading }] = useLazyGetAvailableTeachersQuery();
-
-    useEffect(() => {
-        if (subjectId && groupId) fetch({ subject_id: subjectId, group_id: groupId });
-    }, [subjectId, groupId]);
-
-    const teachers = data?.data || data?.teachers || data || [];
-    const arr = Array.isArray(teachers) ? teachers : [];
-
-    /* Auto-select if only 1 teacher available */
-    useEffect(() => {
-        if (!isLoading && arr.length === 1) {
-            const id = arr[0].id || arr[0].teacher_id || arr[0].user?.id;
-            if (id && value !== id) onChange(id);
-        }
-    }, [arr, isLoading]);
-
-    /* If only 1 teacher, show as read-only label */
-    if (!isLoading && subjectId && arr.length === 1) {
-        const t = arr[0];
-        const name = t.full_name || t.teacher?.full_name || t.user?.full_name || '—';
-        return (
-            <div>
-                <div style={{
-                    width: '100%', padding: '10px 14px', borderRadius: 10,
-                    border: `1.5px solid ${error ? 'var(--danger)' : 'var(--success)'}`,
-                    background: 'var(--input-bg)', color: 'var(--input-text)',
-                    fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 8,
-                    boxSizing: 'border-box',
-                }}>
-                    <User size={14} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                    <span style={{ fontWeight: 600 }}>{name}</span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--success)', marginLeft: 'auto' }}>avtomatik tanlandi</span>
-                </div>
-                {error && <span style={{ fontSize: '0.72rem', color: 'var(--danger)' }}>{error}</span>}
-            </div>
-        );
-    }
-
-    return (
-        <div>
-            <select
-                className={`field-select no-icon${error ? ' error' : ''}`}
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                disabled={isLoading || !subjectId}
-            >
-                <option value="">{!subjectId ? 'Avval fan tanlang' : isLoading ? 'Yuklanmoqda...' : arr.length === 0 ? "O'qituvchi topilmadi" : "O'qituvchi tanlang"}</option>
-                {arr.map(t => {
-                    const id   = t.id || t.teacher_id || t.user?.id;
-                    const name = t.full_name || t.teacher?.full_name || t.user?.full_name || '—';
-                    return <option key={id} value={id}>{name}</option>;
-                })}
-            </select>
-            {error && <span style={{ fontSize:'0.72rem', color:'var(--danger)' }}>{error}</span>}
-        </div>
-    );
-}
+const EMPTY = { day_of_week:'monday', start_time:'', end_time:'' };
 
 /* ── Inline topic editor ── */
-function TopicCell({ item, topicData, canEdit, groupId, weekStart, onSaved }) {
+function TopicCell({ item, topicData, canEdit, weekStart, onSaved }) {
     const [editing, setEditing] = useState(false);
     const [text, setText]       = useState('');
     const [saving, setSaving]   = useState(false);
@@ -237,20 +176,22 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
     const [trigger, { isLoading, isFetching, error }] = useLazyGetGroupScheduleByGroupIdQuery();
     const [deleteSchedule, { isLoading: isDeleting }] = useDeleteGroupScheduleMutation();
     const [createSchedule, { isLoading: isCreating }] = useCreateGroupScheduleMutation();
+    const [updateSchedule, { isLoading: isUpdating }] = useUpdateGroupScheduleMutation();
+    const { data: groupResponse } = useGetGroupByIdQuery(groupId, { skip: !groupId });
+    const group = groupResponse?.data || groupResponse;
+    const groupSubject = group?.subject || (group?.subject_id ? { id: group.subject_id, name: group.subject_name } : null);
 
-    /* ── Subjects + teachers for add modal ── */
-    const { data: subjectsData, isLoading: subjectsLoading } = useGetSubjectsQuery({ limit:100 });
-    const [fetchTeachers, { data: teachersData, isLoading: teachersLoading }] = useLazyGetUsersQuery();
+    /* A fan is only needed for legacy groups without a subject. */
+    const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useGetSubjectsQuery({ limit:100 }, { skip: !!groupSubject?.id });
 
     const [scheduleMap, setScheduleMap] = useState({});
     const [subjectsMap, setSubjectsMap] = useState({});
-    const [teachersMap, setTeachersMap] = useState({});
     const subjects = subjectsData?.data?.records || [];
-    const teachers = teachersData?.data?.records || [];
 
     const [open, setOpen]   = useState(false);
     const [form, setForm]   = useState(EMPTY);
     const [errors, setErrors] = useState({});
+    const [editingSchedule, setEditingSchedule] = useState(null);
 
     /* ── Weekly topic fetch ── */
     const weekStart = getMondayOf(new Date());
@@ -283,18 +224,19 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
         });
     };
 
-    useEffect(() => { if (groupId) fetchTeachers({ role:'teacher', limit:200 }); }, [groupId]);
+    useEffect(() => {
+        if (groupSubject?.id) setSubjectsMap((current) => ({ ...current, [groupSubject.id]: groupSubject.name || "Fan" }));
+    }, [groupSubject?.id, groupSubject?.name]);
     useEffect(() => { if (subjectsData) setSubjectsMap((subjectsData?.data?.records||[]).reduce((a,s)=>({...a,[s.id]:s.name}),{})); }, [subjectsData]);
-    useEffect(() => { if (teachersData) setTeachersMap((teachersData?.data?.records||[]).reduce((a,t)=>({...a,[t.id]:t.full_name}),{})); }, [teachersData]);
-    useEffect(() => { loadSchedule(); loadTopics(); }, [groupId]);
+    useEffect(() => { loadSchedule(); loadTopics(); }, [groupId, trigger, fetchTopics]);
     useEffect(() => { if (rawData) setScheduleMap(groupByDay(Array.isArray(rawData) ? rawData : [])); }, [rawData]);
 
     /* ── Stats ── */
     const stats = useMemo(() => {
         const all = Object.values(scheduleMap).flat();
         const totalMins = all.reduce((s,i)=>s+Math.max(0,toMins(i.end_time)-toMins(i.start_time)),0);
-        return { count:all.length, hours:Math.round(totalMins/60*10)/10, teacherCount:new Set(all.map(i=>i.teacher_id)).size };
-    }, [scheduleMap]);
+        return { count:all.length, hours:Math.round(totalMins/60*10)/10, teacherCount:group?.teacher_id || group?.teacher?.id ? 1 : 0 };
+    }, [scheduleMap, group]);
 
     /* ── Handlers ── */
     const handleDelete = async (item) => {
@@ -313,8 +255,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
 
     const validate = () => {
         const e={};
-        if (!form.subject_id) e.subject_id='Fan tanlanishi kerak';
-        if (!form.teacher_id) e.teacher_id="O'qituvchi tanlanishi kerak";
+        if (!editingSchedule && !groupSubject?.id && !form.subject_id) e.subject_id='Fan tanlanishi kerak';
         if (!form.start_time) e.start_time='Boshlanish vaqti majburiy';
         if (!form.end_time)   e.end_time='Tugash vaqti majburiy';
         if (form.start_time && form.end_time && form.start_time >= form.end_time)
@@ -325,12 +266,34 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validate()) return;
+        if (editingSchedule) {
+            try {
+                await updateSchedule({
+                    id: editingSchedule.id,
+                    data: { day_of_week: form.day_of_week, start_time: form.start_time, end_time: form.end_time },
+                }).unwrap();
+                Alert("Dars jadvali yangilandi", "success");
+                setOpen(false);
+                setEditingSchedule(null);
+                loadSchedule();
+            } catch (err) {
+                Alert(err?.data?.message || "Xatolik", "error");
+            }
+            return;
+        }
         const tempId = `temp-${Date.now()}`;
-        const tempItem = { id:tempId, group_id:groupId, ...form };
+        const selectedSubject = groupSubject || subjects.find((subject) => subject.id === form.subject_id);
+        const tempItem = { id:tempId, group_id:groupId, ...form, subject: selectedSubject, teacher: group?.teacher };
         setScheduleMap(prev=>{ const l=[...(prev[form.day_of_week]||[]),tempItem].sort((a,b)=>toMins(a.start_time)-toMins(b.start_time)); return {...prev,[form.day_of_week]:l}; });
         setOpen(false);
         try {
-            const res = await createSchedule({ group_id:groupId, ...form }).unwrap();
+            const res = await createSchedule({
+                group_id:groupId,
+                day_of_week:form.day_of_week,
+                start_time:form.start_time,
+                end_time:form.end_time,
+                ...(!groupSubject?.id && { subject_id:form.subject_id }),
+            }).unwrap();
             const saved = res?.data || res;
             if (saved) {
                 const fi = {...saved, id:saved.id||tempId, day_of_week:saved.day_of_week||form.day_of_week};
@@ -344,7 +307,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
         }
     };
 
-    if (rawData === null || isLoading || isFetching || subjectsLoading || teachersLoading) return <Loading/>;
+    if (rawData === null || isLoading || isFetching || (open && subjectsLoading)) return <Loading/>;
     if (error) return <div style={{ color:'var(--danger)', padding:12, background:'var(--danger-soft)', borderRadius:10 }}>Xatolik: {error?.data?.message}</div>;
 
     return (
@@ -437,8 +400,8 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                                     {mergeParallelItems(items).map(parallelItems => {
                                         const item = parallelItems[0];
                                         const color = colorFor(item.subject_id);
-                                        const subName = subjectsMap[item.subject_id] || item.subject?.name || item.subject_id?.slice(0,8);
-                                        const teacherName = item.teacher?.full_name || teachersMap[item.teacher_id] || '—';
+                                        const subName = item.subject?.name || subjectsMap[item.subject_id] || item.subject_id?.slice(0,8) || 'Fan belgilanmagan';
+                                        const teacherName = item.teacher?.full_name || group?.teacher?.full_name || '—';
                                         const topicD = topicMap[item.id] || null;
                                         const isParallel = parallelItems.length > 1;
 
@@ -449,8 +412,8 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
 
                                         return (
                                             <div key={parallelItems.map(i => i.id).join('-')} style={{ padding:'10px 14px', borderTop:'1px solid var(--card-border)', background:isParallel ? 'var(--warning-soft)' : 'transparent' }}
-                                                onMouseEnter={e=>{e.currentTarget.style.background='var(--input-bg)'; const btn=e.currentTarget.querySelector('.del-btn'); if(btn)btn.style.opacity='1';}}
-                                                onMouseLeave={e=>{e.currentTarget.style.background='transparent'; const btn=e.currentTarget.querySelector('.del-btn'); if(btn)btn.style.opacity='0';}}>
+                                                onMouseEnter={e=>{e.currentTarget.style.background='var(--input-bg)'; e.currentTarget.querySelectorAll('.del-btn,.edit-btn').forEach(btn=>btn.style.opacity='1');}}
+                                                onMouseLeave={e=>{e.currentTarget.style.background='transparent'; e.currentTarget.querySelectorAll('.del-btn,.edit-btn').forEach(btn=>btn.style.opacity='0');}}>
                                                 {isParallel && <div style={{ fontSize:'0.64rem', fontWeight:700, color:'var(--warning)', marginBottom:6 }}>Parallel darslar · {parallelItems.length} ta</div>}
                                                 <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
                                                     <div style={{ display:'flex', gap:10, minWidth:0, flex:1 }}>
@@ -470,24 +433,37 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                                                                 item={item}
                                                                 topicData={topicD}
                                                                 canEdit={canEditTopic}
-                                                                groupId={groupId}
                                                                 weekStart={weekStart}
                                                                 onSaved={loadTopics}
                                                             />
                                                         </div>
                                                     </div>
                                                     {!isTeacher && (
-                                                        <button className="del-btn" onClick={()=>handleDelete(item)} disabled={isDeleting}
-                                                            style={{ width:26, height:26, borderRadius:7, border:'none', background:'transparent', color:'var(--text-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'all 0.15s', flexShrink:0 }}
-                                                            onMouseEnter={e=>{e.currentTarget.style.background='var(--danger-soft)';e.currentTarget.style.color='var(--danger)';}}
-                                                            onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-muted)';}}>
-                                                            <Trash2 size={13}/>
-                                                        </button>
+                                                        <div style={{ display:'flex', gap:3 }}>
+                                                            <button className="edit-btn" title="Jadvalni tahrirlash"
+                                                                onClick={() => {
+                                                                    setEditingSchedule(item);
+                                                                    setForm({ day_of_week:item.day_of_week, start_time:fmtTime(item.start_time), end_time:fmtTime(item.end_time) });
+                                                                    setErrors({});
+                                                                    setOpen(true);
+                                                                }}
+                                                                style={{ width:26, height:26, borderRadius:7, border:'none', background:'transparent', color:'var(--text-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'all 0.15s', flexShrink:0 }}
+                                                                onMouseEnter={e=>{e.currentTarget.style.background='var(--accent-soft)';e.currentTarget.style.color='var(--accent)';}}
+                                                                onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-muted)';}}>
+                                                                <Pencil size={13}/>
+                                                            </button>
+                                                            <button className="del-btn" onClick={()=>handleDelete(item)} disabled={isDeleting}
+                                                                style={{ width:26, height:26, borderRadius:7, border:'none', background:'transparent', color:'var(--text-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'all 0.15s', flexShrink:0 }}
+                                                                onMouseEnter={e=>{e.currentTarget.style.background='var(--danger-soft)';e.currentTarget.style.color='var(--danger)';}}
+                                                                onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-muted)';}}>
+                                                                <Trash2 size={13}/>
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 {parallelItems.slice(1).map(other => (
                                                     <div key={other.id} style={{ margin:'8px 0 0 13px', paddingTop:8, borderTop:'1px dashed var(--warning)', fontSize:'0.72rem', color:'var(--text-secondary)' }}>
-                                                        <strong>{subjectsMap[other.subject_id] || other.subject?.name || '—'}</strong> · {teachersMap[other.teacher_id] || other.teacher?.full_name || '—'} · {fmtTime(other.start_time)}–{fmtTime(other.end_time)}
+                                                        <strong>{subjectsMap[other.subject_id] || other.subject?.name || '—'}</strong> · {other.teacher?.full_name || group?.teacher?.full_name || '—'} · {fmtTime(other.start_time)}–{fmtTime(other.end_time)}
                                                         {(topicMap[other.id]?.topic || other.topic?.topic || other.topic) && <div style={{ marginTop:3, color:'var(--text-muted)', fontStyle:'italic' }}>Mavzu: {topicMap[other.id]?.topic || other.topic?.topic || other.topic}</div>}
                                                     </div>
                                                 ))}
@@ -502,28 +478,21 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
             </div>
 
             {/* Add schedule modal */}
-            <Modal open={open} onClose={()=>setOpen(false)} title="Yangi dars qo'shish" size="sm">
+            <Modal open={open} onClose={()=>{setOpen(false);setEditingSchedule(null);}} title={editingSchedule ? "Dars jadvalini tahrirlash" : "Yangi dars qo'shish"} size="sm">
                 <form onSubmit={handleSubmit}>
                     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                        <div>
-                            <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Fan</label>
-                            <select className={`field-select no-icon${errors.subject_id?' error':''}`}
-                                value={form.subject_id} onChange={e=>setForm(p=>({...p,subject_id:e.target.value, teacher_id:''}))} disabled={subjectsLoading}>
-                                <option value="">Fan tanlang</option>
-                                {subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
-                            {errors.subject_id && <span style={{ fontSize:'0.72rem', color:'var(--danger)' }}>{errors.subject_id}</span>}
-                        </div>
-                        <div>
-                            <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>O'qituvchi</label>
-                            <AvailableTeacherSelect
-                                subjectId={form.subject_id}
-                                groupId={groupId}
-                                value={form.teacher_id}
-                                onChange={v => setForm(p=>({...p, teacher_id:v}))}
-                                error={errors.teacher_id}
-                            />
-                        </div>
+                        {!groupSubject?.id && (
+                            <div>
+                                <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Guruh fani belgilanmagan, fan tanlang</label>
+                                <select className={`field-select no-icon${errors.subject_id?' error':''}`}
+                                    value={form.subject_id} onChange={e=>setForm(p=>({...p,subject_id:e.target.value}))} disabled={subjectsLoading}>
+                                    <option value="">Fan tanlang</option>
+                                    {subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                                {subjectsError && <span role="alert" style={{ fontSize:'0.72rem', color:'var(--danger)' }}>{subjectsError?.data?.message || "Fanlarni yuklab bo'lmadi"}</span>}
+                                {errors.subject_id && <span style={{ fontSize:'0.72rem', color:'var(--danger)' }}>{errors.subject_id}</span>}
+                            </div>
+                        )}
                         <div>
                             <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:6 }}>Kun</label>
                             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
@@ -549,9 +518,9 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                         </div>
                     </div>
                     <div className="modal-footer">
-                        <button type="button" className="btn-cancel" onClick={()=>setOpen(false)}>Bekor qilish</button>
-                        <button type="submit" className="btn-submit" disabled={isCreating}>
-                            <Plus size={14}/>{isCreating?'Saqlanmoqda...':'Qo\'shish'}
+                        <button type="button" className="btn-cancel" onClick={()=>{setOpen(false);setEditingSchedule(null);}}>Bekor qilish</button>
+                        <button type="submit" className="btn-submit" disabled={isCreating || isUpdating}>
+                            <Plus size={14}/>{isCreating || isUpdating ? 'Saqlanmoqda...' : editingSchedule ? 'Yangilash' : 'Qo\'shish'}
                         </button>
                     </div>
                 </form>

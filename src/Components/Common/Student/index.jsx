@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLazyGetStudentsQuery } from "../../../store/services/student.api";
+import { useGetGroupsQuery } from "../../../store/services/group.api";
+import { useGetUsersQuery } from "../../../store/services/user.api";
 import Create from "./__components/Create";
 import Edit from "./__components/Edit";
 import Delete from "./__components/Delete";
@@ -26,14 +28,27 @@ export default function Student() {
     const [search, setSearch] = useState("");
     // Default: show only active students
     const [isActiveFilter, setIsActiveFilter] = useState(true);
+    const [groupId, setGroupId] = useState("");
+    const [teacherId, setTeacherId] = useState("");
 
     const [trigger, { data, isLoading, error }] = useLazyGetStudentsQuery();
+    const { data: groupsData } = useGetGroupsQuery({ limit: 200 });
+    const { data: teachersData } = useGetUsersQuery({ role: "teacher", limit: 200 });
+    const groups = groupsData?.data?.records || [];
+    const teachers = teachersData?.data?.records || [];
 
     const fetchStudents = (p = page, s = search, f = isActiveFilter) => {
-        trigger({ page: p, limit, ...(s && { search: s }), ...(f !== null && { is_active: f }) });
+        trigger({
+            page: p,
+            limit,
+            ...(s && { search: s }),
+            ...(f !== null && { is_active: f }),
+            ...(groupId && { group_id: groupId }),
+            ...(teacherId && { teacher_id: teacherId }),
+        });
     };
 
-    useEffect(() => { fetchStudents(1); }, []);
+    useEffect(() => { trigger({ page: 1, limit, is_active: true }); }, [trigger, limit]);
     const handleSearch = () => { setPage(1); fetchStudents(1, search, isActiveFilter); };
     const handleClear = () => { setSearch(""); setPage(1); fetchStudents(1, "", isActiveFilter); };
 
@@ -43,6 +58,16 @@ export default function Student() {
         setIsActiveFilter(f);
         setPage(1);
         fetchStudents(1, search, f);
+    };
+    const handleGroupChange = (event) => {
+        setGroupId(event.target.value);
+        setPage(1);
+        trigger({ page: 1, limit, is_active: isActiveFilter, ...(search && { search }), ...(event.target.value && { group_id: event.target.value }), ...(teacherId && { teacher_id: teacherId }) });
+    };
+    const handleTeacherChange = (event) => {
+        setTeacherId(event.target.value);
+        setPage(1);
+        trigger({ page: 1, limit, is_active: isActiveFilter, ...(search && { search }), ...(groupId && { group_id: groupId }), ...(event.target.value && { teacher_id: event.target.value }) });
     };
 
     const showingActive = isActiveFilter !== false; // true = active tab
@@ -73,6 +98,18 @@ export default function Student() {
                     <option value="active">Faol</option>
                     <option value="inactive">Nofaol</option>
                 </select>
+                {!isTeacher && (
+                    <>
+                        <select className="search-select" value={groupId} onChange={handleGroupChange}>
+                            <option value="">Barcha guruhlar</option>
+                            {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+                        </select>
+                        <select className="search-select" value={teacherId} onChange={handleTeacherChange}>
+                            <option value="">Barcha o'qituvchilar</option>
+                            {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.full_name}</option>)}
+                        </select>
+                    </>
+                )}
                 {!isTeacher && <Create/>}
             </div>
 
@@ -123,7 +160,13 @@ export default function Student() {
                                                     {s.is_active ? "Faol" : "Nofaol"}
                                                 </span>
                                             </td>
-                                            <td style={{ color: 'var(--text-secondary)' }}>{s.group?.name || s.group_name || "—"}</td>
+                                            <td>
+                                                {s.groups?.length ? (
+                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                                        {s.groups.map((group) => <span key={group.id} style={{ padding: "2px 7px", borderRadius: 99, background: "var(--accent-soft)", color: "var(--accent)", fontSize: "0.68rem", fontWeight: 600 }}>{group.name}</span>)}
+                                                    </div>
+                                                ) : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                                            </td>
                                             {/* Camera status */}
                                             <td>
                                                 {cameraLinked ? (
@@ -143,7 +186,7 @@ export default function Student() {
                                                             <Eye size={14} />
                                                         </button>
                                                     </NavLink>
-                                                    {!isTeacher && <AddGroup onAdd={() => fetchStudents(page)} studentID={s.id} />}
+                                                    {!isTeacher && <AddGroup onAdd={() => fetchStudents(page)} studentID={s.id} assignedGroups={s.groups || []} />}
                                                     {!isTeacher && <Edit student={s} />}
                                                     {/* Faol: Arxivlash; Nofaol: Arxivdan chiqarish + O'chirish */}
                                                     {!isTeacher && <ArchiveStudent student={s} />}

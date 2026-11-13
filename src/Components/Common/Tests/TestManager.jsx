@@ -72,6 +72,11 @@ function TestEditor({ initial, groups, subjects, optionsLoading, onCancel, onSav
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const editing = Boolean(initial?.id);
+    const selectedGroup = groups.find((group) => String(group.id) === String(form.group_id))
+        || (editing ? initial?.group : null);
+    const inheritedSubject = selectedGroup?.subject?.id || selectedGroup?.subject_id || "";
+    const inheritedSubjectName = selectedGroup?.subject?.name
+        || subjects.find((subject) => String(subject.id) === String(inheritedSubject))?.name;
 
     const change = (key, value) => setForm((current) => ({ ...current, [key]: value }));
     const updateQuestion = (index, updater) => change('questions', form.questions.map((question, i) => i === index ? updater(question) : question));
@@ -81,7 +86,8 @@ function TestEditor({ initial, groups, subjects, optionsLoading, onCancel, onSav
     }));
 
     const validate = () => {
-        if (!form.group_id || !form.subject_id) return 'Guruh va fanni tanlang';
+        if (!form.group_id) return 'Guruhni tanlang';
+        if (!inheritedSubject && !form.subject_id) return 'Fanni tanlang';
         if (!form.title.trim() || form.title.length > 255) return 'Test nomini kiriting (ko‘pi bilan 255 belgi)';
         if (form.description.length > 2000) return 'Izoh 2000 belgidan oshmasligi kerak';
         if (form.duration_minutes !== '' && (Number(form.duration_minutes) < 1 || Number(form.duration_minutes) > 300)) {
@@ -116,7 +122,7 @@ function TestEditor({ initial, groups, subjects, optionsLoading, onCancel, onSav
         const serializedQuestions = JSON.stringify(form.questions);
         if (!editing) {
             payload.group_id = form.group_id;
-            payload.subject_id = form.subject_id;
+            if (!inheritedSubject) payload.subject_id = form.subject_id;
             payload.questions = form.questions;
         } else if (serializedQuestions !== originalQuestions) {
             payload.questions = form.questions;
@@ -140,18 +146,25 @@ function TestEditor({ initial, groups, subjects, optionsLoading, onCancel, onSav
                 <div className="tests-form-grid">
                     <label className="tests-field">
                         <span>Guruh <b>*</b></span>
-                        <select value={form.group_id} onChange={(event) => change('group_id', event.target.value)} required>
+                        <select value={form.group_id} onChange={(event) => {
+                            const nextGroup = groups.find((group) => String(group.id) === String(event.target.value));
+                            setForm((current) => ({ ...current, group_id: event.target.value, subject_id: nextGroup?.subject?.id || nextGroup?.subject_id || "" }));
+                        }} required>
                             <option value="">Guruhni tanlang</option>
                             {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
                         </select>
                     </label>
-                    <label className="tests-field">
-                        <span>Fan <b>*</b></span>
-                        <select value={form.subject_id} onChange={(event) => change('subject_id', event.target.value)} required>
-                            <option value="">Fanni tanlang</option>
-                            {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
-                        </select>
-                    </label>
+                    {inheritedSubject ? (
+                        <div className="tests-readonly"><span>Fan (guruhdan olinadi)</span><strong>{inheritedSubjectName || 'Fan'}</strong></div>
+                    ) : (
+                        <label className="tests-field">
+                            <span>Fan <b>*</b></span>
+                            <select value={form.subject_id} onChange={(event) => change('subject_id', event.target.value)} required>
+                                <option value="">Fanni tanlang</option>
+                                {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+                            </select>
+                        </label>
+                    )}
                 </div>
             )}
             {editing && (
@@ -347,7 +360,7 @@ export default function TestManager() {
             try {
                 const requests = isTeacher && userId
                     ? [
-                        $api.get(`/teacher-group/by-teacher/${userId}`).then((response) => response.data),
+                        $api.get('/group', { params: { page: 1, limit: 100, teacher_id: userId } }).then((response) => response.data),
                         $api.get(`/teacher-subject/by-teacher/${userId}`).then((response) => response.data),
                     ]
                     : [
@@ -356,7 +369,7 @@ export default function TestManager() {
                     ];
                 const [groupResponse, subjectResponse] = await Promise.all(requests);
                 if (cancelled) return;
-                const groupItems = extractRecords(groupResponse).map((item) => item.group || item).filter((item) => item.id);
+                const groupItems = extractRecords(groupResponse).filter((item) => item.id);
                 const subjectItems = extractRecords(subjectResponse).map((item) => item.subject || item).filter((item) => item.id);
                 setGroups(groupItems);
                 setSubjects(subjectItems);

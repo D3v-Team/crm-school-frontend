@@ -127,7 +127,7 @@ function StatsTab({ parentId }) {
                                                     onMouseLeave={e=>e.target.style.color='var(--text-primary)'}>
                                                     {child.full_name}
                                                 </NavLink>
-                                                <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:1 }}>{child.group_name || '—'}</div>
+                                                <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:1 }}>{(child.groups || []).map((group) => group.name).filter(Boolean).join(', ') || child.group || child.group_name || '—'}</div>
                                             </div>
                                         </div>
                                         <div style={{ display:'flex', gap:12 }}>
@@ -260,11 +260,11 @@ function ChildrenTab({ students = [], onUnassign }) {
                                     <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background: s.is_active?'var(--success-soft)':'var(--danger-soft)', color: s.is_active?'var(--success)':'var(--danger)' }}>
                                         {s.is_active ? 'Faol' : 'Nofaol'}
                                     </span>
-                                    {(s.group?.name || s.group_name) && (
-                                        <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background:'var(--accent-soft)', color:'var(--accent)' }}>
-                                            {s.group?.name || s.group_name}
+                                    {(s.groups || []).map((group) => (
+                                        <span key={group.id} style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background:'var(--accent-soft)', color:'var(--accent)' }}>
+                                            {group.name}
                                         </span>
-                                    )}
+                                    ))}
                                     <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 8px', borderRadius:99, background: cameraLinked?'var(--success-soft)':'var(--input-bg)', color: cameraLinked?'var(--success)':'var(--text-muted)', display:'inline-flex', alignItems:'center', gap:4 }}>
                                         {cameraLinked ? <><Camera size={10}/> Kamera</> : <><CameraOff size={10}/> Kamera yo'q</>}
                                     </span>

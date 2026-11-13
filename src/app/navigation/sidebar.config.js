@@ -44,7 +44,7 @@ export const SIDEBAR_CONFIG = [
         label: "O'quvchilar",
         path: '/ad/student',
         icon: Users,
-        roles: [ADMIN],
+        roles: [ADMIN, SUPER_ADMIN],
         childPaths: ['/student/'],
     },
     {
@@ -64,7 +64,7 @@ export const SIDEBAR_CONFIG = [
         label: 'Guruhlar',
         path: '/ad/groups',
         icon: Layers,
-        roles: [ADMIN],
+        roles: [ADMIN, SUPER_ADMIN],
         childPaths: ['/group/'],
     },
     {

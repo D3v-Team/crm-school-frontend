@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { useGetUserByIdQuery } from '../../../store/services/user.api';
+import { useLazyGetGroupsQuery } from '../../../store/services/group.api';
 import { User, Phone, AtSign, Calendar, Clock, Shield, BookOpen, Users } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 
@@ -50,7 +52,8 @@ function TeacherGroupsSection({ items }) {
                 const group   = item.group   || item;
                 const subject = item.subject || group.subject;
                 const name = group?.name || '';
-                const initials = name ? name.slice(0, 2).toUpperCase() : 'GR';                const studentCount = group?.students?.length ?? group?.student_count ?? null;
+                const initials = name ? name.slice(0, 2).toUpperCase() : 'GR';
+                const studentCount = group?.students_count ?? group?.students?.length ?? group?.student_count ?? null;
 
                 return (
                     <div key={item.id} style={{
@@ -126,6 +129,13 @@ function TeacherGroupsSection({ items }) {
 export default function Profile() {
     const userId = getCookie('userId');
     const { data, isLoading, error } = useGetUserByIdQuery(userId, { skip: !userId });
+    const user = data?.data || data;
+    const isTeacher = user?.role === 'teacher';
+    const [fetchGroups, { data: groupsData, isLoading: groupsLoading, error: groupsError }] = useLazyGetGroupsQuery();
+
+    useEffect(() => {
+        if (isTeacher && userId) fetchGroups({ teacher_id: userId, page: 1, limit: 200 });
+    }, [isTeacher, userId, fetchGroups]);
 
     if (!userId) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
@@ -143,13 +153,12 @@ export default function Profile() {
         </div>
     );
 
-    const user = data?.data || data;
     const rawName = user?.full_name || '';
     const initials = rawName
         ? rawName.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
         : (user?.username?.[0] || 'U').toUpperCase();
     const role = ROLE_MAP[user?.role] || user?.role || 'Foydalanuvchi';
-    const isTeacher = user?.role === 'teacher';
+    const teacherGroups = groupsData?.data?.records || [];
 
     return (
         <div>
@@ -204,31 +213,34 @@ export default function Profile() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 
 
-                    {/* Sinf rahbari guruhlari */}
-                    {user?.homeroom_groups !== undefined && (
-                        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, padding: '20px 24px', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, padding: '20px 24px', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                                 <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Users size={15} style={{ color: 'var(--accent)' }} />
                                 </div>
                                 <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                    Sinf rahbari guruhlari
+                                    Mening guruhlarim
                                 </span>
-                                {user?.homeroom_groups?.length > 0 && (
+                                {teacherGroups.length > 0 && (
                                     <span style={{ fontSize: '0.72rem', background: 'var(--accent-soft)', color: 'var(--accent)', padding: '1px 8px', borderRadius: 99, fontWeight: 600 }}>
-                                        {user.homeroom_groups.length}
+                                        {teacherGroups.length}
                                     </span>
                                 )}
                             </div>
-                            {!user?.homeroom_groups?.length ? (
+                            {groupsLoading ? (
+                                <Loading />
+                            ) : groupsError ? (
+                                <div role="alert" style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10 }}>
+                                    Xatolik: {groupsError?.data?.message || "Guruhlarni yuklab bo'lmadi"}
+                                </div>
+                            ) : !teacherGroups.length ? (
                                 <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                    Yo'q
+                                    Guruhlar topilmadi
                                 </div>
                             ) : (
-                                <TeacherGroupsSection items={user.homeroom_groups} />
+                                <TeacherGroupsSection items={teacherGroups} />
                             )}
-                        </div>
-                    )}
+                    </div>
                 </div>
             )}
         </div>

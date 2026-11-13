@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
+import { useDispatch } from "react-redux";
 import { useAssignGroupMutation } from "../../../../store/services/student.api";
-import { useLazyGetGroupsQuery } from "../../../../store/services/group.api";
+import { groupApi, useLazyGetGroupsQuery } from "../../../../store/services/group.api";
 import { Layers } from "lucide-react";
 import { Alert } from "../../../Other/UI/Alert/Alert";
 import Modal from "../../../Other/UI/Modal/Modal";
 import FormField from "../../../Other/UI/FormField/FormField";
 
-export default function AddGroup({ studentID, onAdd }) {
+export default function AddGroup({ studentID, onAdd, assignedGroups = [], buttonText = "" }) {
+    const dispatch = useDispatch();
     const [open, setOpen] = useState(false);
     const [selectedGroupId, setSelectedGroupId] = useState("");
     const [error, setError] = useState("");
@@ -18,6 +20,8 @@ export default function AddGroup({ studentID, onAdd }) {
 
     const [fetchGroups, { data: groupsData, isLoading: groupsLoading, isFetching: groupsFetching }] = useLazyGetGroupsQuery();
     const [assignGroup, { isLoading }] = useAssignGroupMutation();
+    const assignedGroupIds = new Set(assignedGroups.map((group) => String(group.id || group.group_id)));
+    const availableGroups = groups.filter((group) => !assignedGroupIds.has(String(group.id)));
 
     useEffect(() => {
         if (open) {
@@ -66,6 +70,7 @@ export default function AddGroup({ studentID, onAdd }) {
         if (!selectedGroupId) { setError("Guruh tanlanishi kerak"); return; }
         try {
             await assignGroup({ id: studentID, data: { group_id: selectedGroupId } }).unwrap();
+            dispatch(groupApi.util.invalidateTags([{ type: "Group" }]));
             Alert("O'quvchi guruhga qo'shildi", "success");
             if (onAdd) onAdd();
             handleClose();
@@ -76,8 +81,9 @@ export default function AddGroup({ studentID, onAdd }) {
 
     return (
         <>
-            <button className="action-btn action-btn-success" onClick={() => setOpen(true)} title="Guruhga qo'shish">
+            <button className={buttonText ? "btn-create" : "action-btn action-btn-success"} onClick={() => setOpen(true)} title="Guruhga qo'shish">
                 <Layers size={14} />
+                {buttonText}
             </button>
             <Modal open={open} onClose={handleClose} title="Guruhga qo'shish" size="sm">
                 <form onSubmit={handleSubmit}>
@@ -91,8 +97,8 @@ export default function AddGroup({ studentID, onAdd }) {
                             disabled={groupsLoading && groups.length === 0}
                         >
                             <option value="">{groupsLoading && groups.length === 0 ? "Yuklanmoqda..." : "Guruhni tanlang"}</option>
-                            {!groupsLoading && groups.length === 0 && <option disabled>Guruhlar topilmadi</option>}
-                            {groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
+                            {!groupsLoading && availableGroups.length === 0 && <option disabled>Qo'shish uchun guruh qolmagan</option>}
+                            {availableGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
                             {groupsFetching && <option disabled>Yuklanmoqda...</option>}
                         </select>
                     </FormField>

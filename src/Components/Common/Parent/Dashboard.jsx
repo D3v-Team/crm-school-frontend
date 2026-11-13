@@ -75,7 +75,7 @@ function ChildCard({ child, dateFrom, dateTo }) {
                 </div>
                 <div style={{ flex:1 }}>
                     <div style={{ fontSize:'0.95rem',fontWeight:700,color:'var(--text-primary)' }}>{child.full_name}</div>
-                    <div style={{ fontSize:'0.78rem',color:'var(--text-muted)',marginTop:2 }}>{child.group?.name||child.group_name||'Guruh belgilanmagan'}</div>
+                    <div style={{ fontSize:'0.78rem',color:'var(--text-muted)',marginTop:2 }}>{(child.groups || []).map((group) => group.name).filter(Boolean).join(', ') || 'Guruh belgilanmagan'}</div>
                 </div>
                 {/* Mini stats */}
                 <div style={{ display:'flex', gap:10 }}>

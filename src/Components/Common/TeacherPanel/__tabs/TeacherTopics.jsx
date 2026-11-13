@@ -5,7 +5,7 @@ import {
     useUpdateWeeklyTopicMutation,
     useDeleteWeeklyTopicMutation,
 } from '../../../../store/services/weekly-topic.api';
-import { useLazyGetTeacherGroupsByTeacherIdQuery } from '../../../../store/services/theacher-group.api';
+import { useLazyGetGroupsQuery } from '../../../../store/services/group.api';
 import {
     BookOpen, ChevronLeft, ChevronRight, CalendarDays,
     Layers, Check, X, Pencil, Trash2, Plus, Clock,
@@ -210,9 +210,9 @@ export default function TeacherTopics({ teacherId }) {
     const [selectedGroupId, setSelectedGroupId] = useState('');
 
     /* Groups filter */
-    const [fetchGroups, { data: groupsData }] = useLazyGetTeacherGroupsByTeacherIdQuery();
-    useEffect(() => { if (teacherId) fetchGroups(teacherId); }, [teacherId]);
-    const groups = groupsData?.data?.records || groupsData?.data || [];
+    const [fetchGroups, { data: groupsData }] = useLazyGetGroupsQuery();
+    useEffect(() => { if (teacherId) fetchGroups({ teacher_id: teacherId, page: 1, limit: 200 }); }, [teacherId, fetchGroups]);
+    const groups = groupsData?.data?.records || [];
 
     /* Topics — /my-week qaytaradi: har bir group_schedule_id uchun alohida qator */
     const { data: topicsData, isLoading, error, refetch } = useGetMyWeekTopicsQuery(
@@ -258,7 +258,7 @@ export default function TeacherTopics({ teacherId }) {
                 <select value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)}
                     style={{ padding:'8px 12px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', cursor:'pointer', minWidth:160 }}>
                     <option value="">Barcha guruhlar</option>
-                    {groups.map(item => { const g = item.group || item; return <option key={g.id} value={g.id}>{g.name}</option>; })}
+                    {groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
                 </select>
 
                 {/* Stats */}

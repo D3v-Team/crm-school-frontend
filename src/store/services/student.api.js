@@ -62,7 +62,10 @@ export const studentApi = createApi({
                 method: 'PATCH',
                 data,
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'Student', id }],
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Student', id },
+                { type: 'Student', id: 'LIST' },
+            ],
         }),
         // PATCH /api/student/{id}/assign-parent
         assignParent: builder.mutation({
@@ -84,11 +87,15 @@ export const studentApi = createApi({
         }),
         // PATCH /api/student/{id}/unassign-group
         unassignGroup: builder.mutation({
-            query: (id) => ({
+            query: ({ id, data = {} }) => ({
                 url: `/student/${id}/unassign-group`,
                 method: 'PATCH',
+                data,
             }),
-            invalidatesTags: (result, error, id) => [{ type: 'Student', id }],
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Student', id },
+                { type: 'Student', id: 'LIST' },
+            ],
         }),
         // PATCH /api/student/{id}/unassign-parent
         unassignParent: builder.mutation({

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLazyGetGroupsQuery } from "../../../store/services/group.api";
-import { useGetUserByIdQuery } from "../../../store/services/user.api";
+import { useGetUsersQuery } from "../../../store/services/user.api";
+import { useGetSubjectsQuery } from "../../../store/services/subject.api";
 import Create from "./__components/Create";
 import Delete from "./__components/Delete";
 import Edit from "./__components/Edit";
@@ -8,86 +9,109 @@ import Loading from "../../Other/UI/Loadings/Loading";
 import { NavLink } from "react-router-dom";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, Layers, Eye, RefreshCw, X,
+    Search, Layers, Eye, X,
 } from "lucide-react";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
 import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 
+const recordsOf = (response) => response?.data?.records || response?.records || [];
+const formatDate = (date) => date ? new Date(date).toLocaleDateString("uz-UZ") : "—";
+
 export default function Groups() {
-    const roleFromStore = useAppSelector(s => s.auth?.role);
-    const userIdFromStore = useAppSelector(s => s.auth?.userId);
-    const role  = roleFromStore  || Cookies.get('role');
-    const userId = userIdFromStore || Cookies.get('userId');
-    const isTeacher = role === 'teacher';
-
-    /* ── Admin state ── */
-    const [page, setPage]     = useState(1);
-    const [limit]             = useState(10);
+    const role = useAppSelector((state) => state.auth?.role) || Cookies.get("role");
+    const isTeacher = role === "teacher";
+    const [page, setPage] = useState(1);
+    const [limit] = useState(10);
     const [search, setSearch] = useState("");
+    const [teacherId, setTeacherId] = useState("");
+    const [subjectId, setSubjectId] = useState("");
+    const [fetchGroups, { data, isLoading, error }] = useLazyGetGroupsQuery();
+    const { data: teachersData } = useGetUsersQuery({ role: "teacher", limit: 200 }, { skip: isTeacher });
+    const { data: subjectsData } = useGetSubjectsQuery({ limit: 200 });
+    const teachers = recordsOf(teachersData);
+    const subjects = recordsOf(subjectsData);
+    const groups = data?.data?.records || [];
+    const pagination = data?.data?.pagination || {};
+    const currentPage = pagination.currentPage || page;
+    const totalPages = pagination.total_pages || 1;
 
-    const [triggerAll, { data: allData, isLoading: allLoading, error: allError }] = useLazyGetGroupsQuery();
-
-    /* ── Teacher state: fetch own profile to get homeroom_groups ── */
-    const {
-        data: profileData,
-        isLoading: profileLoading,
-        error: profileError,
-        refetch: refetchProfile,
-    } = useGetUserByIdQuery(userId, { skip: !isTeacher || !userId });
+    const loadGroups = (nextPage = page, nextSearch = search, nextTeacherId = teacherId, nextSubjectId = subjectId) => {
+        fetchGroups({
+            page: nextPage,
+            limit,
+            ...(nextSearch.trim() && { search: nextSearch.trim() }),
+            ...(!isTeacher && nextTeacherId && { teacher_id: nextTeacherId }),
+            ...(!isTeacher && nextSubjectId && { subject_id: nextSubjectId }),
+        });
+    };
 
     useEffect(() => {
-        if (!isTeacher) triggerAll({ page: 1, limit });
-    }, [isTeacher]);
+        fetchGroups({ page: 1, limit });
+    }, [fetchGroups, limit]);
 
-    /* ── Derived data ── */
-    const teacherGroups = (profileData?.data?.homeroom_groups || profileData?.homeroom_groups || []);
-    const filteredTeacherGroups = search
-        ? teacherGroups.filter(g => g.name?.toLowerCase().includes(search.toLowerCase()))
-        : teacherGroups;
-
-    const groups      = isTeacher ? filteredTeacherGroups : (allData?.data?.records || []);
-    const pagination  = isTeacher ? {} : (allData?.data?.pagination || {});
-    const totalPages  = pagination.total_pages || 1;
-    const currentPage = pagination.currentPage || 1;
-    const isLoading   = isTeacher ? profileLoading : allLoading;
-    const error       = isTeacher ? profileError   : allError;
-
-    /* ── Handlers ── */
-    const fetchGroups = (p = page, s = search) => {
-        if (!isTeacher) triggerAll({ page: p, limit, ...(s && { search: s }) });
+    const changeSearch = (value) => {
+        setSearch(value);
+        setPage(1);
+        loadGroups(1, value);
     };
-    const handleSearch  = () => { setPage(1); fetchGroups(1, search); };
-    const handleClear   = () => { setSearch(""); if (!isTeacher) { setPage(1); fetchGroups(1, ""); } };
-    const goTo          = (p) => { setPage(p); fetchGroups(p); };
+    const clearSearch = () => changeSearch("");
+    const handleTeacherChange = (event) => {
+        const nextTeacherId = event.target.value;
+        setTeacherId(nextTeacherId);
+        setPage(1);
+        loadGroups(1, search, nextTeacherId, subjectId);
+    };
+    const handleSubjectChange = (event) => {
+        const nextSubjectId = event.target.value;
+        setSubjectId(nextSubjectId);
+        setPage(1);
+        loadGroups(1, search, teacherId, nextSubjectId);
+    };
+    const goTo = (nextPage) => {
+        setPage(nextPage);
+        loadGroups(nextPage);
+    };
 
     return (
         <div>
             <div className="page-toolbar">
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginRight:'auto' }}>
-                    <span className="page-title-icon"><Layers size={18}/></span>
-                    <span style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)' }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: "auto" }}>
+                    <span className="page-title-icon"><Layers size={18} /></span>
+                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
                         {isTeacher ? "Mening guruhlarim" : "Guruhlar"}
                     </span>
                 </div>
                 <div className="search-input-wrap">
-                    <Search className="search-icon" size={16}/>
-                    <DebouncedSearchInput className="search-input" type="text" placeholder="Guruh nomi..."
-                        value={search} onChange={setSearch} onSearch={value => { if (!isTeacher) { setPage(1); fetchGroups(1, value); } }}/>
-                    {search && (
-                        <button className="toolbar-clear-btn" onClick={handleClear}><X size={14}/></button>
-                    )}
+                    <Search className="search-icon" size={16} />
+                    <DebouncedSearchInput
+                        className="search-input"
+                        type="text"
+                        placeholder="Guruh nomi..."
+                        value={search}
+                        onChange={setSearch}
+                        onSearch={changeSearch}
+                    />
+                    {search && <button className="toolbar-clear-btn" onClick={clearSearch}><X size={14} /></button>}
                 </div>
-                {!isTeacher && <Create/>}
-              
+                {!isTeacher && (
+                    <>
+                        <select className="search-select" value={teacherId} onChange={handleTeacherChange}>
+                            <option value="">Barcha o&apos;qituvchilar</option>
+                            {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.full_name}</option>)}
+                        </select>
+                        <select className="search-select" value={subjectId} onChange={handleSubjectChange}>
+                            <option value="">Barcha fanlar</option>
+                            {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+                        </select>
+                        <Create />
+                    </>
+                )}
             </div>
 
             {isLoading && <Loading />}
             {error && (
-                <div style={{
-                    background: 'var(--danger-soft)', border: '1px solid var(--danger)',
-                    color: 'var(--danger)', padding: '12px 16px', borderRadius: 10,
-                }}>
+                <div style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)", padding: "12px 16px", borderRadius: 10 }}>
                     Xatolik: {error?.data?.message || "Noma'lum xatolik"}
                 </div>
             )}
@@ -100,47 +124,37 @@ export default function Groups() {
                                 <tr>
                                     <th>№</th>
                                     <th>Nomi</th>
-                                    <th>Boshlanish sanasi</th>
-                                    <th>Sinf rahbari</th>
-                                    <th>Telefon</th>
+                                    <th>O&apos;qituvchi</th>
+                                    <th>Fan</th>
+                                    <th>O&apos;quvchilar</th>
+                                    <th>Boshlangan sana</th>
                                     <th>Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {groups.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
+                                        <td colSpan="7" style={{ textAlign: "center", padding: "40px 16px", color: "var(--text-muted)" }}>
                                             {isTeacher ? "Sizga biriktirilgan guruhlar yo'q" : "Guruhlar topilmadi"}
                                         </td>
                                     </tr>
-                                ) : groups.map((g, i) => (
-                                    <tr key={g.id}>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
-                                            {isTeacher ? i + 1 : (currentPage - 1) * limit + i + 1}
+                                ) : groups.map((group, index) => (
+                                    <tr key={group.id}>
+                                        <td style={{ color: "var(--text-muted)", fontSize: "0.78rem", fontFamily: "monospace" }}>
+                                            {(currentPage - 1) * limit + index + 1}
                                         </td>
-                                        <td style={{ fontWeight: 600 }}>{g.name}</td>
+                                        <td style={{ fontWeight: 600 }}>{group.name}</td>
+                                        <td>{group.teacher?.full_name || "—"}</td>
+                                        <td>{group.subject?.name || "Fan belgilanmagan"}</td>
+                                        <td>{group.students_count ?? group.students?.length ?? 0}</td>
+                                        <td>{formatDate(group.start_date)}</td>
                                         <td>
-                                            {g.start_date
-                                                ? new Date(g.start_date).toLocaleDateString('uz-UZ')
-                                                : "—"}
-                                        </td>
-                                        <td>
-                                            {g.homeroom_teacher?.full_name || g.homeroom_teacher_name
-                                                /* For homeroom_groups the teacher IS the user */
-                                                || (isTeacher ? "Siz" : "—")}
-                                        </td>
-                                        <td style={{ color:'var(--text-secondary)', fontSize:'0.82rem' }}>
-                                            {g.homeroom_teacher?.phone || "—"}
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: 6 }}>
-                                                <NavLink to={`/group/${g.id}`}>
-                                                    <button className="action-btn action-btn-ghost" title="Ko'rish">
-                                                        <Eye size={14} />
-                                                    </button>
+                                            <div style={{ display: "flex", gap: 6 }}>
+                                                <NavLink to={`/group/${group.id}`}>
+                                                    <button className="action-btn action-btn-ghost" title="Ko'rish"><Eye size={14} /></button>
                                                 </NavLink>
-                                                {!isTeacher && <Edit group={g} />}
-                                                {!isTeacher && <Delete group={g} />}
+                                                {!isTeacher && <Edit group={group} />}
+                                                {!isTeacher && <Delete group={group} />}
                                             </div>
                                         </td>
                                     </tr>
@@ -148,10 +162,9 @@ export default function Groups() {
                             </tbody>
                         </table>
                     </div>
-
                     {!isTeacher && (
                         <div className="pagination">
-                            <span />
+                            <span>Jami {pagination.total_count || groups.length} ta guruh</span>
                             <div className="pagination-controls">
                                 <button className="page-btn" onClick={() => goTo(1)} disabled={currentPage <= 1}><ChevronsLeft size={15} /></button>
                                 <button className="page-btn" onClick={() => goTo(currentPage - 1)} disabled={currentPage <= 1}><ChevronLeft size={15} /></button>

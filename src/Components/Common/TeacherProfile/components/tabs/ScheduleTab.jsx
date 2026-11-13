@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useLazyGetGroupScheduleByGroupIdQuery } from '../../../../../store/services/group-schedule.api';
-import { useLazyGetTeacherGroupsByTeacherIdQuery } from '../../../../../store/services/theacher-group.api';
+import { useLazyGetGroupsQuery } from '../../../../../store/services/group.api';
 import {
     useLazyGetGroupWeekTopicsQuery,
     useCreateWeeklyTopicMutation,
@@ -130,20 +130,17 @@ function TopicCell({ item, topicData, weekStart, onSaved }) {
     );
 }
 
-export default function ScheduleTab({ user }) {
+export default function ScheduleTab() {
     const { id: teacherId } = useParams();
     const today    = JS_DAY[new Date().getDay()];
     const weekStart = getMondayOf(new Date());
 
     /* ── Fetch all teacher groups ── */
-    const [fetchGroups, { data: groupsData, isLoading: gl }] = useLazyGetTeacherGroupsByTeacherIdQuery();
-    useEffect(() => { if (teacherId) fetchGroups(teacherId); }, [teacherId]);
+    const [fetchGroups, { data: groupsData, isLoading: gl }] = useLazyGetGroupsQuery();
+    useEffect(() => { if (teacherId) fetchGroups({ teacher_id: teacherId, page: 1, limit: 200 }); }, [teacherId, fetchGroups]);
 
     const groups = useMemo(() => {
-        const d = groupsData?.data;
-        if (!d) return [];
-        const arr = Array.isArray(d) ? d : (d.records || []);
-        return arr;
+        return groupsData?.data?.records || [];
     }, [groupsData]);
 
     /* ── Fetch schedules for ALL groups ── */
@@ -155,8 +152,8 @@ export default function ScheduleTab({ user }) {
         if (!groups.length) return;
         setLoadingSchedules(true);
         Promise.all(
-            groups.map(item => {
-                const gid = item.group?.id || item.group_id || item.id;
+            groups.map(group => {
+                const gid = group.id;
                 return fetchSchedule(gid).then(res => {
                     const records = res?.data?.data || res?.data || [];
                     return Array.isArray(records) ? records : [];
@@ -192,7 +189,7 @@ export default function ScheduleTab({ user }) {
     useEffect(() => {
         if (!groups.length) return;
         groups.forEach(item => {
-            const gid = item.group?.id || item.group_id || item.id;
+            const gid = item.id;
             fetchTopics({ group_id: gid, week_start_date: weekStart });
         });
     }, [groups.length, weekStart]);
@@ -209,7 +206,7 @@ export default function ScheduleTab({ user }) {
 
     const reloadTopics = () => {
         groups.forEach(item => {
-            const gid = item.group?.id || item.group_id || item.id;
+            const gid = item.id;
             fetchTopics({ group_id: gid, week_start_date: weekStart });
         });
     };

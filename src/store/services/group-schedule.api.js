@@ -1,4 +1,3 @@
-// store/services/group-schedule.api.js
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from '../baseQuary/axiosBaseQuery';
 
@@ -7,7 +6,6 @@ export const groupScheduleApi = createApi({
     baseQuery: axiosBaseQuery(),
     tagTypes: ['GroupSchedule'],
     endpoints: (builder) => ({
-        // POST /api/group-schedule
         createGroupSchedule: builder.mutation({
             query: (data) => ({
                 url: '/group-schedule',
@@ -16,7 +14,6 @@ export const groupScheduleApi = createApi({
             }),
             invalidatesTags: [{ type: 'GroupSchedule', id: 'LIST' }],
         }),
-        // GET /api/group-schedule/{id}
         getGroupScheduleById: builder.query({
             query: (id) => ({
                 url: `/group-schedule/${id}`,
@@ -24,7 +21,6 @@ export const groupScheduleApi = createApi({
             }),
             providesTags: (result, error, id) => [{ type: 'GroupSchedule', id }],
         }),
-        // PUT /api/group-schedule/{id}
         updateGroupSchedule: builder.mutation({
             query: ({ id, data }) => ({
                 url: `/group-schedule/${id}`,
@@ -33,7 +29,6 @@ export const groupScheduleApi = createApi({
             }),
             invalidatesTags: (result, error, { id }) => [{ type: 'GroupSchedule', id }],
         }),
-        // DELETE /api/group-schedule/{id}
         deleteGroupSchedule: builder.mutation({
             query: (id) => ({
                 url: `/group-schedule/${id}`,
@@ -41,46 +36,44 @@ export const groupScheduleApi = createApi({
             }),
             invalidatesTags: (result, error, id) => [{ type: 'GroupSchedule', id }],
         }),
-        // GET /api/group-schedule/by-group/{group_id}
         getGroupScheduleByGroupId: builder.query({
             query: (groupId) => ({
                 url: `/group-schedule/by-group/${groupId}`,
                 method: 'GET',
             }),
             providesTags: (result, error, groupId) => {
-                return result
-                    ? [
-                        ...(result?.data?.records || []).map((item) => ({
-                            type: 'GroupSchedule',
-                            id: item.id,
-                        })),
-                        { type: 'GroupSchedule', id: `by-group-${groupId}` },
-                    ]
-                    : [{ type: 'GroupSchedule', id: `by-group-${groupId}` }];
+                const records = result?.data?.records || [];
+                return [
+                    ...records.map((item) => ({ type: 'GroupSchedule', id: item.id })),
+                    { type: 'GroupSchedule', id: `by-group-${groupId}` },
+                ];
             },
         }),
-        // GET /api/group-schedule/by-teacher/{teacher_id}
         getGroupScheduleByTeacher: builder.query({
             query: (teacherId) => ({
                 url: `/group-schedule/by-teacher/${teacherId}`,
                 method: 'GET',
             }),
             providesTags: (result, error, teacherId) => {
-                return result
-                    ? [
-                        ...(result?.data?.records || []).map((item) => ({
-                            type: 'GroupSchedule',
-                            id: item.id,
-                        })),
-                        { type: 'GroupSchedule', id: `by-teacher-${teacherId}` },
-                    ]
-                    : [{ type: 'GroupSchedule', id: `by-teacher-${teacherId}` }];
+                const records = result?.data?.records || [];
+                return [
+                    ...records.map((item) => ({ type: 'GroupSchedule', id: item.id })),
+                    { type: 'GroupSchedule', id: `by-teacher-${teacherId}` },
+                ];
             },
+        }),
+        getGroupScheduleByStudent: builder.query({
+            query: (studentId) => ({
+                url: `/group-schedule/by-student/${studentId}`,
+                method: 'GET',
+            }),
+            providesTags: (result, error, studentId) => [
+                { type: 'GroupSchedule', id: `by-student-${studentId}` },
+            ],
         }),
     }),
 });
 
-// Экспорт хуков
 export const {
     useCreateGroupScheduleMutation,
     useGetGroupScheduleByIdQuery,
@@ -91,4 +84,6 @@ export const {
     useLazyGetGroupScheduleByGroupIdQuery,
     useGetGroupScheduleByTeacherQuery,
     useLazyGetGroupScheduleByTeacherQuery,
+    useGetGroupScheduleByStudentQuery,
+    useLazyGetGroupScheduleByStudentQuery,
 } = groupScheduleApi;

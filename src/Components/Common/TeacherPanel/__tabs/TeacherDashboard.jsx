@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLazyGetTeacherQuery } from '../../../../store/services/statistic.api';
-import { useLazyGetTeacherGroupsByTeacherIdQuery } from '../../../../store/services/theacher-group.api';
+import { useLazyGetGroupsQuery } from '../../../../store/services/group.api';
 import { useLazyGetGradesQuery } from '../../../../store/services/grades.api';
 import { useLazyGetGroupScheduleByTeacherQuery } from '../../../../store/services/group-schedule.api';
 import {
@@ -73,15 +73,15 @@ export default function TeacherDashboard({ teacherId }) {
     const [month, setMonth] = useState(now.getMonth() + 1);
 
     const [fetchStats,    { data: statsData,    isLoading: sl }] = useLazyGetTeacherQuery();
-    const [fetchGroups,   { data: groupsData,   isLoading: gl }] = useLazyGetTeacherGroupsByTeacherIdQuery();
+    const [fetchGroups,   { data: groupsData,   isLoading: gl }] = useLazyGetGroupsQuery();
     const [fetchGrades,   { data: gradesData                  }] = useLazyGetGradesQuery();
     const [fetchSchedule, { data: scheduleData               }] = useLazyGetGroupScheduleByTeacherQuery();
 
     useEffect(() => {
         if (!teacherId) return;
-        fetchGroups(teacherId);
+        fetchGroups({ teacher_id: teacherId, page: 1, limit: 200 });
         fetchSchedule(teacherId);
-    }, [teacherId]);
+    }, [teacherId, fetchGroups, fetchSchedule]);
 
     useEffect(() => {
         if (!teacherId) return;
@@ -90,7 +90,7 @@ export default function TeacherDashboard({ teacherId }) {
         const lastDate = new Date(year, month, 0);
         const lastDay  = `${year}-${String(month).padStart(2,'0')}-${String(lastDate.getDate()).padStart(2,'0')}`;
         fetchGrades({ teacher_id: teacherId, date_from: firstDay, date_to: lastDay, limit: 500 });
-    }, [year, month, teacherId]);
+    }, [year, month, teacherId, fetchGrades, fetchStats]);
 
     const stats  = statsData?.data  || {};
     const groups = groupsData?.data?.records || groupsData?.data || [];
@@ -115,7 +115,7 @@ export default function TeacherDashboard({ teacherId }) {
     const byGroup = stats.by_group || stats.groups || [];
 
     const kpiCards = [
-        { icon: Users,        label: "Jami o'quvchilar",  value: stats.total_students    ?? (groups.reduce((s,g)=>(s+(g.group?.students?.length??0)),0) || '—'), color: '#3b82f6' },
+        { icon: Users,        label: "Jami o'quvchilar",  value: stats.total_students    ?? (groups.reduce((s,g)=>(s+(g.students_count ?? g.students?.length ?? 0)),0) || '—'), color: '#3b82f6' },
         { icon: Layers,       label: 'Guruhlar soni',      value: stats.total_groups      ?? groups.length,                                                     color: '#8b5cf6' },
         { icon: CalendarDays, label: 'Bugungi darslar',    value: todaySchedule.length,                                                                          color: '#f59e0b' },
         { icon: CheckCircle,  label: 'Davomat foizi',      value: stats.attendance_rate  != null ? `${stats.attendance_rate}%`  : '—',                           color: '#10b981' },
@@ -222,7 +222,7 @@ export default function TeacherDashboard({ teacherId }) {
                                 const gid     = group?.id;
                                 const gStats  = gradeByGroup[gid];
                                 const avgGrade = gStats?.count > 0 ? Math.round(gStats.sum / gStats.count) : null;
-                                const studentCount = group?.students?.length ?? group?.student_count ?? null;
+                                const studentCount = group?.students_count ?? group?.students?.length ?? group?.student_count ?? null;
 
                                 return (
                                     <div key={item.id} style={{

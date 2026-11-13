@@ -110,7 +110,7 @@ function AddPaymentModal({ student, open, onClose, onSuccess }) {
                         </div>
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>{student?.full_name}</div>
-                            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{student?.phone || "—"} · {student?.group?.name || "—"}</div>
+                            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{student?.phone || "—"} · {(student?.groups || []).map((group) => group.name).filter(Boolean).join(", ") || "—"}</div>
                         </div>
                         {student?.price > 0 && (
                             <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--accent)", flexShrink: 0 }}>
@@ -291,7 +291,7 @@ export default function CashierStudents() {
                                                 {s.is_active ? "Faol" : "Nofaol"}
                                             </span>
                                         </td>
-                                        <td style={{ color: "var(--text-secondary)" }}>{s.group?.name || "—"}</td>
+                                        <td style={{ color: "var(--text-secondary)" }}>{(s.groups || []).map((group) => group.name).filter(Boolean).join(", ") || "—"}</td>
                                         <td>
                                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                                                 <NavLink to={`/student/${s.id}`}>

@@ -5,6 +5,7 @@ import {
     BarChart2, GraduationCap, Star, AlertCircle,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
+import StudentScheduleTab from '../StudentProfile/StudentScheduleTab';
 
 const scoreColor = (v) => v >= 80 ? 'var(--success)' : v >= 60 ? 'var(--warning)' : 'var(--danger)';
 const scoreBg    = (v) => v >= 80 ? 'var(--success-soft)' : v >= 60 ? 'var(--warning-soft)' : 'var(--danger-soft)';
@@ -61,7 +62,7 @@ export default function ParentDashboard() {
                                 </div>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <GraduationCap size={13} style={{ color: 'var(--accent)' }} />
-                                    {child.group || '—'}
+                                    {(child.groups || []).map((group) => group.name).filter(Boolean).join(', ') || child.group || '—'}
                                 </div>
                             </div>
                         </div>
@@ -171,7 +172,12 @@ export default function ParentDashboard() {
                             </div>
                         )}
 
-                 
+                        <section>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <BookOpen size={14} /> Haftalik dars jadvali
+                            </div>
+                            <StudentScheduleTab studentId={child.student_id} />
+                        </section>
                     </div>
                 );
             })}
