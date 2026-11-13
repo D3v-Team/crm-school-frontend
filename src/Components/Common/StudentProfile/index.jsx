@@ -728,10 +728,10 @@ export default function StudentProfile() {
                                 <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>{label}</div>
                                 <div style={{ fontSize:'0.82rem', fontWeight:500, color:'var(--text-primary)' }}>{value}</div>
                             </div>
-                            <GroupsSection student={student} onRefresh={refetch} />
                         </div>
                     ))}
                 </div>
+                <GroupsSection student={student} onRefresh={refetch} />
             </div>
 
             {/* Tabs */}
