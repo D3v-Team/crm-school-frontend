@@ -37,6 +37,12 @@ const removeAttemptToken = (code, studentId) => {
     try { if (studentId) localStorage.removeItem(tokenKey(code, studentId)); } catch { /* ignore */ }
 };
 const statusOf = (error) => error?.response?.status;
+/* 403/409 yoki token umuman yo'q/yaroqsiz bo'lsa (400 "attempt_token ...") — qayta urinish foyda bermaydi */
+const isTokenRejected = (error) => {
+    const status = statusOf(error);
+    if (status === 403 || status === 409) return true;
+    return status === 400 && /attempt_token/i.test(requestError(error));
+};
 const OTHER_DEVICE_MESSAGE = 'Bu test boshqa qurilmada boshlangan. O‘sha qurilmadan davom eting yoki o‘qituvchidan testni qayta ochib berishni so‘rang.';
 const INVALID_TOKEN_MESSAGE = 'Test sessiyasi tasdiqlanmadi (token noto‘g‘ri yoki eskirgan). Testni kod orqali qaytadan oching.';
 const formatTime = (seconds) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
@@ -224,7 +230,7 @@ export default function StudentTest() {
                     return;
                 } catch (requestFailure) {
                     lastError = requestFailure;
-                    if (statusOf(requestFailure) === 403 || statusOf(requestFailure) === 409) {
+                    if (isTokenRejected(requestFailure)) {
                         // Token noto'g'ri — qayta urinish foyda bermaydi
                         setSavingQuestion('');
                         invalidateSession();
@@ -262,7 +268,7 @@ export default function StudentTest() {
             removeAttemptToken(code, attempt.student?.id || getSavedSession(code)?.student_id);
         } catch (requestFailure) {
             finishStartedRef.current = false;
-            if (statusOf(requestFailure) === 403 || statusOf(requestFailure) === 409) {
+            if (isTokenRejected(requestFailure)) {
                 setConfirmFinish(false);
                 invalidateSession();
             } else if (isAlreadyFinished(requestFailure)) {

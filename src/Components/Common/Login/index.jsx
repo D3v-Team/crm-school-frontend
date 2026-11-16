@@ -69,10 +69,14 @@ export default function Login() {
       const message = getErrorMessage(err, "Avtorizatsiya xatosi");
       setFormError(message);
       if (status === 429) {
-        // Xabarda necha daqiqa/soniya kutish kerakligi yozilgan bo'ladi; topilmasa 30 soniya
+        // Avval Retry-After sarlavhasi, bo'lmasa xabardagi daqiqa/soniya, topilmasa 30 soniya
         const minutes = /(\d+)\s*daqiqa/i.exec(message);
         const seconds = /(\d+)\s*soniya/i.exec(message);
-        const waitMs = minutes ? Number(minutes[1]) * 60000 : seconds ? Number(seconds[1]) * 1000 : 30000;
+        const retryAfter = Number(err?.retryAfter);
+        const waitMs = retryAfter > 0 ? retryAfter * 1000
+          : minutes ? Number(minutes[1]) * 60000
+          : seconds ? Number(seconds[1]) * 1000
+          : 30000;
         setNow(Date.now());
         setLockedUntil(Date.now() + waitMs);
       }
