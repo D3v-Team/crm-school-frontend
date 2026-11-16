@@ -3,6 +3,7 @@ import { useGetUserByIdQuery } from '../../../store/services/user.api';
 import { useLazyGetGroupsQuery } from '../../../store/services/group.api';
 import { User, Phone, AtSign, Calendar, Clock, Shield, BookOpen, Users } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
+import UserAttendanceTab from '../TeacherProfile/components/tabs/UserAttendanceTab';
 
 const getCookie = (name) => {
     const value = `; ${document.cookie}`;
@@ -241,6 +242,19 @@ export default function Profile() {
                                 <TeacherGroupsSection items={teacherGroups} />
                             )}
                     </div>
+                </div>
+            )}
+
+            {/* O'qituvchi faqat o'z kirdi-chiqdisini ko'radi (TZ 2.5) */}
+            {user?.role === 'teacher' && (
+                <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 16, padding: '20px 24px', boxShadow: 'var(--shadow-sm)', marginTop: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Clock size={15} style={{ color: 'var(--accent)' }} />
+                        </div>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>Mening davomatim</span>
+                    </div>
+                    <UserAttendanceTab userId={user.id} />
                 </div>
             )}
         </div>

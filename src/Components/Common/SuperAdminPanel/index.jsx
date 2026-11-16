@@ -274,11 +274,11 @@ export default function SuperAdminPanel() {
             <div className="page-header">
                 <div className="page-title">
                     <span className="page-title-icon"><Users size={18} /></span>
-                    Xodimlar boshqaruvi
+                    Foydalanuvchilar boshqaruvi
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn-create" onClick={() => setAddOpen(true)}>
-                        <Plus size={15} /> Xodim qo'shish
+                        <Plus size={15} /> Foydalanuvchi qo'shish
                     </button>
                     <button className="btn-refresh" onClick={() => fetch(curPage, search, roleFilter)} title="Yangilash">
                         <RefreshCw size={15} />
@@ -370,7 +370,7 @@ export default function SuperAdminPanel() {
                                 {users.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
-                                            Xodimlar topilmadi
+                                            Foydalanuvchilar topilmadi
                                         </td>
                                     </tr>
                                 ) : users.map((u, i) => {
@@ -404,7 +404,7 @@ export default function SuperAdminPanel() {
 
                     <div className="pagination">
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            {totalCount > 0 && `Jami ${totalCount} ta xodim`}
+                            {totalCount > 0 && `Jami ${totalCount} ta foydalanuvchi`}
                         </span>
                         <div className="pagination-controls">
                             <button className="page-btn" onClick={() => goTo(1)} disabled={curPage <= 1}>

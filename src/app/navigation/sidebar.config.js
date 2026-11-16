@@ -2,7 +2,7 @@ import { ROLES } from '../permissions/roles';
 import {
     Users, LayoutDashboard, Book, Layers,
     CreditCard, UserCheck, MessageSquare, CalendarDays,
-    BookOpen, Building2, TrendingDown, ClipboardCheck,
+    BookOpen, Building2, TrendingDown, ClipboardCheck, UserCog,
 } from 'lucide-react';
 
 const { DEV, SUPER_ADMIN, ADMIN, TEACHER, HR, CASHIER } = ROLES;
@@ -26,10 +26,18 @@ export const SIDEBAR_CONFIG = [
 
     // ── Super Admin ──────────────────────────────────────
     {
-        label: 'Xodimlar',
+        label: 'Foydalanuvchilar',
         path: '/sa/employees',
         icon: Users,
         roles: [SUPER_ADMIN],
+    },
+    // Tizimga kirmaydigan xodimlar: qorovul, farrosh, oshpaz...
+    {
+        label: 'Xodimlar',
+        path: '/staff',
+        icon: UserCog,
+        roles: [SUPER_ADMIN, ADMIN],
+        childPaths: ['/staff/'],
     },
 
     // ── Admin ────────────────────────────────────────────

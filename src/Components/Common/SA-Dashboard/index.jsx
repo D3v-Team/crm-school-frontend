@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { useGetOverviewQuery } from '../../../store/services/statistic.api';
+import { useGetStaffRolesQuery } from '../../../store/services/user.api';
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -9,7 +11,7 @@ import {
     Users, GraduationCap, Users2, Wallet, CalendarDays,
     TrendingUp, TrendingDown, BookOpen, Trophy, CreditCard,
     RefreshCw, LayoutDashboard, ArrowUpRight, DollarSign,
-    Banknote, AlertCircle, CheckCircle2, Clock,
+    Banknote, AlertCircle, CheckCircle2, Clock, UserCog,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
 
@@ -45,9 +47,12 @@ const CHART_TOOLTIP = {
 };
 
 /* ─── reusable shell ─────────────────────────────────── */
-function Card({ children, style = {}, className = '' }) {
+function Card({ children, style = {}, className = '', onClick }) {
     return (
-        <div className={className} style={{
+        <div className={className} onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}
+            onKeyDown={onClick ? (e) => { if (e.key === 'Enter') onClick(); } : undefined}
+            style={{
+            cursor: onClick ? 'pointer' : undefined,
             background: 'var(--card-bg)',
             border: '1px solid var(--card-border)',
             borderRadius: 16,
@@ -79,9 +84,9 @@ function CardHead({ icon: Icon, title, color = 'var(--accent)', action }) {
 }
 
 /* ─── KPI card (top row) ─────────────────────────────── */
-function KpiCard({ icon: Icon, label, value, color, sub, trend }) {
+function KpiCard({ icon: Icon, label, value, color, sub, trend, onClick }) {
     return (
-        <Card>
+        <Card onClick={onClick}>
             <div style={{ padding: '18px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
                     <div style={{
@@ -216,7 +221,9 @@ export default function Dashboard() {
     const pay     = overview?.payment;
     const ranking = overview?.groups_ranking;
 
+    const navigate    = useNavigate();
     const authRole    = useSelector(s => s.auth.role);
+    const { data: staffRolesData } = useGetStaffRolesQuery(undefined, { skip: authRole !== 'super_admin' && authRole !== 'admin' });
     const rawPayment  = useSelector(s => s.auth.is_payment);
     // super_admin va cashier uchun to'lov statistikasi har doim ko'rsatiladi
     const is_payment  = authRole === 'super_admin' || authRole === 'cashier' ? true : rawPayment;
@@ -254,6 +261,11 @@ export default function Dashboard() {
         { key:'cashier', label:'Cashierlar', color:'#ec4899' },
     ];
     const totalUsers = employeeRoles.reduce((total, role) => total + (userCounts[role.key] || 0), 0);
+    /* Tizimga kirmaydigan xodimlar (qorovul, oshpaz...) — TZ 1.8 */
+    const canSeeStaff = authRole === 'super_admin' || authRole === 'admin';
+    const staffTotal  = userCounts.staff ?? 0;
+    const staffByRole = Object.entries(userCounts.staff_by_role || {}).filter(([, count]) => count > 0);
+    const staffRoleLabel = (value) => (staffRolesData?.data || []).find((r) => r.value === value)?.label || value;
 
     const yearOptions = [];
     for (let y = now.getFullYear() - 3; y <= now.getFullYear() + 1; y++) yearOptions.push(y);
@@ -317,7 +329,7 @@ export default function Dashboard() {
                 />
                 <KpiCard
                     icon={Users}
-                    label={authRole === 'super_admin' ? 'Xodimlar' : "O'qituvchilar"}
+                    label={authRole === 'super_admin' ? 'Foydalanuvchilar' : "O'qituvchilar"}
                     color="#10b981"
                     value={authRole === 'super_admin' ? totalUsers : userCounts.teacher || 0}
                     sub={authRole === 'super_admin' ? (
@@ -331,6 +343,23 @@ export default function Dashboard() {
                         </div>
                     ) : undefined}
                 />
+                {canSeeStaff && (
+                    <KpiCard
+                        icon={UserCog} label="Xodimlar" color="#0ea5e9"
+                        value={staffTotal}
+                        onClick={() => navigate('/staff')}
+                        sub={staffByRole.length ? (
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px 12px' }}>
+                                {staffByRole.map(([role, count]) => (
+                                    <div key={role} style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+                                        <span>{staffRoleLabel(role)}</span>
+                                        <strong style={{ color:'#0ea5e9' }}>{count}</strong>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : undefined}
+                    />
+                )}
                 <KpiCard
                     icon={BookOpen} label="Guruhlar" color="#f59e0b"
                     value={g?.groups_count ?? 0}

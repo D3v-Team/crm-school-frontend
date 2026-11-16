@@ -55,7 +55,7 @@ const getMondayOf = (date) => {
     return `${y}-${m}-${dd}`;
 };
 
-const EMPTY = { day_of_week:'monday', start_time:'', end_time:'' };
+const EMPTY = { day_of_week:'monday', start_time:'', end_time:'', subject_id:'' };
 
 /* ── Inline topic editor ── */
 function TopicCell({ item, topicData, canEdit, weekStart, onSaved }) {
@@ -173,7 +173,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
     const isTeacher = role === 'teacher';
 
     /* ── Schedule fetch ── */
-    const [trigger, { isLoading, isFetching, error }] = useLazyGetGroupScheduleByGroupIdQuery();
+    const [trigger, { data: scheduleResponse, isLoading, isFetching, error }] = useLazyGetGroupScheduleByGroupIdQuery();
     const [deleteSchedule, { isLoading: isDeleting }] = useDeleteGroupScheduleMutation();
     const [createSchedule, { isLoading: isCreating }] = useCreateGroupScheduleMutation();
     const [updateSchedule, { isLoading: isUpdating }] = useUpdateGroupScheduleMutation();
@@ -181,8 +181,11 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
     const group = groupResponse?.data || groupResponse;
     const groupSubject = group?.subject || (group?.subject_id ? { id: group.subject_id, name: group.subject_name } : null);
 
+    /* Fani bo'sh (eski) guruh: fan tanlash faqat shunda ko'rsatiladi (TZ 4) */
+    const [backendNeedsSubject, setBackendNeedsSubject] = useState(false);
+    const needsSubject = !groupSubject?.id || backendNeedsSubject;
     /* A fan is only needed for legacy groups without a subject. */
-    const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useGetSubjectsQuery({ limit:100 }, { skip: !!groupSubject?.id });
+    const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useGetSubjectsQuery({ limit:200 }, { skip: !!groupSubject?.id && !backendNeedsSubject });
 
     const [scheduleMap, setScheduleMap] = useState({});
     const [subjectsMap, setSubjectsMap] = useState({});
@@ -213,16 +216,18 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
     /* ── Load data ── */
     const [rawData, setRawData] = useState(null);
     const loadSchedule = () => {
-        if (!groupId) return;
-        trigger(groupId).then(res => {
-            // axiosBaseQuery: hook result = { data: { status, data: [...] } }
-            const d = res?.data?.data ?? res?.data;
-            const records = Array.isArray(d) ? d
-                : Array.isArray(d?.records) ? d.records
-                : [];
-            setRawData(records);
-        });
+        if (groupId) trigger(groupId);
     };
+    /* Hook ma'lumotidan olamiz — kesh invalidatsiyasi (masalan guruh o'qituvchisi/fani
+       o'zgarganda jadval avtomatik yangilanadi) ham shu yerga yetib keladi. */
+    useEffect(() => {
+        if (!scheduleResponse) return;
+        const d = scheduleResponse?.data ?? scheduleResponse;
+        const records = Array.isArray(d) ? d
+            : Array.isArray(d?.records) ? d.records
+            : [];
+        setRawData(records);
+    }, [scheduleResponse]);
 
     useEffect(() => {
         if (groupSubject?.id) setSubjectsMap((current) => ({ ...current, [groupSubject.id]: groupSubject.name || "Fan" }));
@@ -255,7 +260,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
 
     const validate = () => {
         const e={};
-        if (!editingSchedule && !groupSubject?.id && !form.subject_id) e.subject_id='Fan tanlanishi kerak';
+        if (!editingSchedule && needsSubject && !form.subject_id) e.subject_id='Fan tanlanishi kerak';
         if (!form.start_time) e.start_time='Boshlanish vaqti majburiy';
         if (!form.end_time)   e.end_time='Tugash vaqti majburiy';
         if (form.start_time && form.end_time && form.start_time >= form.end_time)
@@ -292,7 +297,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                 day_of_week:form.day_of_week,
                 start_time:form.start_time,
                 end_time:form.end_time,
-                ...(!groupSubject?.id && { subject_id:form.subject_id }),
+                ...(needsSubject && form.subject_id && { subject_id:form.subject_id }),
             }).unwrap();
             const saved = res?.data || res;
             if (saved) {
@@ -303,12 +308,19 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
             loadSchedule();
         } catch (err) {
             setScheduleMap(prev=>({ ...prev, [form.day_of_week]:(prev[form.day_of_week]||[]).filter(i=>i.id!==tempId) }));
+            const message = String(err?.data?.message || '');
+            if (err?.status === 400 && /subject_id|fan biriktirilmagan/i.test(message)) {
+                // Guruh fani bo'sh ekan — formani fan tanlash bilan qayta ochamiz
+                setBackendNeedsSubject(true);
+                setErrors({ subject_id: 'Guruhga fan biriktirilmagan, fan tanlang' });
+                setOpen(true);
+            }
             Alert(err?.data?.message||'Xatolik','error');
         }
     };
 
-    if (rawData === null || isLoading || isFetching || (open && subjectsLoading)) return <Loading/>;
-    if (error) return <div style={{ color:'var(--danger)', padding:12, background:'var(--danger-soft)', borderRadius:10 }}>Xatolik: {error?.data?.message}</div>;
+    if (error && !isFetching) return <div style={{ color:'var(--danger)', padding:12, background:'var(--danger-soft)', borderRadius:10 }}>Xatolik: {error?.data?.message || "Jadvalni yuklab bo'lmadi"}</div>;
+    if (rawData === null || isLoading || (open && subjectsLoading)) return <Loading/>;
 
     return (
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -406,8 +418,9 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
                                         const isParallel = parallelItems.length > 1;
 
                                         /* Teacher faqat o'z darsiga mavzu kira oladi */
+                                        const lessonTeacherId = item.teacher_id || item.teacher?.id || group?.teacher_id || group?.teacher?.id;
                                         const canEditTopic = isTeacher
-                                            ? (item.teacher_id === userId)
+                                            ? (String(lessonTeacherId) === String(userId))
                                             : true; // admin/super_admin hammaga
 
                                         return (
@@ -481,7 +494,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
             <Modal open={open} onClose={()=>{setOpen(false);setEditingSchedule(null);}} title={editingSchedule ? "Dars jadvalini tahrirlash" : "Yangi dars qo'shish"} size="sm">
                 <form onSubmit={handleSubmit}>
                     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                        {!groupSubject?.id && (
+                        {!editingSchedule && needsSubject && (
                             <div>
                                 <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Guruh fani belgilanmagan, fan tanlang</label>
                                 <select className={`field-select no-icon${errors.subject_id?' error':''}`}

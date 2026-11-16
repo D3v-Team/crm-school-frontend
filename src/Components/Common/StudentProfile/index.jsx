@@ -17,6 +17,9 @@ import FaceActions from "./FaceActions";
 import UnassignParent from "./UnassignParent";
 import GroupsSection from "./GroupsSection";
 import StudentScheduleTab from "./StudentScheduleTab";
+import { validateExcelRange } from "../../../utils/files";
+import { readBlobError } from "../../../utils/errors";
+import { Alert } from "../../Other/UI/Alert/Alert";
 import {
     User, Phone, Users, DollarSign, Calendar,
     CheckCircle, XCircle, CreditCard,
@@ -469,6 +472,8 @@ function EntryExitTab({ studentId }) {
 
     const handleExcel = async () => {
         if (!studentId || downloading) return;
+        const rangeError = validateExcelRange(startDate, endDate);
+        if (rangeError) { Alert(rangeError, 'error'); return; }
         setDownloading(true);
         try {
             const blob = await fetchExcel({ student_id: studentId, startDate, endDate }).unwrap();
@@ -481,7 +486,7 @@ function EntryExitTab({ studentId }) {
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Excel yuklab olishda xatolik:', error);
+            Alert(await readBlobError(error, "Excel yuklab bo'lmadi"), 'error');
         } finally {
             setDownloading(false);
         }

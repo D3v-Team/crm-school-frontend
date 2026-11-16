@@ -1160,10 +1160,10 @@ html, body {
    DASHBOARD GRIDS — precise breakpoints
    ========================================= */
 
-/* ── KPI: 5 cols > 900px, 3 cols 600-900, 2 cols < 600 ── */
+/* ── KPI: kartochkalar soniga qarab (5–6 ta) > 1100px, 3 cols 600-1100, 2 cols < 600 ── */
 .dash-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
 }
 @media (max-width: 1100px) {

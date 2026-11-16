@@ -186,7 +186,7 @@ export default function Student() {
                                                             <Eye size={14} />
                                                         </button>
                                                     </NavLink>
-                                                    {!isTeacher && <AddGroup onAdd={() => fetchStudents(page)} studentID={s.id} assignedGroups={s.groups || []} />}
+                                                    {!isTeacher && s.is_active && <AddGroup onAdd={() => fetchStudents(page)} studentID={s.id} assignedGroups={s.groups || []} />}
                                                     {!isTeacher && <Edit student={s} />}
                                                     {/* Faol: Arxivlash; Nofaol: Arxivdan chiqarish + O'chirish */}
                                                     {!isTeacher && <ArchiveStudent student={s} />}

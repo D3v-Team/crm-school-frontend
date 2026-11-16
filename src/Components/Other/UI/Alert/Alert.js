@@ -8,21 +8,33 @@ import Swal from "sweetalert2";
             .swal2-container {
                 z-index: 99999 !important;
             }
-            
+
             .swal2-popup {
                 z-index: 99999 !important;
             }
-            
+
             .swal2-backdrop-show {
                 z-index: 99998 !important;
+            }
+
+            .swal2-title {
+                white-space: pre-line;
             }
         `;
         document.head.appendChild(styleElement);
     }
 })();
+
+/* Backend `message` massiv bo'lishi mumkin — har birini alohida qatorda ko'rsatamiz. */
+const toText = (message) => {
+    if (Array.isArray(message)) return message.filter(Boolean).map(String).join("\n");
+    if (message && typeof message === "object") return message.message ? toText(message.message) : "";
+    return message == null ? "" : String(message);
+};
+
 export const Alert = (message, iconType) => {
     Swal.fire({
-        title: message,
+        titleText: toText(message),
         icon: iconType,
         position: "top-end",
         timer: 3000,
@@ -35,7 +47,7 @@ export const Alert = (message, iconType) => {
 
 export const commonAlert = (message, iconType) => {
     Swal.fire({
-        title: message,
+        titleText: toText(message),
         icon: iconType,
         draggable: true,
     });

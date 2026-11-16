@@ -26,6 +26,19 @@ export const userAttendanceApi = createApi({
             }),
             providesTags: (result, error, params) => [
                 { type: 'UserAttendance', id: `page-${params?.user_id}-${params?.page}` },
+                { type: 'UserAttendance', id: `user-${params?.user_id}` },
+            ],
+        }),
+        // POST /api/user-attendance/create/:user_id — qo'lda belgilash (faqat admin).
+        // Body yo'q; har chaqiriqda navbatma-navbat IN/OUT yoziladi.
+        createUserAttendance: builder.mutation({
+            query: (userId) => ({
+                url: `/user-attendance/create/${userId}`,
+                method: 'POST',
+            }),
+            invalidatesTags: (result, error, userId) => [
+                { type: 'UserAttendance', id: `user-${userId}` },
+                { type: 'UserAttendance', id: `all-${userId}` },
             ],
         }),
         // GET /api/user-attendance/excel?startDate=&endDate= — blob
@@ -49,4 +62,5 @@ export const {
     useLazyGetUserAttendancePageQuery,
     useGetUserAttendanceExcelQuery,
     useLazyGetUserAttendanceExcelQuery,
+    useCreateUserAttendanceMutation,
 } = userAttendanceApi;
