@@ -4,6 +4,7 @@ import { User, UserCircle, Phone, Pencil } from "lucide-react";
 import { Alert } from "../../../Other/UI/Alert/Alert";
 import Modal from "../../../Other/UI/Modal/Modal";
 import FormField, { Input } from "../../../Other/UI/FormField/FormField";
+import { isUsernameTakenError } from "../../../../utils/errors";
 
 export default function Edit({ user }) {
     const [open, setOpen] = useState(false);
@@ -54,7 +55,8 @@ export default function Edit({ user }) {
             Alert("Muvaffaqiyatli yangilandi", "success");
             setOpen(false);
         } catch (err) {
-            Alert(err?.data?.message || "Xatolik yuz berdi", "error");
+            if (isUsernameTakenError(err)) setErrors((current) => ({ ...current, username: "Bu username band, boshqasini tanlang" }));
+            else Alert(err?.data?.message || "Xatolik yuz berdi", "error");
         }
     };
 

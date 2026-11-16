@@ -15,6 +15,7 @@ import Loading from '../../Other/UI/Loadings/Loading';
 import Modal from '../../Other/UI/Modal/Modal';
 import { Alert } from '../../Other/UI/Alert/Alert';
 import DebouncedSearchInput from '../../Other/UI/DebouncedSearchInput';
+import { isUsernameTakenError } from '../../../utils/errors';
 
 const ROLE_OPTIONS = [
     { value: 'admin',   label: 'Admin'      },
@@ -90,7 +91,10 @@ function UserFormModal({ user, onClose, onSaved }) {
             Alert(isEdit ? 'Xodim yangilandi' : "Xodim qo'shildi", 'success');
             onSaved();
             onClose();
-        } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
+        } catch (err) {
+            if (isUsernameTakenError(err)) setErrors((current) => ({ ...current, username: 'Bu username band, boshqasini tanlang' }));
+            else Alert(err?.data?.message || 'Xatolik', 'error');
+        }
     };
 
     const fld = (label, key, type = 'text', placeholder = '') => (

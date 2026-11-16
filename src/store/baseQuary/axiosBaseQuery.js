@@ -30,8 +30,6 @@ export const axiosBaseQuery = () => async ({ url, method, data, params, headers,
             error: {
                 status: err.response?.status,
                 data: err.response?.data || err.message,
-                // 429 uchun Retry-After (soniya) — backend CORS orqali ochib bergan
-                retryAfter: err.response?.headers?.['retry-after'] ?? null,
             },
         };
     }

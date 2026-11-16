@@ -1,5 +1,6 @@
 import axios from "axios";
 import Cookies from "js-cookie";
+import { logout, setRole } from "./slices/auth.slice";
 
 /* ===============================
    CONFIG
@@ -14,6 +15,40 @@ export const $api = axios.create({
 });
 
 export const AUTH_COOKIE_KEYS = ["token", "refresh_token", "userId", "us_nesw", "jti", "role", "is_payment", "nesw"];
+let authStore = null;
+let roleRefreshPromise = null;
+
+export const registerAuthStore = (store) => {
+    authStore = store;
+};
+
+const refreshRoleAfterForbidden = async () => {
+    if (!authStore) return;
+    if (!roleRefreshPromise) {
+        const userId = authStore.getState()?.auth?.userId || Cookies.get("userId") || Cookies.get("us_nesw");
+        if (!userId) return;
+        roleRefreshPromise = $api.get(`/user/${userId}`, { _roleRefresh: true })
+            .then((response) => {
+                const profile = response.data?.data ?? response.data;
+                if (profile?.role) authStore.dispatch(setRole(profile.role));
+            })
+            .catch((error) => {
+                if ([401, 403].includes(error.response?.status)) {
+                    authStore.dispatch(logout());
+                    window.location.replace("/login");
+                } else {
+                    console.error(
+                        "Profil rolini 403 javobidan keyin yangilab bo'lmadi",
+                        error.response?.status || "tarmoq xatosi",
+                    );
+                }
+            })
+            .finally(() => {
+                roleRefreshPromise = null;
+            });
+    }
+    await roleRefreshPromise;
+};
 
 /* Refresh qilinmaydigan so'rovlar: login/refresh/logout o'zi va ochiq test sahifasi */
 const NO_REFRESH_PATHS = ["/auth/login", "/auth/refresh", "/auth/logout", "/test/public/"];
@@ -151,6 +186,9 @@ $api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        if (error.response?.status === 403 && !originalRequest?._roleRefresh) {
+            await refreshRoleAfterForbidden();
+        }
         if (!originalRequest || error.response?.status !== 401 || originalRequest._retry || skipsRefresh(originalRequest.url)) {
             return Promise.reject(error);
         }

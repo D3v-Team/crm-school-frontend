@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLazyGetGroupEntryExitQuery } from '../../../../store/services/student-attendance.api';
 import { LogIn, LogOut, Calendar, X } from 'lucide-react';
 import Loading from '../../../Other/UI/Loadings/Loading';
+import { getErrorMessage } from '../../../../utils/errors';
 
 export default function EntryExitTab({ groupId }) {
     // Bugungi kun uchun
@@ -49,7 +50,7 @@ export default function EntryExitTab({ groupId }) {
                 borderRadius: 12,
                 fontSize: '0.85rem'
             }}>
-                Xatolik: {error?.data?.message || 'Ma\'lumotlarni yuklashda xatolik'}
+                Xatolik: {getErrorMessage(error, 'Ma\'lumotlarni yuklashda xatolik')}
             </div>
         );
     }

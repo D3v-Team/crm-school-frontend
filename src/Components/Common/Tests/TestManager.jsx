@@ -25,7 +25,11 @@ const extractRecords = (response) => {
 };
 const errorMessage = (error) => {
     const message = error?.response?.data?.message || error?.data?.message || error?.message;
-    return Array.isArray(message) ? message.join(', ') : message || 'Xatolik yuz berdi';
+    const text = Array.isArray(message) ? message.join(', ') : message || 'Xatolik yuz berdi';
+    const status = error?.response?.status ?? error?.status;
+    return status === 403
+        ? `${text} Test ko'rinmay qolgan bo'lsa, guruh boshqa o'qituvchiga o'tgan bo'lishi mumkin.`
+        : text;
 };
 const newQuestion = () => ({
     text: '',
@@ -397,10 +401,10 @@ export default function TestManager() {
     }, []);
 
     useEffect(() => {
-        if (view !== 'results' || !selectedTest?.id) return undefined;
+        if (view !== 'results' || !selectedTest?.id || resultsError) return undefined;
         const interval = window.setInterval(() => loadResults(selectedTest.id), 12000);
         return () => window.clearInterval(interval);
-    }, [view, selectedTest, loadResults]);
+    }, [view, selectedTest, loadResults, resultsError]);
 
     const startCreate = () => {
         setEditingTest(null);

@@ -1,9 +1,10 @@
 import { configureStore, createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
+import { registerAuthStore } from './api';
 import { authApi } from './services/auth.api';
 import { statisticApi } from './services/statistic.api';
 import { userApi } from './services/user.api';
-import authReducer from './slices/auth.slice';
+import authReducer, { logout } from './slices/auth.slice';
 import { studentApi } from './services/student.api';
 import { subjectApi } from './services/subject.api';
 import { groupApi } from './services/group.api';
@@ -75,6 +76,17 @@ crossInvalidation.startListening({
         api.dispatch(studentApi.util.invalidateTags([{ type: 'Student', id: studentId }, { type: 'Student', id: 'LIST' }]));
     },
 });
+crossInvalidation.startListening({
+    matcher: userApi.endpoints.resetPassword.matchFulfilled,
+    effect: (action, api) => {
+        const userId = action.meta?.arg?.originalArgs?.id;
+        const authUserId = api.getState()?.auth?.userId;
+        if (userId && authUserId && String(userId) === String(authUserId)) {
+            api.dispatch(logout());
+            window.location.replace('/login');
+        }
+    },
+});
 
 export const store = configureStore({
     reducer: {
@@ -121,5 +133,6 @@ export const store = configureStore({
         ),
 });
 
+registerAuthStore(store);
 setupListeners(store.dispatch);
 export default store;

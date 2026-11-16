@@ -16,11 +16,14 @@ const joinedDate = (group) => {
 
 export default function GroupsSection({ student, onRefresh }) {
     const dispatch = useDispatch();
-    const role = useSelector((state) => state.auth?.role);
+    const { role, userId } = useSelector((state) => state.auth);
     const canManage = role === "admin" || role === "super_admin";
     const [removeGroup, { isLoading }] = useUnassignGroupMutation();
     const [pendingGroup, setPendingGroup] = useState(null);
     const groups = student?.groups || [];
+    const visibleGroups = role === "teacher"
+        ? groups.filter((group) => String(group.teacher?.id || group.teacher_id) === String(userId))
+        : groups;
 
     const confirmRemove = async () => {
         if (!pendingGroup) return;
@@ -39,15 +42,17 @@ export default function GroupsSection({ student, onRefresh }) {
         <section style={{ marginTop: 18, borderTop: "1px solid var(--card-border)", paddingTop: 16 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, color: "var(--text-primary)", fontWeight: 700 }}>
-                    <Layers size={15} style={{ color: "var(--accent)" }} /> Guruhlar ({groups.length})
+                    <Layers size={15} style={{ color: "var(--accent)" }} /> Guruhlar ({visibleGroups.length})
                 </div>
                 {canManage && student.is_active && <AddGroup studentID={student.id} onAdd={onRefresh} assignedGroups={groups} buttonText="Guruhga qo'shish" />}
             </div>
-            {groups.length === 0 ? (
-                <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>O&apos;quvchi hech qaysi guruhga biriktirilmagan.</div>
+            {visibleGroups.length === 0 ? (
+                <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                    {role === "teacher" ? "Sizga biriktirilgan guruhlar topilmadi." : "O&apos;quvchi hech qaysi guruhga biriktirilmagan."}
+                </div>
             ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 8 }}>
-                    {groups.map((group) => (
+                    {visibleGroups.map((group) => (
                         <div key={group.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 11px", borderRadius: 10, background: "var(--input-bg)", border: "1px solid var(--card-border)" }}>
                             <div style={{ minWidth: 0 }}>
                                 <Link to={`/group/${group.id}`} style={{ fontSize: "0.82rem", fontWeight: 650, color: "var(--text-primary)", textDecoration: "none" }}>{group.name}</Link>

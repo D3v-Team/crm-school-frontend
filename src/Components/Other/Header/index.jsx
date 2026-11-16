@@ -67,6 +67,7 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile =
 
     const handleLogout = async () => {
         if (loggingOut) return;
+        if (!window.confirm("Chiqish barcha qurilmalardagi sessiyangizni bekor qiladi. Davom etasizmi?")) return;
         // Serverda sessiyani bekor qilamiz (access token darhol o'ladi, TZ 2.2).
         // Tarmoq xatosi bo'lsa ham lokal tokenlar baribir o'chiriladi.
         try { await logoutRequest().unwrap(); } catch { /* ignore */ }
@@ -317,7 +318,7 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile =
                                     <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--danger-soft)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <LogOut style={{ width: 14, height: 14 }} />
                                     </div>
-                                    Chiqish
+                                    Chiqish (barcha qurilmalardan)
                                 </button>
                             </div>
                         </div>

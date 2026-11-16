@@ -14,6 +14,7 @@ import {
 import Loading from '../../Other/UI/Loadings/Loading';
 import Modal from '../../Other/UI/Modal/Modal';
 import { Alert } from '../../Other/UI/Alert/Alert';
+import { isUsernameTakenError } from '../../../utils/errors';
 
 /* ─── School CRUD ─── */
 function SchoolForm({ initial, onSubmit, onClose, loading }) {
@@ -90,7 +91,10 @@ function CreateSuperAdminModal({ schools, open, onClose }) {
             Alert("Super Admin yaratildi", 'success');
             setForm({ full_name: '', username: '', phone: '', password: '', school_id: '' });
             onClose();
-        } catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
+        } catch (err) {
+            if (isUsernameTakenError(err)) setErrors((current) => ({ ...current, username: 'Bu username band, boshqasini tanlang' }));
+            else Alert(err?.data?.message || 'Xatolik', 'error');
+        }
     };
 
     const inp = { paddingLeft: 14 };

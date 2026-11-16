@@ -129,7 +129,7 @@ export default function Staff() {
                                                 <button className="action-btn action-btn-ghost" title="Davomat" onClick={() => navigate(`/staff/${staff.id}`)}>
                                                     <CalendarDays size={13} />
                                                 </button>
-                                                <UserFaceActions compact userId={staff.id} userName={staff.full_name} hasFace={staff.has_face_id} />
+                                                <UserFaceActions compact userId={staff.id} userName={staff.full_name} hasFace={staff.has_face_id} targetRole={staff.role} />
                                                 <button className="action-btn action-btn-primary" title="Tahrirlash" onClick={() => setFormStaff(staff)}>
                                                     <Pencil size={13} />
                                                 </button>

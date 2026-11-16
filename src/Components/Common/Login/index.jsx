@@ -5,7 +5,7 @@ import { useLoginMutation } from "../../../store/services/auth.api";
 import { User, UserRound, Lock, GraduationCap, Moon, Sun, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Alert } from "../../Other/UI/Alert/Alert";
 import { Link } from "react-router-dom";
-import { getErrorMessage, getErrorStatus } from "../../../utils/errors";
+import { getErrorMessage, getErrorStatus, getRetryAfterSeconds } from "../../../utils/errors";
 
 export default function Login() {
   const [loginField, setLoginField] = useState("");
@@ -69,14 +69,7 @@ export default function Login() {
       const message = getErrorMessage(err, "Avtorizatsiya xatosi");
       setFormError(message);
       if (status === 429) {
-        // Avval Retry-After sarlavhasi, bo'lmasa xabardagi daqiqa/soniya, topilmasa 30 soniya
-        const minutes = /(\d+)\s*daqiqa/i.exec(message);
-        const seconds = /(\d+)\s*soniya/i.exec(message);
-        const retryAfter = Number(err?.retryAfter);
-        const waitMs = retryAfter > 0 ? retryAfter * 1000
-          : minutes ? Number(minutes[1]) * 60000
-          : seconds ? Number(seconds[1]) * 1000
-          : 30000;
+        const waitMs = getRetryAfterSeconds(err) * 1000;
         setNow(Date.now());
         setLockedUntil(Date.now() + waitMs);
       }

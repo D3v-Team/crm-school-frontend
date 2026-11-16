@@ -6,6 +6,7 @@ import Delete from "./__components/Delete";
 import Loading from "../../Other/UI/Loadings/Loading";
 import Modal from "../../Other/UI/Modal/Modal";
 import { Alert } from "../../Other/UI/Alert/Alert";
+import { useSelector } from "react-redux";
 import { NavLink } from "react-router-dom";
 import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 import {
@@ -60,6 +61,7 @@ function ResetPasswordModal({ user, onClose }) {
 }
 
 export default function Teacher() {
+    const authRole = useSelector((state) => state.auth?.role);
     const [page, setPage] = useState(1);
     const [limit] = useState(30);
     const [search, setSearch] = useState("");
@@ -147,11 +149,13 @@ export default function Teacher() {
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: 6 }}>
-                                                    <NavLink to={`/teacher/${u.id}`}>
-                                                        <button className="action-btn action-btn-ghost" title="Ko'rish">
-                                                            <Eye size={14} />
-                                                        </button>
-                                                    </NavLink>
+                                                    {authRole !== 'teacher' && (
+                                                        <NavLink to={`/teacher/${u.id}`}>
+                                                            <button className="action-btn action-btn-ghost" title="Ko'rish">
+                                                                <Eye size={14} />
+                                                            </button>
+                                                        </NavLink>
+                                                    )}
                                                     <button className="action-btn action-btn-ghost" onClick={() => setResetPwUser(u)} title="Parolni yangilash">
                                                         <KeyRound size={14}/>
                                                     </button>

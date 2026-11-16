@@ -4,6 +4,7 @@ import { User, UserCircle, Phone, Pencil } from "lucide-react";
 import { Alert } from "../../../Other/UI/Alert/Alert";
 import Modal from "../../../Other/UI/Modal/Modal";
 import FormField, { Input } from "../../../Other/UI/FormField/FormField";
+import { isUsernameTakenError } from "../../../../utils/errors";
 
 export default function Edit({ user }) {
     const [open, setOpen] = useState(false);
@@ -39,7 +40,10 @@ export default function Edit({ user }) {
         const payload = { full_name:form.full_name, username:form.username, phone:form.phone };
         if (form.password) payload.password = form.password;
         try { await updateUser({ id:user.id, data:payload }).unwrap(); Alert("Yangilandi","success"); setOpen(false); }
-        catch(err){ Alert(err?.data?.message||"Xatolik","error"); }
+        catch(err){
+            if (isUsernameTakenError(err)) setErrors((current) => ({ ...current, username:"Bu username band, boshqasini tanlang" }));
+            else Alert(err?.data?.message||"Xatolik","error");
+        }
     };
 
     return (

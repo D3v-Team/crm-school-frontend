@@ -4,6 +4,7 @@ import { User, UserCircle, Phone, Key, Eye, EyeOff, Plus } from "lucide-react";
 import { Alert } from "../../../Other/UI/Alert/Alert";
 import Modal from "../../../Other/UI/Modal/Modal";
 import FormField, { Input } from "../../../Other/UI/FormField/FormField";
+import { isUsernameTakenError } from "../../../../utils/errors";
 
 export default function Create() {
     const [open, setOpen] = useState(false);
@@ -33,7 +34,10 @@ export default function Create() {
         e.preventDefault();
         if (!validate()) return;
         try { await createUser(form).unwrap(); Alert("Ota-ona yaratildi","success"); handleClose(); }
-        catch(err){ Alert(err?.data?.message||"Xatolik","error"); }
+        catch(err){
+            if (isUsernameTakenError(err)) setErrors((current) => ({ ...current, username:"Bu username band, boshqasini tanlang" }));
+            else Alert(err?.data?.message||"Xatolik","error");
+        }
     };
 
     return (
