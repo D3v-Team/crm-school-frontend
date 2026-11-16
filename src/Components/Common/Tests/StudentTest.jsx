@@ -25,6 +25,20 @@ const getSavedSession = (code) => {
         return null;
     }
 };
+/* attempt_token — kalit `test:<code>:<student_id>` (TZ 2.4) */
+const tokenKey = (code, studentId) => `test:${code}:${studentId}`;
+const getAttemptToken = (code, studentId) => {
+    try { return localStorage.getItem(tokenKey(code, studentId)) || ''; } catch { return ''; }
+};
+const setAttemptToken = (code, studentId, token) => {
+    try { if (token) localStorage.setItem(tokenKey(code, studentId), token); } catch { /* ignore */ }
+};
+const removeAttemptToken = (code, studentId) => {
+    try { if (studentId) localStorage.removeItem(tokenKey(code, studentId)); } catch { /* ignore */ }
+};
+const statusOf = (error) => error?.response?.status;
+const OTHER_DEVICE_MESSAGE = 'Bu test boshqa qurilmada boshlangan. O‘sha qurilmadan davom eting yoki o‘qituvchidan testni qayta ochib berishni so‘rang.';
+const INVALID_TOKEN_MESSAGE = 'Test sessiyasi tasdiqlanmadi (token noto‘g‘ri yoki eskirgan). Testni kod orqali qaytadan oching.';
 const formatTime = (seconds) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
 export default function StudentTest() {
@@ -47,6 +61,9 @@ export default function StudentTest() {
     const [result, setResult] = useState(null);
     const [confirmFinish, setConfirmFinish] = useState(false);
     const [isDark, setIsDark] = useState(false);
+    const [sessionInvalid, setSessionInvalid] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
+    const attemptTokenRef = useRef('');
     const answerQueueRef = useRef(Promise.resolve());
     const answersRef = useRef({});
     const finishStartedRef = useRef(false);
@@ -77,6 +94,8 @@ export default function StudentTest() {
         setError('');
         setStudentToConfirm(null);
         setRemainingSeconds(null);
+        setSessionInvalid(false);
+        attemptTokenRef.current = '';
         finishStartedRef.current = false;
         if (!code) {
             setLoading(false);
@@ -104,15 +123,20 @@ export default function StudentTest() {
         return () => { cancelled = true; };
     // beginAttempt is intentionally stable for the current route's resume request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [code]);
+    }, [code, reloadKey]);
 
     const beginAttempt = useCallback(async (testCode, studentId, cancelled = false) => {
         setStarting(true);
         setError('');
         try {
-            const response = await startPublicAttempt(testCode, studentId);
+            const savedToken = getAttemptToken(testCode, studentId);
+            const response = await startPublicAttempt(testCode, studentId, savedToken);
             if (cancelled) return;
             const data = responsePayload(response);
+            const attemptToken = data.attempt_token || savedToken;
+            // Tokenni darhol saqlaymiz: sahifa yangilansa ham shu qurilmadan davom etiladi
+            setAttemptToken(testCode, studentId, attemptToken);
+            attemptTokenRef.current = attemptToken;
             setAttempt(data);
             const restoredAnswers = Object.fromEntries((data.answers || []).map((answer) => [answer.question_id, answer.option_id]));
             const saved = getSavedSession(testCode);
@@ -129,8 +153,18 @@ export default function StudentTest() {
             }));
         } catch (requestFailure) {
             if (cancelled) return;
-            if (isAlreadyFinished(requestFailure)) {
+            if (statusOf(requestFailure) === 409) {
+                // Test boshqa qurilmada boshlangan yoki token yo'qolgan
                 localStorage.removeItem(storageKey(testCode));
+                removeAttemptToken(testCode, studentId);
+                setError(OTHER_DEVICE_MESSAGE);
+            } else if (statusOf(requestFailure) === 403) {
+                localStorage.removeItem(storageKey(testCode));
+                removeAttemptToken(testCode, studentId);
+                setError(INVALID_TOKEN_MESSAGE);
+            } else if (isAlreadyFinished(requestFailure)) {
+                localStorage.removeItem(storageKey(testCode));
+                removeAttemptToken(testCode, studentId);
                 setError('Siz bu testni allaqachon topshirgansiz. O‘quvchilar ro‘yxatidan boshqa ismni tanlang.');
                 setStudentTest((current) => current ? ({
                     ...current,
@@ -185,11 +219,17 @@ export default function StudentTest() {
             let lastError;
             for (let retry = 0; retry <= 2; retry += 1) {
                 try {
-                    await savePublicAnswer(attempt.attempt_id, { question_id: questionId, option_id: optionId });
+                    await savePublicAnswer(attempt.attempt_id, { question_id: questionId, option_id: optionId }, attemptTokenRef.current);
                     setSavingQuestion((current) => current === questionId ? '' : current);
                     return;
                 } catch (requestFailure) {
                     lastError = requestFailure;
+                    if (statusOf(requestFailure) === 403 || statusOf(requestFailure) === 409) {
+                        // Token noto'g'ri — qayta urinish foyda bermaydi
+                        setSavingQuestion('');
+                        invalidateSession();
+                        return;
+                    }
                     if (isAlreadyFinished(requestFailure)) {
                         await finishAttempt(true, true);
                         return;
@@ -213,16 +253,22 @@ export default function StudentTest() {
         try {
             if (!skipAnswerQueue) await answerQueueRef.current;
             const pendingAnswers = Object.entries(answersRef.current).map(([question_id, option_id]) => ({ question_id, option_id }));
-            const response = await finishPublicAttempt(attempt.attempt_id, pendingAnswers);
+            const response = await finishPublicAttempt(attempt.attempt_id, pendingAnswers, attemptTokenRef.current);
             const data = responsePayload(response);
             setResult(data);
             setConfirmFinish(false);
             localStorage.removeItem(storageKey(code));
+            // Test tugadi — token endi kerak emas
+            removeAttemptToken(code, attempt.student?.id || getSavedSession(code)?.student_id);
         } catch (requestFailure) {
             finishStartedRef.current = false;
-            if (isAlreadyFinished(requestFailure)) {
+            if (statusOf(requestFailure) === 403 || statusOf(requestFailure) === 409) {
+                setConfirmFinish(false);
+                invalidateSession();
+            } else if (isAlreadyFinished(requestFailure)) {
                 setError(requestError(requestFailure));
                 localStorage.removeItem(storageKey(code));
+                removeAttemptToken(code, attempt.student?.id);
             } else {
                 setError(automatic
                     ? `Vaqt tugadi, lekin testni yakunlashda xatolik yuz berdi: ${requestError(requestFailure)}`
@@ -232,6 +278,26 @@ export default function StudentTest() {
             setFinishing(false);
         }
     }, [attempt, code]);
+
+    /* 403/409: urinish bu qurilmaga tegishli emas — qayta ochishni taklif qilamiz */
+    function invalidateSession() {
+        const studentId = attempt?.student?.id || getSavedSession(code)?.student_id;
+        removeAttemptToken(code, studentId);
+        localStorage.removeItem(storageKey(code));
+        attemptTokenRef.current = '';
+        setSessionInvalid(true);
+    }
+
+    const reopenTest = () => {
+        setSessionInvalid(false);
+        setAttempt(null);
+        setAnswers({});
+        answersRef.current = {};
+        setError('');
+        setRemainingSeconds(null);
+        finishStartedRef.current = false;
+        setReloadKey((key) => key + 1);
+    };
 
     const hasTimer = remainingSeconds !== null;
     useEffect(() => {
@@ -297,6 +363,22 @@ export default function StudentTest() {
                     <div className="student-result-score">{correct}<span> / {total}</span></div>
                     <p className="student-result-message">ta savoldan <strong>{correct} ta</strong> to‘g‘ri — <strong>{percent}%</strong></p>
                     <div className="student-result-progress"><span style={{ width: `${Math.min(percent, 100)}%` }} /></div>
+                </section>
+            </main>
+        );
+    }
+
+    if (sessionInvalid) {
+        return (
+            <main className="student-test-page">
+                <button className="student-theme-toggle" type="button" onClick={toggleTheme} aria-label={isDark ? 'Yorug‘ rejimga o‘tish' : 'Qorong‘i rejimga o‘tish'}>
+                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <section className="student-test-card student-error-card">
+                    <div className="student-error-mark"><X size={25} /></div>
+                    <h1>Javob saqlanmadi</h1>
+                    <p role="alert">{INVALID_TOKEN_MESSAGE}</p>
+                    <button className="student-primary-button" type="button" onClick={reopenTest}>Testni qaytadan ochish</button>
                 </section>
             </main>
         );

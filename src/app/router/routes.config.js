@@ -25,6 +25,18 @@ export const ROUTES = [
         roles: [SUPER_ADMIN],
     },
 
+    // ── Xodimlar (login qilmaydigan: qorovul, oshpaz...) ──
+    {
+        path: '/staff',
+        component: lazy(() => import('../../Components/Common/Staff')),
+        roles: [SUPER_ADMIN, ADMIN],
+    },
+    {
+        path: '/staff/:id',
+        component: lazy(() => import('../../Components/Common/Staff/StaffProfile')),
+        roles: [SUPER_ADMIN, ADMIN],
+    },
+
     // ── Super Admin (eski) ───────────────────────────────
     {
         path: '/sa/employee',

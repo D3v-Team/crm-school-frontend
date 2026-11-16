@@ -2,13 +2,17 @@ import React, { useState, useRef, useEffect } from "react";
 import { LogOut, User, ChevronDown, Moon, Sun, PanelLeftOpen, PanelLeftClose, Menu, Camera, CameraOff, RefreshCw, ClipboardCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import { useAppSelector } from "../../../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { useLazyPingCameraQuery } from "../../../store/services/hikvision.api";
+import { useLogoutMutation } from "../../../store/services/auth.api";
+import { logout } from "../../../store/slices/auth.slice";
 
 const CAMERA_ROLES = ['admin', 'super_admin', 'hr'];
 
 export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile = false, ...props }) {
     const navigate = useNavigate();
+    const dispatch = useAppDispatch();
+    const [logoutRequest, { isLoading: loggingOut }] = useLogoutMutation();
     const [openMenu, setOpenMenu] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const menuRef = useRef(null);
@@ -61,10 +65,15 @@ export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile =
         localStorage.setItem("theme", next ? "dark" : "light");
     };
 
-    const handleLogout = () => {
-        localStorage.clear();
-        Cookies.remove('role');
-        navigate("/login");
+    const handleLogout = async () => {
+        if (loggingOut) return;
+        // Serverda sessiyani bekor qilamiz (access token darhol o'ladi, TZ 2.2).
+        // Tarmoq xatosi bo'lsa ham lokal tokenlar baribir o'chiriladi.
+        try { await logoutRequest().unwrap(); } catch { /* ignore */ }
+        dispatch(logout());
+        setOpenMenu(false);
+        // To'liq qayta yuklash — barcha RTK Query keshlari tozalanadi
+        window.location.replace("/login");
     };
 
     useEffect(() => {

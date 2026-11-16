@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { useGetUserByIdQuery } from "../../../store/services/user.api";
 import { User, Shield, Phone, AtSign, Calendar, ArrowLeft } from "lucide-react";
 import Loading from "../../Other/UI/Loadings/Loading";
@@ -13,6 +14,8 @@ const ROLE_MAP = {
 export default function TeacherProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const authRole = useSelector((state) => state.auth?.role);
+    const canManageFace = authRole === "admin" || authRole === "super_admin";
     const { data: userData, isLoading, error } = useGetUserByIdQuery(id, { skip: !id });
     const user = userData?.data || userData;
 
@@ -77,11 +80,13 @@ export default function TeacherProfile() {
                         </div>
                     </div>
                     {/* Face actions — top right */}
-                    <UserFaceActions
-                        userId={id}
-                        userName={user?.full_name || '—'}
-                        hasFace={!!user?.hikvision_code}
-                    />
+                    {canManageFace && (
+                        <UserFaceActions
+                            userId={id}
+                            userName={user?.full_name || '—'}
+                            hasFace={user?.has_face_id ?? !!user?.hikvision_code}
+                        />
+                    )}
                 </div>
             </div>
 

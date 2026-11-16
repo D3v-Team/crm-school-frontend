@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useSendBroadcastMutation, useSendPaymentReminderMutation } from '../../../store/services/bot.api';
 import { useGetGroupsQuery } from '../../../store/services/group.api';
 import { Alert } from '../../Other/UI/Alert/Alert';
+import { BROADCAST_PHOTO_ACCEPT, validateBroadcastPhoto } from '../../../utils/files';
 import {
     Send, Bell, Users, MessageSquare, DollarSign,
     CheckCircle, Image, X, Plus, Trash2, ChevronDown,
@@ -126,6 +127,28 @@ function TelegramPreview({ text, photoPreview, buttons }) {
     );
 }
 
+/* ── Telegram cheklovlari (TZ 2.7) ── */
+const MAX_TEXT    = 4096;
+const MAX_CAPTION = 1024; // rasm bilan yuborilganda
+const MAX_BUTTONS = 10;
+const MAX_LABEL   = 64;
+const URL_RE      = /^https?:\/\/\S+$/i;
+
+function validateBroadcast(text, photo, buttons) {
+    const trimmed = text.trim();
+    if (!trimmed) return 'Xabar matni majburiy';
+    if (photo && trimmed.length > MAX_CAPTION) return `Rasm bilan yuborilganda matn ${MAX_CAPTION} belgidan oshmasligi kerak (hozir ${trimmed.length})`;
+    if (trimmed.length > MAX_TEXT) return `Matn ${MAX_TEXT} belgidan oshmasligi kerak (hozir ${trimmed.length})`;
+    const filled = buttons.filter(b => b.text.trim() || b.url.trim());
+    if (filled.length > MAX_BUTTONS) return `Ko'pi bilan ${MAX_BUTTONS} ta tugma qo'shish mumkin`;
+    for (const button of filled) {
+        if (!button.text.trim()) return 'Har bir tugmaga matn yozing';
+        if (button.text.trim().length > MAX_LABEL) return `Tugma matni ${MAX_LABEL} belgidan oshmasligi kerak`;
+        if (!URL_RE.test(button.url.trim())) return `"${button.text.trim()}" tugmasi uchun http:// yoki https:// bilan boshlanadigan havola kiriting`;
+    }
+    return '';
+}
+
 /* ── Broadcast Form ── */
 function BroadcastForm({ isAdmin }) {
     const [text,         setText]         = useState('');
@@ -137,7 +160,8 @@ function BroadcastForm({ isAdmin }) {
 
     const [sendBroadcast, { isLoading }] = useSendBroadcastMutation();
 
-    const addButton    = () => setButtons(b => [...b, { text: '', url: '' }]);
+    const textLimit    = photo ? MAX_CAPTION : MAX_TEXT;
+    const addButton    = () => setButtons(b => b.length >= MAX_BUTTONS ? b : [...b, { text: '', url: '' }]);
     const removeButton = (i) => setButtons(b => b.filter((_, idx) => idx !== i));
     const updateButton = (i, field, val) =>
         setButtons(b => b.map((btn, idx) => idx === i ? { ...btn, [field]: val } : btn));
@@ -145,6 +169,12 @@ function BroadcastForm({ isAdmin }) {
     const handlePhoto = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        const invalid = validateBroadcastPhoto(file);
+        if (invalid) {
+            Alert(invalid, 'error');
+            e.target.value = '';
+            return;
+        }
         setPhoto(file);
         setPhotoPreview(URL.createObjectURL(file));
     };
@@ -156,13 +186,15 @@ function BroadcastForm({ isAdmin }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!text.trim()) { Alert('Xabar matni majburiy', 'error'); return; }
+        const problem = validateBroadcast(text, photo, buttons);
+        if (problem) { Alert(problem, 'error'); return; }
         const validButtons = buttons.filter(b => b.text.trim());
         const formData = new FormData();
         formData.append('text', text.trim());
         if (validButtons.length > 0) {
-            const inlineKeyboard = validButtons.map(b => ([{ text: b.text, url: b.url || undefined }]));
-            formData.append('buttons', JSON.stringify(inlineKeyboard));
+            // Backend formati: [{"label":"Sayt","url":"https://..."}] (TZ 2.7)
+            const payloadButtons = validButtons.map(b => ({ label: b.text.trim(), url: b.url.trim() }));
+            formData.append('buttons', JSON.stringify(payloadButtons));
         }
         if (photo) formData.append('photo', photo);
         try {
@@ -192,8 +224,8 @@ function BroadcastForm({ isAdmin }) {
                     onFocus={e => e.target.style.borderColor = 'var(--accent)'}
                     onBlur={e  => e.target.style.borderColor = 'var(--input-border)'}
                 />
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'right' }}>
-                    {text.length} belgi
+                <div style={{ fontSize: '0.72rem', color: text.length > textLimit ? 'var(--danger)' : 'var(--text-muted)', marginTop: 4, textAlign: 'right' }}>
+                    {text.length} / {textLimit} belgi{photo ? ' (rasm bilan)' : ''}
                 </div>
             </div>
 
@@ -226,7 +258,7 @@ function BroadcastForm({ isAdmin }) {
                         <Image size={16}/> Rasm yuklash
                     </button>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }}/>
+                <input ref={fileRef} type="file" accept={BROADCAST_PHOTO_ACCEPT} onChange={handlePhoto} style={{ display: 'none' }}/>
             </div>
 
             {/* Inline buttons */}
@@ -246,13 +278,13 @@ function BroadcastForm({ isAdmin }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {buttons.map((btn, i) => (
                             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <input placeholder="Tugma matni" value={btn.text}
+                                <input placeholder="Tugma matni" value={btn.text} maxLength={MAX_LABEL}
                                     onChange={e => updateButton(i, 'text', e.target.value)}
                                     style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '1 1 120px', minWidth: 0 }}
                                     onFocus={e => e.target.style.borderColor = 'var(--accent)'}
                                     onBlur={e  => e.target.style.borderColor = 'var(--input-border)'}
                                 />
-                                <input placeholder="URL (ixtiyoriy)" value={btn.url}
+                                <input placeholder="https://..." value={btn.url} inputMode="url"
                                     onChange={e => updateButton(i, 'url', e.target.value)}
                                     style={{ ...inputStyle, padding: '8px 12px', resize: 'none', flex: '2 1 160px', minWidth: 0 }}
                                     onFocus={e => e.target.style.borderColor = 'var(--accent)'}

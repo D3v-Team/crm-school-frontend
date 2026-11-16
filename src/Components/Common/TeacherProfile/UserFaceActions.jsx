@@ -1,15 +1,19 @@
 import { useState, useRef } from 'react';
 import { useUploadUserFaceMutation, useDeleteUserFaceMutation } from '../../../store/services/hikvision.api';
-import { Camera, Trash, AlertTriangle } from 'lucide-react';
+import { Camera, CameraOff, Trash, AlertTriangle } from 'lucide-react';
 import { Alert } from '../../Other/UI/Alert/Alert';
 import Modal from '../../Other/UI/Modal/Modal';
+import { FACE_PHOTO_ACCEPT, validateFacePhoto } from '../../../utils/files';
+import { getErrorMessage } from '../../../utils/errors';
 
 /**
- * hasFace — hikvision_code mavjudligini bildiradi
- * true  → faqat "Yuzni o'chirish" tugmasi
- * false → faqat "Yuz qo'shish" tugmasi
+ * hasFace — Face ID mavjudligi (has_face_id yoki hikvision_code)
+ * true  → "Almashtirish" + "O'chirish"
+ * false → "Yuz qo'shish"
+ * compact — jadval qatori uchun kichik ikonka tugmalar
  */
-export default function UserFaceActions({ userId, userName, hasFace = false }) {
+/* eslint-disable react/prop-types */
+export default function UserFaceActions({ userId, userName, hasFace = false, compact = false }) {
     const [uploadOpen, setUploadOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [preview,    setPreview]    = useState(null);
@@ -19,9 +23,22 @@ export default function UserFaceActions({ userId, userName, hasFace = false }) {
     const [uploadUserFace, { isLoading: uploading }] = useUploadUserFaceMutation();
     const [deleteUserFace, { isLoading: deleting  }] = useDeleteUserFaceMutation();
 
+    const openUpload = () => {
+        setFile(null);
+        setPreview(null);
+        if (fileRef.current) fileRef.current.value = '';
+        setUploadOpen(true);
+    };
+
     const handleFileChange = (e) => {
         const f = e.target.files?.[0];
         if (!f) return;
+        const invalid = validateFacePhoto(f);
+        if (invalid) {
+            Alert(invalid, 'error');
+            e.target.value = '';
+            return;
+        }
         setFile(f);
         const reader = new FileReader();
         reader.onload = (ev) => setPreview(ev.target.result);
@@ -32,12 +49,12 @@ export default function UserFaceActions({ userId, userName, hasFace = false }) {
         e.preventDefault();
         if (!file) { Alert('Rasm tanlang', 'error'); return; }
         try {
-            await uploadUserFace({ user_id: userId, photo: file }).unwrap();
-            Alert('Yuz muvaffaqiyatli yuklandi', 'success');
+            const res = await uploadUserFace({ user_id: userId, photo: file }).unwrap();
+            Alert(res?.message || "Face ID qurilmaga qo'shildi", 'success');
             setUploadOpen(false);
             setFile(null); setPreview(null);
         } catch (err) {
-            Alert(err?.data?.message || 'Xatolik yuz berdi', 'error');
+            Alert(getErrorMessage(err), 'error');
         }
     };
 
@@ -47,34 +64,48 @@ export default function UserFaceActions({ userId, userName, hasFace = false }) {
             Alert("Yuz ma'lumoti o'chirildi", 'success');
             setDeleteOpen(false);
         } catch (err) {
-            Alert(err?.data?.message || 'Xatolik yuz berdi', 'error');
+            Alert(getErrorMessage(err), 'error');
         }
     };
 
     return (
         <>
-            {hasFace ? (
-                <button
-                    onClick={() => setDeleteOpen(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1.5px solid var(--danger)', background: 'var(--danger-soft)', color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                >
-                    <Trash size={14} /> Yuzni o'chirish
-                </button>
+            {compact ? (
+                <>
+                    <button type="button" className="action-btn action-btn-ghost" title={hasFace ? "Face ID ni almashtirish" : "Face ID qo'shish"} onClick={openUpload}>
+                        <Camera size={13} />
+                    </button>
+                    {hasFace && (
+                        <button type="button" className="action-btn action-btn-danger" title="Face ID ni o'chirish" onClick={() => setDeleteOpen(true)}>
+                            <CameraOff size={13} />
+                        </button>
+                    )}
+                </>
             ) : (
-                <button
-                    onClick={() => { setUploadOpen(true); setFile(null); setPreview(null); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1.5px solid var(--accent)', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                >
-                    <Camera size={14} /> Yuz qo'shish
-                </button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                        onClick={openUpload}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1.5px solid var(--accent)', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        <Camera size={14} /> {hasFace ? 'Yuzni almashtirish' : "Yuz qo'shish"}
+                    </button>
+                    {hasFace && (
+                        <button
+                            onClick={() => setDeleteOpen(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1.5px solid var(--danger)', background: 'var(--danger-soft)', color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
+                            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                        >
+                            <Trash size={14} /> Yuzni o'chirish
+                        </button>
+                    )}
+                </div>
             )}
 
             {/* Upload Modal */}
-            <Modal open={uploadOpen} onClose={() => setUploadOpen(false)} title="Yuz rasmini yuklash" size="sm">
+            <Modal open={uploadOpen} onClose={() => { if (!uploading) setUploadOpen(false); }} title="Yuz rasmini yuklash" size="sm">
                 <form onSubmit={handleUpload}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
@@ -94,11 +125,11 @@ export default function UserFaceActions({ userId, userName, hasFace = false }) {
                                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--card-border)'}
                             >
                                 <Camera size={28} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-                                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Rasm tanlash uchun bosing</span>
+                                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Rasm tanlash uchun bosing (JPG/PNG, 5 MB gacha)</span>
                             </div>
                         )}
 
-                        <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                        <input ref={fileRef} type="file" accept={FACE_PHOTO_ACCEPT} onChange={handleFileChange} style={{ display: 'none' }} />
 
                         {file && (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -122,7 +153,7 @@ export default function UserFaceActions({ userId, userName, hasFace = false }) {
                     <div className="modal-footer">
                         <button type="button" className="btn-cancel" onClick={() => setUploadOpen(false)}>Bekor qilish</button>
                         <button type="submit" className="btn-submit" disabled={uploading || !file}>
-                            <Camera size={13} /> {uploading ? 'Yuklanmoqda...' : 'Yuklash'}
+                            <Camera size={13} /> {uploading ? 'Yuklanmoqda... (5–15 soniya)' : 'Yuklash'}
                         </button>
                     </div>
                 </form>

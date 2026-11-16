@@ -53,7 +53,7 @@ export const studentApi = createApi({
                 url: `/student/${id}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: (result, error, id) => [{ type: 'Student', id }],
+            invalidatesTags: (result, error, id) => [{ type: 'Student', id }, { type: 'Student', id: 'LIST' }],
         }),
         // PATCH /api/student/{id}/assign-group
         assignGroup: builder.mutation({
@@ -83,9 +83,11 @@ export const studentApi = createApi({
                 method: 'PATCH',
                 data,
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'Student', id }],
+            // Arxivlash o'quvchini barcha guruhlardan chiqaradi — ro'yxat ham yangilanadi
+            invalidatesTags: (result, error, { id }) => [{ type: 'Student', id }, { type: 'Student', id: 'LIST' }],
         }),
         // PATCH /api/student/{id}/unassign-group
+        // body { group_id } — shu guruhdan; {} — barcha guruhlardan chiqaradi
         unassignGroup: builder.mutation({
             query: ({ id, data = {} }) => ({
                 url: `/student/${id}/unassign-group`,

@@ -20,7 +20,7 @@ export default function Edit({ group }) {
     const [form, setForm] = useState({ name: "", start_date: "", subject_id: "", teacher_id: "" });
     const [errors, setErrors] = useState({});
     const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useGetSubjectsQuery({ page: 1, limit: 200 });
-    const [fetchTeachers, { data: teachersData, isLoading: teachersLoading, error: teachersError }] = useLazyGetAvailableTeachersQuery();
+    const [fetchTeachers, { data: teachersData, isLoading: teachersLoading, isFetching: teachersFetching, error: teachersError }] = useLazyGetAvailableTeachersQuery();
     const [updateGroup, { isLoading }] = useUpdateGroupMutation();
     const subjects = getRecords(subjectsData);
     const teachers = getTeachers(teachersData);
@@ -42,6 +42,15 @@ export default function Edit({ group }) {
     useEffect(() => {
         if (open && form.subject_id) fetchTeachers({ subject_id: form.subject_id });
     }, [open, form.subject_id, fetchTeachers]);
+
+    /* Tanlangan o'qituvchi yangi fanga biriktirilmagan bo'lsa — tanlovni tozalaymiz */
+    useEffect(() => {
+        if (!open || !form.subject_id || teachersFetching || !teachersData) return;
+        if (form.teacher_id && !teachers.some((teacher) => String(teacher.id) === String(form.teacher_id))) {
+            setForm((current) => ({ ...current, teacher_id: "" }));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, teachersData, teachersFetching]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -87,11 +96,12 @@ export default function Edit({ group }) {
                                 value={form.subject_id}
                                 disabled={subjectsLoading}
                                 onChange={(event) => {
-                                    setForm((current) => ({ ...current, subject_id: event.target.value, teacher_id: "" }));
+                                    // O'qituvchi saqlanadi; yangi fanga biriktirilmagan bo'lsa quyidagi effekt tozalaydi
+                                    setForm((current) => ({ ...current, subject_id: event.target.value }));
                                     setErrors((current) => ({ ...current, subject_id: "", teacher_id: "" }));
                                 }}
                             >
-                                <option value="">Fan belgilanmagan</option>
+                                <option value="" disabled={!!originalSubjectId}>{originalSubjectId ? "Fanni tanlang" : "Fan belgilanmagan"}</option>
                                 {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
                             </select>
                         </FormField>

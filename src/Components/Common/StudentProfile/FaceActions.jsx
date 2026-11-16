@@ -3,6 +3,8 @@ import { useUploadFaceMutation, useDeleteFaceMutation } from '../../../store/ser
 import { Camera, Trash, AlertTriangle } from 'lucide-react';
 import { Alert } from '../../Other/UI/Alert/Alert';
 import Modal from '../../Other/UI/Modal/Modal';
+import { FACE_PHOTO_ACCEPT, validateFacePhoto } from '../../../utils/files';
+import { getErrorMessage } from '../../../utils/errors';
 
 /**
  * hasFace — hikvision_code mavjudligini bildiradi
@@ -22,6 +24,12 @@ export default function FaceActions({ studentId, studentName, hasFace = false })
     const handleFileChange = (e) => {
         const f = e.target.files?.[0];
         if (!f) return;
+        const invalid = validateFacePhoto(f);
+        if (invalid) {
+            Alert(invalid, 'error');
+            e.target.value = '';
+            return;
+        }
         setFile(f);
         const reader = new FileReader();
         reader.onload = (ev) => setPreview(ev.target.result);
@@ -37,7 +45,7 @@ export default function FaceActions({ studentId, studentName, hasFace = false })
             setUploadOpen(false);
             setFile(null); setPreview(null);
         } catch (err) {
-            Alert(err?.data?.message || "Xatolik yuz berdi", "error");
+            Alert(getErrorMessage(err), 'error');
         }
     };
 
@@ -47,7 +55,7 @@ export default function FaceActions({ studentId, studentName, hasFace = false })
             Alert("Yuz ma'lumoti o'chirildi", "success");
             setDeleteOpen(false);
         } catch (err) {
-            Alert(err?.data?.message || "Xatolik yuz berdi", "error");
+            Alert(getErrorMessage(err), 'error');
         }
     };
 
@@ -77,7 +85,7 @@ export default function FaceActions({ studentId, studentName, hasFace = false })
             )}
 
             {/* Upload Modal */}
-            <Modal open={uploadOpen} onClose={() => setUploadOpen(false)} title="Yuz rasmini yuklash" size="sm">
+            <Modal open={uploadOpen} onClose={() => { if (!uploading) setUploadOpen(false); }} title="Yuz rasmini yuklash" size="sm">
                 <form onSubmit={handleUpload}>
                     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                         <p style={{ fontSize:'0.82rem', color:'var(--text-secondary)', margin:0 }}>
@@ -96,11 +104,11 @@ export default function FaceActions({ studentId, studentName, hasFace = false })
                                 onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--card-border)'}>
                                 <Camera size={28} style={{ color:'var(--text-muted)', opacity:0.5 }}/>
-                                <span style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>Rasm tanlash uchun bosing</span>
+                                <span style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>Rasm tanlash uchun bosing (JPG/PNG, 5 MB gacha)</span>
                             </div>
                         )}
 
-                        <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display:'none' }}/>
+                        <input ref={fileRef} type="file" accept={FACE_PHOTO_ACCEPT} onChange={handleFileChange} style={{ display:'none' }}/>
 
                         {file && (
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -123,7 +131,7 @@ export default function FaceActions({ studentId, studentName, hasFace = false })
                     <div className="modal-footer">
                         <button type="button" className="btn-cancel" onClick={() => setUploadOpen(false)}>Bekor qilish</button>
                         <button type="submit" className="btn-submit" disabled={uploading || !file}>
-                            <Camera size={13}/> {uploading ? 'Yuklanmoqda...' : 'Yuklash'}
+                            <Camera size={13}/> {uploading ? 'Yuklanmoqda... (5–15 soniya)' : 'Yuklash'}
                         </button>
                     </div>
                 </form>

@@ -28,6 +28,26 @@ export const userApi = createApi({
                 return [...userTags, { type: 'User', id: 'LIST' }];
             },
         }),
+        // GET /api/user/staff?page&limit&role&search — tizimga kirmaydigan xodimlar (qorovul, oshpaz...)
+        getStaff: builder.query({
+            query: (params) => ({
+                url: '/user/staff',
+                method: 'GET',
+                params,
+            }),
+            providesTags: (result) => [
+                ...(result?.data?.records || []).map((user) => ({ type: 'User', id: user.id })),
+                { type: 'User', id: 'STAFF' },
+            ],
+        }),
+        // GET /api/user/staff/roles — [{ value, label }]
+        getStaffRoles: builder.query({
+            query: () => ({
+                url: '/user/staff/roles',
+                method: 'GET',
+            }),
+            keepUnusedDataFor: 600,
+        }),
         getUserById: builder.query({
             query: (id) => ({
                 url: `/user/${id}`,
@@ -41,14 +61,14 @@ export const userApi = createApi({
                 method: 'PUT',
                 data,
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'User', id }],
+            invalidatesTags: (result, error, { id }) => [{ type: 'User', id }, { type: 'User', id: 'LIST' }, { type: 'User', id: 'STAFF' }],
         }),
         deleteUser: builder.mutation({
             query: (id) => ({
                 url: `/user/${id}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: (result, error, id) => [{ type: 'User', id }],
+            invalidatesTags: (result, error, id) => [{ type: 'User', id }, { type: 'User', id: 'LIST' }, { type: 'User', id: 'STAFF' }],
         }),
         resetChatId: builder.mutation({
             query: (id) => ({
@@ -91,6 +111,8 @@ export const {
     useLazyGetUsersQuery,
     useGetUserByIdQuery,
     useLazyGetUserByIdQuery,
+    useGetStaffQuery,
+    useGetStaffRolesQuery,
     useUpdateUserMutation,
     useUpdateIsPaymentMutation,
     useDeleteUserMutation,

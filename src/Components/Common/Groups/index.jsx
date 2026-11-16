@@ -162,7 +162,7 @@ export default function Groups() {
                             </tbody>
                         </table>
                     </div>
-                    {!isTeacher && (
+                    {(totalPages > 1 || !isTeacher) && (
                         <div className="pagination">
                             <span>Jami {pagination.total_count || groups.length} ta guruh</span>
                             <div className="pagination-controls">

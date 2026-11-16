@@ -27,14 +27,14 @@ export const groupScheduleApi = createApi({
                 method: 'PUT',
                 data,
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'GroupSchedule', id }],
+            invalidatesTags: (result, error, { id }) => [{ type: 'GroupSchedule', id }, { type: 'GroupSchedule', id: 'LIST' }],
         }),
         deleteGroupSchedule: builder.mutation({
             query: (id) => ({
                 url: `/group-schedule/${id}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: (result, error, id) => [{ type: 'GroupSchedule', id }],
+            invalidatesTags: (result, error, id) => [{ type: 'GroupSchedule', id }, { type: 'GroupSchedule', id: 'LIST' }],
         }),
         getGroupScheduleByGroupId: builder.query({
             query: (groupId) => ({
@@ -46,6 +46,7 @@ export const groupScheduleApi = createApi({
                 return [
                     ...records.map((item) => ({ type: 'GroupSchedule', id: item.id })),
                     { type: 'GroupSchedule', id: `by-group-${groupId}` },
+                    { type: 'GroupSchedule', id: 'LIST' },
                 ];
             },
         }),
@@ -59,6 +60,7 @@ export const groupScheduleApi = createApi({
                 return [
                     ...records.map((item) => ({ type: 'GroupSchedule', id: item.id })),
                     { type: 'GroupSchedule', id: `by-teacher-${teacherId}` },
+                    { type: 'GroupSchedule', id: 'LIST' },
                 ];
             },
         }),
@@ -69,6 +71,7 @@ export const groupScheduleApi = createApi({
             }),
             providesTags: (result, error, studentId) => [
                 { type: 'GroupSchedule', id: `by-student-${studentId}` },
+                { type: 'GroupSchedule', id: 'LIST' },
             ],
         }),
     }),

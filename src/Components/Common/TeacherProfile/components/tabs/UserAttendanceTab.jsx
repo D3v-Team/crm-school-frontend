@@ -1,12 +1,18 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useLazyGetUserAttendancePageQuery } from '../../../../../store/services/user-attendance.api';
+import { useSelector } from 'react-redux';
+import { useLazyGetUserAttendancePageQuery, useCreateUserAttendanceMutation } from '../../../../../store/services/user-attendance.api';
 import {
     Clock, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Download, Camera, LogIn, LogOut, CalendarDays,
+    Download, Camera, LogIn, LogOut, Hand,
 } from 'lucide-react';
 import Loading from '../../../../Other/UI/Loadings/Loading';
+import Modal from '../../../../Other/UI/Modal/Modal';
+import { Alert } from '../../../../Other/UI/Alert/Alert';
 import $api from '../../../../../store/api';
+import { downloadBlob, filenameFromDisposition, maxRangeEnd, validateExcelRange } from '../../../../../utils/files';
+import { getErrorMessage, readBlobError } from '../../../../../utils/errors';
 
 const pad = (n) => String(n).padStart(2, '0');
 const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -148,15 +154,23 @@ function DayCard({ record }) {
     );
 }
 
-export default function UserAttendanceTab({ user }) {
+/**
+ * Foydalanuvchi (o'qituvchi, xodim) kirdi-chiqdisi.
+ * Excel va qo'lda belgilash faqat admin/super_admin uchun (TZ 2.5) — o'qituvchi faqat o'zini ko'radi.
+ */
+export default function UserAttendanceTab({ user, userId: userIdProp }) {
     const { id } = useParams();
-    const userId = id || user?.id;
+    const userId = userIdProp || id || user?.id;
+    const authRole = useSelector((state) => state.auth?.role);
+    const isAdmin = authRole === 'admin' || authRole === 'super_admin';
+    const [markOpen, setMarkOpen] = useState(false);
+    const [createAttendance, { isLoading: marking }] = useCreateUserAttendanceMutation();
 
     const now = new Date();
     const [startDate, setStartDate] = useState(toISO(new Date(now.getFullYear(), now.getMonth(), 1)));
     const [endDate,   setEndDate]   = useState(toISO(now));
     const [page, setPage] = useState(1);
-    const LIMIT = 15;
+    const LIMIT = 30; // bitta sahifa = 30 kun (TZ 1.7)
 
     const [downloading, setDownloading] = useState(false);
     const [fetchPage, { data, isLoading, error }] = useLazyGetUserAttendancePageQuery();
@@ -184,24 +198,32 @@ export default function UserAttendanceTab({ user }) {
     /* ── Excel download ── */
     const handleExcel = async () => {
         if (downloading) return;
+        const rangeError = validateExcelRange(startDate, endDate);
+        if (rangeError) { Alert(rangeError, 'error'); return; }
         setDownloading(true);
         try {
             const resp = await $api.get('/user-attendance/excel', {
                 params: { startDate, endDate, user_id: userId },
                 responseType: 'blob',
             });
-            const url = window.URL.createObjectURL(new Blob([resp.data]));
-            const a   = document.createElement('a');
-            a.href = url;
-            a.download = `kirdi-chiqdi-${userId?.slice(0,8)}-${startDate}-${endDate}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
+            const filename = filenameFromDisposition(resp.headers?.['content-disposition'], `kirdi-chiqdi-${startDate}-${endDate}.xlsx`);
+            downloadBlob(resp.data, filename);
         } catch (e) {
-            console.error('Excel yuklab olishda xatolik:', e);
+            Alert(await readBlobError(e, "Excel yuklab bo'lmadi"), 'error');
         } finally {
             setDownloading(false);
+        }
+    };
+
+    /* ── Qo'lda belgilash (qurilma ishlamagan kun uchun) ── */
+    const handleMark = async () => {
+        try {
+            await createAttendance(userId).unwrap();
+            Alert('Davomat belgilandi', 'success');
+            setMarkOpen(false);
+            load(page);
+        } catch (e) {
+            Alert(getErrorMessage(e), 'error');
         }
     };
 
@@ -217,11 +239,12 @@ export default function UserAttendanceTab({ user }) {
                 </div>
                 <div>
                     <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Gacha</label>
-                    <input type="date" value={endDate}
+                    <input type="date" value={endDate} min={startDate}
                         onChange={e => { setEndDate(e.target.value); setPage(1); }}
                         className="search-input" style={{ paddingLeft: 14, width: 150 }} />
                 </div>
 
+                {isAdmin && (
                 <button
                     onClick={handleExcel}
                     disabled={downloading}
@@ -236,7 +259,28 @@ export default function UserAttendanceTab({ user }) {
                     <Download size={14} />
                     {downloading ? 'Yuklanmoqda...' : 'Excel'}
                 </button>
+                )}
+                {isAdmin && (
+                    <button className="btn-create" onClick={() => setMarkOpen(true)} title="Qurilma ishlamagan kun uchun">
+                        <Hand size={14} /> Qo&apos;lda belgilash
+                    </button>
+                )}
             </div>
+            {isAdmin && maxRangeEnd(startDate) && endDate > maxRangeEnd(startDate) && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--warning)' }}>Excel uchun oraliq 93 kundan oshmasligi kerak.</div>
+            )}
+
+            <Modal open={markOpen} onClose={() => setMarkOpen(false)} title="Qo'lda belgilash" size="sm">
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', margin: 0 }}>
+                    Hozirgi vaqt bilan yozuv qo&apos;shiladi. Har bosilganda navbatma-navbat <strong>Keldi (IN)</strong> / <strong>Ketdi (OUT)</strong> yoziladi.
+                </p>
+                <div className="modal-footer">
+                    <button className="btn-cancel" onClick={() => setMarkOpen(false)}>Bekor qilish</button>
+                    <button className="btn-submit" onClick={handleMark} disabled={marking}>
+                        <Hand size={14} /> {marking ? 'Belgilanmoqda...' : 'Tasdiqlash'}
+                    </button>
+                </div>
+            </Modal>
 
             {error && (
                 <div style={{ color: 'var(--danger)', padding: 12, background: 'var(--danger-soft)', borderRadius: 10 }}>

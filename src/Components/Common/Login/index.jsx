@@ -5,6 +5,7 @@ import { useLoginMutation } from "../../../store/services/auth.api";
 import { User, UserRound, Lock, GraduationCap, Moon, Sun, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Alert } from "../../Other/UI/Alert/Alert";
 import { Link } from "react-router-dom";
+import { getErrorMessage, getErrorStatus } from "../../../utils/errors";
 
 export default function Login() {
   const [loginField, setLoginField] = useState("");
@@ -14,6 +15,21 @@ export default function Login() {
   const [isDark, setIsDark] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [lockedUntil, setLockedUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const lockSeconds = Math.max(0, Math.ceil((lockedUntil - now) / 1000));
+
+  // 429 dan keyin tugmani vaqtincha o'chiramiz (TZ 2.1)
+  useEffect(() => {
+    if (!lockedUntil) return undefined;
+    const timer = setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= lockedUntil) { setLockedUntil(0); clearInterval(timer); }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockedUntil]);
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -33,6 +49,8 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (lockSeconds > 0 || isLoading) return;
+    setFormError("");
     try {
       const data = await login({ username: loginField, password }).unwrap();
       dispatch(setAuth(data));
@@ -47,7 +65,18 @@ export default function Login() {
       else if (role === "cashier")     window.location.replace("/dashboard");
       else                             window.location.replace("/dashboard");
     } catch (err) {
-      Alert(err.data?.message || "Avtorizatsiya xatosi", "error");
+      const status = getErrorStatus(err);
+      const message = getErrorMessage(err, "Avtorizatsiya xatosi");
+      setFormError(message);
+      if (status === 429) {
+        // Xabarda necha daqiqa/soniya kutish kerakligi yozilgan bo'ladi; topilmasa 30 soniya
+        const minutes = /(\d+)\s*daqiqa/i.exec(message);
+        const seconds = /(\d+)\s*soniya/i.exec(message);
+        const waitMs = minutes ? Number(minutes[1]) * 60000 : seconds ? Number(seconds[1]) * 1000 : 30000;
+        setNow(Date.now());
+        setLockedUntil(Date.now() + waitMs);
+      }
+      Alert(message, "error");
     }
   };
 
@@ -176,14 +205,22 @@ export default function Login() {
               </div>
             </div>
 
+            {formError && (
+              <div role="alert" className="text-sm rounded-xl px-3 py-2" style={{ background: 'var(--danger-soft)', color: 'var(--danger)', border: '1px solid var(--danger)', whiteSpace: 'pre-line' }}>
+                {formError}
+              </div>
+            )}
+
             {/* Submit button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || lockSeconds > 0}
               className="w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl text-sm font-semibold text-white transition-all duration-300 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{ background: 'linear-gradient(135deg, var(--accent), #7c3aed)', boxShadow: '0 4px 20px var(--accent-glow)' }}
             >
-              {isLoading ? (
+              {lockSeconds > 0 ? (
+                <>Qayta urinish: {Math.floor(lockSeconds / 60)}:{String(lockSeconds % 60).padStart(2, '0')}</>
+              ) : isLoading ? (
                 <>
                   <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

@@ -1,6 +1,6 @@
 import $api from "../api";
 
-export const axiosBaseQuery = () => async ({ url, method, data, params, headers, responseType }) => {
+export const axiosBaseQuery = () => async ({ url, method, data, params, headers, responseType, withCredentials }) => {
     try {
         const result = await $api({
             url,
@@ -9,6 +9,7 @@ export const axiosBaseQuery = () => async ({ url, method, data, params, headers,
             params,
             headers,
             responseType,
+            ...(withCredentials && { withCredentials }),
             // Array params uchun: role=admin&role=teacher formatida serialize qiladi
             paramsSerializer: (p) => {
                 const q = new URLSearchParams();
@@ -22,7 +23,7 @@ export const axiosBaseQuery = () => async ({ url, method, data, params, headers,
                 return q.toString();
             },
         });
-        return { data: result.data };
+        return { data: result.data, meta: { headers: result.headers } };
     } catch (axiosError) {
         let err = axiosError;
         return {
