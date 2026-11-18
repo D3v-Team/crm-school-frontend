@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
     useLazyGetUsersQuery, useGetUsersQuery, useCreateUserMutation,
-    useUpdateUserMutation, useDeleteUserMutation,
+    useUpdateUserMutation,
     useResetPasswordMutation,
 } from '../../../store/services/user.api';
 import {
-    Users, Plus, Pencil, Trash2, AlertTriangle,
+    Users, Plus, Pencil, Trash2,
     RefreshCw, Search,
     KeyRound, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
     ShieldCheck, GraduationCap, Banknote, UserCog,
@@ -15,6 +15,7 @@ import Loading from '../../Other/UI/Loadings/Loading';
 import Modal from '../../Other/UI/Modal/Modal';
 import { Alert } from '../../Other/UI/Alert/Alert';
 import DebouncedSearchInput from '../../Other/UI/DebouncedSearchInput';
+import UserDeleteDialog from '../Shared/UserDeleteDialog';
 
 const ROLE_OPTIONS = [
     { value: 'admin',   label: 'Admin'      },
@@ -135,33 +136,14 @@ function UserFormModal({ user, onClose, onSaved }) {
     );
 }
 
-/* ─── Delete modal ─── */
+/* ─── Delete modal: o'chirish = arxivlash (umumiy dialog) ─── */
 function DeleteUserModal({ user, onClose, onSaved }) {
-    const [del, { isLoading }] = useDeleteUserMutation();
-    const handle = async () => {
-        try { await del(user.id).unwrap(); Alert("Xodim o'chirildi", 'success'); onSaved(); onClose(); }
-        catch (err) { Alert(err?.data?.message || 'Xatolik', 'error'); }
-    };
     return (
-        <Modal open onClose={onClose} title="Xodimni o'chirish" size="sm">
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0 8px' }}>
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <AlertTriangle size={18} style={{ color: 'var(--danger)' }} />
-                </div>
-                <div>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 4 }}>
-                        <strong>{user?.full_name}</strong> ni o'chirmoqchimisiz?
-                    </p>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Bu amalni qaytarib bo'lmaydi.</p>
-                </div>
-            </div>
-            <div className="modal-footer">
-                <button className="btn-cancel" onClick={onClose}>Bekor qilish</button>
-                <button className="btn-delete" onClick={handle} disabled={isLoading}>
-                    <Trash2 size={13} />{isLoading ? "O'chirilmoqda..." : "O'chirish"}
-                </button>
-            </div>
-        </Modal>
+        <UserDeleteDialog
+            user={user}
+            subject={user?.role === 'teacher' ? "o'qituvchini" : 'foydalanuvchini'}
+            onClose={(deleted) => { if (deleted) onSaved(); onClose(); }}
+        />
     );
 }
 

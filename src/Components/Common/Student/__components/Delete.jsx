@@ -3,6 +3,9 @@ import { useDeleteStudentMutation } from "../../../../store/services/student.api
 import { Trash, AlertTriangle } from "lucide-react";
 import { Alert } from "../../../Other/UI/Alert/Alert";
 import Modal from "../../../Other/UI/Modal/Modal";
+import { getErrorMessage } from "../../../../utils/errors";
+
+/* DELETE /student/:id endi o'quvchini arxivga o'tkazadi (ma'lumotlari saqlanadi). */
 
 export default function Delete({ student }) {
     const [open, setOpen] = useState(false);
@@ -10,11 +13,11 @@ export default function Delete({ student }) {
 
     const handleDelete = async () => {
         try {
-            await deleteStudent(student.id).unwrap();
-            Alert(`${student.full_name} o'chirildi`, "success");
+            const response = await deleteStudent(student.id).unwrap();
+            Alert(response?.message || `${student.full_name} arxivga o'tkazildi`, "success");
             setOpen(false);
         } catch (err) {
-            Alert(err?.data?.message || "Xatolik yuz berdi", "error");
+            Alert(getErrorMessage(err), "error");
         }
     };
 
@@ -43,8 +46,8 @@ export default function Delete({ student }) {
                         <p style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 500, marginBottom: 4 }}>
                             <span style={{ color: 'var(--danger)', fontWeight: 700 }}>{student.full_name}</span> o'quvchini o'chirmoqchisiz.
                         </p>
-                        <p style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>
-                            Bu amalni qaytarib bo'lmaydi!
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                            O&apos;quvchi arxivga o&apos;tkaziladi. Ma&apos;lumotlari saqlanadi, kerak bo&apos;lsa arxivdan qaytarish mumkin.
                         </p>
                     </div>
                 </div>

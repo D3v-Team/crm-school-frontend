@@ -1,15 +1,16 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
-import { AlertTriangle, Briefcase, Download, Phone, Plus, Trash2, User } from "lucide-react";
+import { Briefcase, Download, Phone, Plus, User } from "lucide-react";
 import Modal from "../../Other/UI/Modal/Modal";
 import FormField, { Input } from "../../Other/UI/FormField/FormField";
 import Loading from "../../Other/UI/Loadings/Loading";
 import { Alert } from "../../Other/UI/Alert/Alert";
 import $api from "../../../store/api";
 import {
-    useCreateUserMutation, useDeleteUserMutation, useGetUserByIdQuery, useUpdateUserMutation,
+    useCreateUserMutation, useGetUserByIdQuery, useUpdateUserMutation,
 } from "../../../store/services/user.api";
 import { getErrorMessages, readBlobError } from "../../../utils/errors";
+import UserDeleteDialog from "../Shared/UserDeleteDialog";
 import { downloadBlob, filenameFromDisposition, maxRangeEnd, validateExcelRange } from "../../../utils/files";
 
 const PHONE_RE = /^\+?\d{9,15}$/;
@@ -122,43 +123,19 @@ export function StaffFormModal({ staff, roles, rolesLoading, onClose }) {
     );
 }
 
-/* ─── O'chirish ─── */
+/* ─── O'chirish (arxivlash) ─── */
 export function StaffDeleteModal({ staff, onClose }) {
-    const [deleteUser, { isLoading }] = useDeleteUserMutation();
-    const handleDelete = async () => {
-        try {
-            await deleteUser(staff.id).unwrap();
-            Alert(`"${staff.full_name}" o'chirildi`, "success");
-            onClose(true);
-        } catch (error) {
-            Alert(getErrorMessages(error).join("\n") || "Xatolik yuz berdi", "error");
-        }
-    };
     return (
-        <Modal open onClose={() => !isLoading && onClose(false)} title="Xodimni o'chirish" size="sm">
-            <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "4px 0 8px" }}>
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: "var(--danger-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <AlertTriangle size={18} style={{ color: "var(--danger)" }} />
-                </div>
-                <div>
-                    <p style={{ fontSize: "0.875rem", color: "var(--text-primary)", margin: "0 0 4px" }}>
-                        <strong style={{ color: "var(--danger)" }}>{staff.full_name}</strong> ni o&apos;chirmoqchimisiz?
-                    </p>
-                    {staff.has_face_id && (
-                        <p style={{ fontSize: "0.78rem", color: "var(--warning)", margin: "0 0 4px" }}>
-                            Xodimning Face ID si bor. Avval Face ID ni o&apos;chirish tavsiya qilinadi, aks holda qurilmada qolib ketishi mumkin.
-                        </p>
-                    )}
-                    <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>Bu amalni qaytarib bo&apos;lmaydi.</p>
-                </div>
-            </div>
-            <div className="modal-footer">
-                <button className="btn-cancel" onClick={() => onClose(false)} disabled={isLoading}>Bekor qilish</button>
-                <button className="btn-delete" onClick={handleDelete} disabled={isLoading}>
-                    <Trash2 size={13} /> {isLoading ? "O'chirilmoqda..." : "O'chirish"}
-                </button>
-            </div>
-        </Modal>
+        <UserDeleteDialog
+            user={staff}
+            subject="xodimni"
+            onClose={onClose}
+            extra={staff.has_face_id ? (
+                <p style={{ fontSize: "0.78rem", color: "var(--warning)", margin: "4px 0 0" }}>
+                    Xodimning Face ID si bor. Avval Face ID ni o&apos;chirish tavsiya qilinadi, aks holda qurilmada qolib ketishi mumkin.
+                </p>
+            ) : null}
+        />
     );
 }
 

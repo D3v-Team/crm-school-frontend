@@ -4,7 +4,6 @@ import { useGetGroupsQuery } from "../../../store/services/group.api";
 import { useGetUsersQuery } from "../../../store/services/user.api";
 import Create from "./__components/Create";
 import Edit from "./__components/Edit";
-import Delete from "./__components/Delete";
 import AddGroup from "./__components/AddGroup";
 import ArchiveStudent from "./__components/Archive";
 import QuickPayment from "./__components/QuickPayment";
@@ -96,7 +95,7 @@ export default function Student() {
                 </div>
                 <select className="search-select" value={isActiveFilter ? "active" : "inactive"} onChange={handleFilterChange}>
                     <option value="active">Faol</option>
-                    <option value="inactive">Nofaol</option>
+                    <option value="inactive">Arxiv</option>
                 </select>
                 {!isTeacher && (
                     <>
@@ -157,7 +156,7 @@ export default function Student() {
                                             </td>
                                             <td>
                                                 <span className={s.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
-                                                    {s.is_active ? "Faol" : "Nofaol"}
+                                                    {s.is_active ? "Faol" : "Arxivda"}
                                                 </span>
                                             </td>
                                             <td>
@@ -188,9 +187,9 @@ export default function Student() {
                                                     </NavLink>
                                                     {!isTeacher && s.is_active && <AddGroup onAdd={() => fetchStudents(page)} studentID={s.id} assignedGroups={s.groups || []} />}
                                                     {!isTeacher && <Edit student={s} />}
-                                                    {/* Faol: Arxivlash; Nofaol: Arxivdan chiqarish + O'chirish */}
+                                                    {/* O'chirish = arxivlash (backend o'quvchini o'chirmaydi), shuning uchun bitta tugma:
+                                                        faol — Arxivlash, arxivdagi — Arxivdan qaytarish */}
                                                     {!isTeacher && <ArchiveStudent student={s} />}
-                                                    {!isTeacher && !s.is_active && <Delete student={s} />}
                                                 </div>
                                             </td>
                                         </tr>

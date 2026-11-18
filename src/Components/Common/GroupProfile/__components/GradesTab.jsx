@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useLazyGetGradesQuery, useBulkGradeMutation } from '../../../../store/services/grades.api';
+import { addBulkError, addBulkSuccess, createBulkReport, showBulkReport } from '../../../../utils/bulk';
 import { Save, BookOpen, Info, Check } from 'lucide-react';
 import { Alert } from '../../../Other/UI/Alert/Alert';
 import Loading from '../../../Other/UI/Loadings/Loading';
@@ -222,7 +223,8 @@ export default function GradesTab({
     const saveAll = async ()=>{
         const entries=Object.entries(pending);
         if(!entries.length) return Alert("O'zgarish yo'q",'info');
-        setSaving(true); let ok=0,fail=0;
+        setSaving(true);
+        const report = createBulkReport();
         const groups={};
         entries.forEach(([k,v])=>{
             const [sid,date,schId]=k.split('|');
@@ -234,12 +236,11 @@ export default function GradesTab({
             groups[gk].records.push({student_id:sid,score:n,...(v.comment&&{comment:v.comment})});
         });
         for(const {date,schId,records} of Object.values(groups)){
-            try{ await bulkGrade({group_schedule_id:schId,date,records}).unwrap(); ok+=records.length; }
-            catch(e){ console.error(e?.data?.message||e); fail+=records.length; }
+            try{ addBulkSuccess(report, await bulkGrade({group_schedule_id:schId,date,records}).unwrap(), records.length); }
+            catch(e){ addBulkError(report, e, records.length); }
         }
         setPending({}); setSaving(false);
-        if(fail>0) Alert(`${ok} ta saqlandi, ${fail} ta xato`,'warning');
-        else Alert(`${ok} ta baho saqlandi`,'success');
+        showBulkReport(report, "baho");
         load();
     };
 

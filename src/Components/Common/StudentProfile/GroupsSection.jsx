@@ -43,6 +43,11 @@ export default function GroupsSection({ student, onRefresh }) {
                 </div>
                 {canManage && student.is_active && <AddGroup studentID={student.id} onAdd={onRefresh} assignedGroups={groups} buttonText="Guruhga qo'shish" />}
             </div>
+            {!student.is_active && groups.length > 0 && (
+                <div style={{ marginBottom: 8, fontSize: "0.75rem", color: "var(--warning)" }}>
+                    O&apos;quvchi arxivda: guruh a&apos;zoligi saqlangan, arxivdan qaytarilsa shu guruhlarga avtomatik qaytadi.
+                </div>
+            )}
             {groups.length === 0 ? (
                 <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>O&apos;quvchi hech qaysi guruhga biriktirilmagan.</div>
             ) : (

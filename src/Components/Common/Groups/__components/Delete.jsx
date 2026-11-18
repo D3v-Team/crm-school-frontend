@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useDeleteGroupMutation } from "../../../../store/services/group.api";
 import { Trash, AlertTriangle } from "lucide-react";
-import { Alert } from "../../../Other/UI/Alert/Alert";
+import { Alert, commonAlert } from "../../../Other/UI/Alert/Alert";
+import { getErrorMessage } from "../../../../utils/errors";
 import Modal from "../../../Other/UI/Modal/Modal";
 
 export default function Delete({ group }) {
@@ -14,7 +15,9 @@ export default function Delete({ group }) {
             Alert(`"${group.name}" o'chirildi`, "success");
             setOpen(false);
         } catch (err) {
-            Alert(err?.data?.message || "Xatolik yuz berdi", "error");
+            // Tarixi bor yozuvni backend o'chirmaydi (400) — xabarni o'qish uchun yopilmaydigan oynada
+            setOpen(false);
+            commonAlert(getErrorMessage(err), "warning");
         }
     };
 
