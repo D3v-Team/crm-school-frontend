@@ -46,9 +46,14 @@ export default function GroupsSection({ student, onRefresh }) {
                 </div>
                 {canManage && student.is_active && <AddGroup studentID={student.id} onAdd={onRefresh} assignedGroups={groups} buttonText="Guruhga qo'shish" />}
             </div>
+            {!student.is_active && visibleGroups.length > 0 && (
+                <div style={{ marginBottom: 8, fontSize: "0.75rem", color: "var(--warning)" }}>
+                    O&apos;quvchi arxivda: guruh a&apos;zoligi saqlangan, arxivdan qaytarilsa shu guruhlarga avtomatik qaytadi.
+                </div>
+            )}
             {visibleGroups.length === 0 ? (
                 <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                    {role === "teacher" ? "Sizga biriktirilgan guruhlar topilmadi." : "O&apos;quvchi hech qaysi guruhga biriktirilmagan."}
+                    {role === "teacher" ? "Sizga biriktirilgan guruhlar topilmadi." : "O'quvchi hech qaysi guruhga biriktirilmagan."}
                 </div>
             ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 8 }}>

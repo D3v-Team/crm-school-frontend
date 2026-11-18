@@ -19,7 +19,8 @@ import {
     Clock, User, BookOpen, Trash2, Plus, CalendarDays,
     Users, Hourglass, Pencil, Check, X,
 } from 'lucide-react';
-import { Alert } from '../../../Other/UI/Alert/Alert';
+import { Alert, commonAlert } from '../../../Other/UI/Alert/Alert';
+import { getErrorMessage, getErrorStatus } from '../../../../utils/errors';
 import Modal from '../../../Other/UI/Modal/Modal';
 import Loading from '../../../Other/UI/Loadings/Loading';
 import { mergeParallelItems } from '../../../../utils/schedule';
@@ -41,7 +42,7 @@ const colorFor = (id) => {
 };
 
 const groupByDay = (records) => {
-    const g = records.filter(i=>i.day_of_week!=='sunday').reduce((acc,i)=>{ const d=i.day_of_week; if(!acc[d])acc[d]=[]; acc[d].push(i); return acc; },{});
+    const g = records.filter(i=>i.day_of_week!=='sunday' && !i.archived_at).reduce((acc,i)=>{ const d=i.day_of_week; if(!acc[d])acc[d]=[]; acc[d].push(i); return acc; },{});
     Object.values(g).forEach(list=>list.sort((a,b)=>toMins(a.start_time)-toMins(b.start_time)));
     return g;
 };
@@ -254,7 +255,12 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
             loadSchedule();
         } catch (err) {
             setScheduleMap(prev=>{ const l=[...(prev[day]||[]),item].sort((a,b)=>toMins(a.start_time)-toMins(b.start_time)); return {...prev,[day]:l}; });
-            Alert(err?.data?.message||'Xatolik','error');
+            if (getErrorStatus(err) === 409) {
+                // Darsda davomat, baho yoki mavzu bor — tarix saqlanishi uchun o'chirilmaydi
+                commonAlert(`Bu darsda davomat, baho yoki mavzu bor, shuning uchun uni o'chirib bo'lmaydi.\n${getErrorMessage(err, '')}`.trim(), 'warning');
+            } else {
+                Alert(getErrorMessage(err),'error');
+            }
         }
     };
 

@@ -6,10 +6,10 @@ import Create from "./__components/Create";
 import Delete from "./__components/Delete";
 import Edit from "./__components/Edit";
 import Loading from "../../Other/UI/Loadings/Loading";
-import { NavLink } from "react-router-dom";
+import { NavLink, useSearchParams } from "react-router-dom";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, Layers, Eye, X,
+    Search, Layers, Eye, X, UserX,
 } from "lucide-react";
 import { useAppSelector } from "../../../store/hooks";
 import Cookies from "js-cookie";
@@ -24,12 +24,21 @@ export default function Groups() {
     const [page, setPage] = useState(1);
     const [limit] = useState(10);
     const [search, setSearch] = useState("");
-    const [teacherId, setTeacherId] = useState("");
+    // "Guruhlarga o'tish" (o'qituvchini o'chirishdan) — /ad/groups?teacher_id=<id>
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [teacherId, setTeacherId] = useState(() => searchParams.get("teacher_id") || "");
     const [subjectId, setSubjectId] = useState("");
     const [fetchGroups, { data, isLoading, error }] = useLazyGetGroupsQuery();
-    const { data: teachersData } = useGetUsersQuery({ role: "teacher", limit: 200 }, { skip: isTeacher });
+    const { data: teachersData, isSuccess: teachersLoaded } = useGetUsersQuery({ role: "teacher", limit: 200 }, { skip: isTeacher });
     const { data: subjectsData } = useGetSubjectsQuery({ limit: 200 });
     const teachers = recordsOf(teachersData);
+    /* Faol o'qituvchilar (arxivdagilar GET /user?role=teacher ga kirmaydi). Ro'yxat to'liq
+       yuklangandagina "Rahbar arxivda" belgisini qo'yamiz, aks holda noto'g'ri belgi chiqadi. */
+    const teachersTotal = teachersData?.data?.pagination?.total_count;
+    const activeTeacherIds = teachersLoaded && (teachersTotal == null || teachersTotal <= teachers.length)
+        ? new Set(teachers.map((teacher) => String(teacher.id)))
+        : null;
+    const teacherArchived = (group) => Boolean(activeTeacherIds) && !activeTeacherIds.has(String(group.teacher?.id || group.teacher_id || ""));
     const subjects = recordsOf(subjectsData);
     const groups = data?.data?.records || [];
     const pagination = data?.data?.pagination || {};
@@ -47,7 +56,10 @@ export default function Groups() {
     };
 
     useEffect(() => {
-        fetchGroups({ page: 1, limit });
+        const initialTeacherId = searchParams.get("teacher_id");
+        fetchGroups({ page: 1, limit, ...(!isTeacher && initialTeacherId && { teacher_id: initialTeacherId }) });
+    // faqat birinchi ochilishda URL dagi filtr bilan yuklaymiz
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchGroups, limit]);
 
     const changeSearch = (value) => {
@@ -59,6 +71,7 @@ export default function Groups() {
     const handleTeacherChange = (event) => {
         const nextTeacherId = event.target.value;
         setTeacherId(nextTeacherId);
+        setSearchParams(nextTeacherId ? { teacher_id: nextTeacherId } : {}, { replace: true });
         setPage(1);
         loadGroups(1, search, nextTeacherId, subjectId);
     };
@@ -144,7 +157,19 @@ export default function Groups() {
                                             {(currentPage - 1) * limit + index + 1}
                                         </td>
                                         <td style={{ fontWeight: 600 }}>{group.name}</td>
-                                        <td>{group.teacher?.full_name || "—"}</td>
+                                        <td>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                                <span>{group.teacher?.full_name || "—"}</span>
+                                                {!isTeacher && teacherArchived(group) && (
+                                                    <>
+                                                        <span title="Guruh o'qituvchisi (sinf rahbari) arxivlangan" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: "0.68rem", fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: "var(--danger-soft)", color: "var(--danger)", border: "1px solid var(--danger)", whiteSpace: "nowrap" }}>
+                                                            <UserX size={11} /> Rahbar arxivda
+                                                        </span>
+                                                        <Edit group={group} variant="assign" />
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td>{group.subject?.name || "Fan belgilanmagan"}</td>
                                         <td>{group.students_count ?? group.students?.length ?? 0}</td>
                                         <td>{formatDate(group.start_date)}</td>

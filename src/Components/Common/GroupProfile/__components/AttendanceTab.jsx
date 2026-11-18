@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useLazyGetAttendanceQuery, useBulkAttendanceMutation } from '../../../../store/services/attedance.api';
 import { useLazyGetGradesQuery, useBulkGradeMutation } from '../../../../store/services/grades.api';
+import { addBulkError, addBulkSuccess, createBulkReport, showBulkReport } from '../../../../utils/bulk';
 import { Check, X, Clock, Save, BookOpen, Info, CalendarOff } from 'lucide-react';
 import { Alert } from '../../../Other/UI/Alert/Alert';
 import Loading from '../../../Other/UI/Loadings/Loading';
@@ -642,7 +643,8 @@ export default function AttendanceTab({
     const saveAll = async ()=>{
         const entries=Object.entries(pending);
         if (!entries.length) return Alert("O'zgarish yo'q",'info');
-        setSaving(true); let ok=0, fail=0;
+        setSaving(true);
+        const report = createBulkReport();
         const attGroups={}, gradeGroups={};
         entries.forEach(([k,v])=>{
             const [sid,date,schId]=k.split('|');
@@ -661,16 +663,16 @@ export default function AttendanceTab({
             }
         });
         for (const {date,schId,records} of Object.values(attGroups)) {
-            try { await bulkAtt({group_schedule_id:schId,date,records}).unwrap(); ok+=records.length; }
-            catch(e){ console.error('att bulk',e?.data?.message||e); fail+=records.length; }
+            try { addBulkSuccess(report, await bulkAtt({group_schedule_id:schId,date,records}).unwrap(), records.length); }
+            catch(e){ addBulkError(report, e, records.length); }
         }
         for (const {date,schId,records} of Object.values(gradeGroups)) {
-            try { await bulkGrade({group_schedule_id:schId,date,records}).unwrap(); ok+=records.length; }
-            catch(e){ console.error('grade bulk',e?.data?.message||e); fail+=records.length; }
+            try { addBulkSuccess(report, await bulkGrade({group_schedule_id:schId,date,records}).unwrap(), records.length); }
+            catch(e){ addBulkError(report, e, records.length); }
         }
         setPending({}); setSaving(false);
-        if (fail>0) Alert(`${ok} ta saqlandi, ${fail} ta xato`,'warning');
-        else Alert(`${ok} ta o'zgarish saqlandi`,'success');
+        // Arxivlangan dars, guruhda bo'lmagan (arxivdagi) o'quvchi va h.k. sabablar ko'rsatiladi
+        showBulkReport(report, "o'zgarish");
         load();
     };
 

@@ -14,7 +14,7 @@ const timeText = (time) => time ? time.slice(0, 5) : "—";
 export default function StudentScheduleTab({ studentId }) {
     const { data, isLoading, error } = useGetGroupScheduleByStudentQuery(studentId, { skip: !studentId });
     const scheduleData = data?.data || data;
-    const schedules = useMemo(() => [...(Array.isArray(scheduleData?.schedules) ? scheduleData.schedules : [])].sort((a, b) => {
+    const schedules = useMemo(() => (Array.isArray(scheduleData?.schedules) ? scheduleData.schedules : []).filter((item) => !item.archived_at).sort((a, b) => {
         const dayDifference = DAY_ORDER.indexOf(a.day_of_week) - DAY_ORDER.indexOf(b.day_of_week);
         return dayDifference || String(a.start_time).localeCompare(String(b.start_time));
     }), [scheduleData?.schedules]);
