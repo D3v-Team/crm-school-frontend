@@ -5,6 +5,7 @@ import { Alert } from '../../Other/UI/Alert/Alert';
 import Modal from '../../Other/UI/Modal/Modal';
 import { FACE_PHOTO_ACCEPT, validateFacePhoto } from '../../../utils/files';
 import { getErrorMessage } from '../../../utils/errors';
+import { useSelector } from 'react-redux';
 
 /**
  * hasFace — Face ID mavjudligi (has_face_id yoki hikvision_code)
@@ -13,7 +14,8 @@ import { getErrorMessage } from '../../../utils/errors';
  * compact — jadval qatori uchun kichik ikonka tugmalar
  */
 /* eslint-disable react/prop-types */
-export default function UserFaceActions({ userId, userName, hasFace = false, compact = false }) {
+export default function UserFaceActions({ userId, userName, hasFace = false, compact = false, targetRole }) {
+    const authRole = useSelector((state) => state.auth?.role);
     const [uploadOpen, setUploadOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [preview,    setPreview]    = useState(null);
@@ -22,6 +24,7 @@ export default function UserFaceActions({ userId, userName, hasFace = false, com
 
     const [uploadUserFace, { isLoading: uploading }] = useUploadUserFaceMutation();
     const [deleteUserFace, { isLoading: deleting  }] = useDeleteUserFaceMutation();
+    if (authRole === 'admin' && ['admin', 'super_admin'].includes(targetRole)) return null;
 
     const openUpload = () => {
         setFile(null);

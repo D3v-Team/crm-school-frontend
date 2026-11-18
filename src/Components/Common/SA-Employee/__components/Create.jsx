@@ -4,6 +4,7 @@ import { User, UserCircle, Phone, Key, Eye, EyeOff, Plus } from "lucide-react";
 import { Alert } from "../../../Other/UI/Alert/Alert";
 import Modal from "../../../Other/UI/Modal/Modal";
 import FormField, { Input } from "../../../Other/UI/FormField/FormField";
+import { isUsernameTakenError } from "../../../../utils/errors";
 
 const ROLE_LABELS = { admin: "Administrator", teacher: "O'qituvchi", hr: "HR", cashier: "Kassir" };
 
@@ -45,7 +46,8 @@ export default function Create() {
             Alert("Foydalanuvchi muvaffaqiyatli yaratildi", "success");
             handleClose();
         } catch (err) {
-            Alert(err?.data?.message || "Xatolik yuz berdi", "error");
+            if (isUsernameTakenError(err)) setErrors((current) => ({ ...current, username: "Bu username band, boshqasini tanlang" }));
+            else Alert(err?.data?.message || "Xatolik yuz berdi", "error");
         }
     };
 

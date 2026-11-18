@@ -85,6 +85,7 @@ export default function TeacherProfile() {
                             userId={id}
                             userName={user?.full_name || '—'}
                             hasFace={user?.has_face_id ?? !!user?.hikvision_code}
+                            targetRole={user?.role}
                         />
                     )}
                 </div>

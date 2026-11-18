@@ -174,9 +174,10 @@ export default function UserAttendanceTab({ user, userId: userIdProp }) {
 
     const [downloading, setDownloading] = useState(false);
     const [fetchPage, { data, isLoading, error }] = useLazyGetUserAttendancePageQuery();
+    const rangeError = validateExcelRange(startDate, endDate);
 
     const load = (p = page) => {
-        if (!userId) return;
+        if (!userId || rangeError) return;
         fetchPage({ user_id: userId, page: p, limit: LIMIT, startDate, endDate });
     };
 
@@ -203,7 +204,7 @@ export default function UserAttendanceTab({ user, userId: userIdProp }) {
         setDownloading(true);
         try {
             const resp = await $api.get('/user-attendance/excel', {
-                params: { startDate, endDate, user_id: userId },
+                params: { startDate, endDate },
                 responseType: 'blob',
             });
             const filename = filenameFromDisposition(resp.headers?.['content-disposition'], `kirdi-chiqdi-${startDate}-${endDate}.xlsx`);
@@ -235,15 +236,18 @@ export default function UserAttendanceTab({ user, userId: userIdProp }) {
                     <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Dan</label>
                     <input type="date" value={startDate}
                         onChange={e => { setStartDate(e.target.value); setPage(1); }}
+                        max={endDate || undefined}
                         className="search-input" style={{ paddingLeft: 14, width: 150 }} />
                 </div>
                 <div>
                     <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Gacha</label>
                     <input type="date" value={endDate} min={startDate}
                         onChange={e => { setEndDate(e.target.value); setPage(1); }}
+                        max={maxRangeEnd(startDate)}
                         className="search-input" style={{ paddingLeft: 14, width: 150 }} />
                 </div>
 
+                {rangeError && <span role="alert" style={{ color: 'var(--danger)', fontSize: '0.72rem' }}>{rangeError}</span>}
                 {isAdmin && (
                 <button
                     onClick={handleExcel}
@@ -266,8 +270,8 @@ export default function UserAttendanceTab({ user, userId: userIdProp }) {
                     </button>
                 )}
             </div>
-            {isAdmin && maxRangeEnd(startDate) && endDate > maxRangeEnd(startDate) && (
-                <div style={{ fontSize: '0.72rem', color: 'var(--warning)' }}>Excel uchun oraliq 93 kundan oshmasligi kerak.</div>
+            {isAdmin && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Excel fayli bitta xodimni emas, butun maktab xodimlarini qamrab oladi.</div>
             )}
 
             <Modal open={markOpen} onClose={() => setMarkOpen(false)} title="Qo'lda belgilash" size="sm">

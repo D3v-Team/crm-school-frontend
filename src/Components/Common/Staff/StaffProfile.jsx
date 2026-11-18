@@ -99,7 +99,7 @@ export default function StaffProfile() {
                     </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <UserFaceActions userId={id} userName={staff?.full_name || "—"} hasFace={hasFace} />
+                    <UserFaceActions userId={id} userName={staff?.full_name || "—"} hasFace={hasFace} targetRole={staff?.role} />
                     <button className="btn-create" onClick={() => setMarkOpen(true)} title="Qurilma ishlamagan kun uchun">
                         <Hand size={14} /> Qo&apos;lda belgilash
                     </button>

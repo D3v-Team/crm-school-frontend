@@ -52,6 +52,10 @@ const authSlice = createSlice({
             if (role) Cookies.set('role', role);
             Cookies.set('is_payment', String(is_payment));
         },
+        setRole(state, action) {
+            state.role = action.payload || null;
+            if (state.role) Cookies.set('role', state.role);
+        },
         logout(state) {
             state.token = null;
             state.refreshToken = null;
@@ -72,5 +76,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { setAuth, logout } = authSlice.actions;
+export const { setAuth, setRole, logout } = authSlice.actions;
 export default authSlice.reducer;

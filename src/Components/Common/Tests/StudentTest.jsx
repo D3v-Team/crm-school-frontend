@@ -4,6 +4,7 @@ import { Check, ChevronLeft, ChevronRight, Clock3, LoaderCircle, Moon, PartyPopp
 import {
     finishPublicAttempt, getPublicTest, savePublicAnswer, startPublicAttempt,
 } from '../../../store/services/test.api';
+import { getRetryAfterSeconds } from '../../../utils/errors';
 import './tests.css';
 
 const responsePayload = (response) => response?.data ?? response ?? {};
@@ -240,7 +241,12 @@ export default function StudentTest() {
                         await finishAttempt(true, true);
                         return;
                     }
-                    if (retry < 2) await sleep(requestFailure?.response?.status === 429 ? 2200 : 400 * (retry + 1));
+                    if (retry < 2) {
+                        const wait = requestFailure?.response?.status === 429
+                            ? getRetryAfterSeconds(requestFailure) * 1000
+                            : 400 * (retry + 1);
+                        await sleep(wait);
+                    }
                 }
             }
             setSavingQuestion('');

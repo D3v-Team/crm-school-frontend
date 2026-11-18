@@ -13,6 +13,17 @@ export const getErrorMessages = (error) => {
     return [];
 };
 
+export const getRetryAfterSeconds = (error, fallback = 60) => {
+    const data = error?.data ?? error?.response?.data;
+    const retryAfter = Number(data?.retry_after);
+    return Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : fallback;
+};
+
+export const isUsernameTakenError = (error) => {
+    const messages = getErrorMessages(error);
+    return getErrorStatus(error) === 400 && messages.some((message) => /username\s+band/i.test(message));
+};
+
 const STATUS_FALLBACK = {
     413: "So'rov hajmi juda katta",
     429: "Juda ko'p so'rov yuborildi. Bir necha soniyadan keyin qayta urinib ko'ring",

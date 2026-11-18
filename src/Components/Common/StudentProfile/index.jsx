@@ -17,8 +17,8 @@ import FaceActions from "./FaceActions";
 import UnassignParent from "./UnassignParent";
 import GroupsSection from "./GroupsSection";
 import StudentScheduleTab from "./StudentScheduleTab";
-import { validateExcelRange } from "../../../utils/files";
-import { readBlobError } from "../../../utils/errors";
+import { maxRangeEnd, validateExcelRange } from "../../../utils/files";
+import { getErrorMessage, readBlobError } from "../../../utils/errors";
 import { Alert } from "../../Other/UI/Alert/Alert";
 import {
     User, Phone, Users, DollarSign, Calendar,
@@ -190,18 +190,20 @@ function AttendanceTab({ studentId }) {
     const [dateFrom, setDateFrom] = useState(fmtLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
     const [dateTo, setDateTo]   = useState(fmtLocal(now));
     const [subjectFilter, setSubjectFilter] = useState('all');
+    const rangeError = validateExcelRange(dateFrom, dateTo);
 
-    const [fetchAtt, { data: attData, isLoading: attLoading }] = useLazyGetAttendanceQuery();
-    const [fetchGrades, { data: gradesData, isLoading: gradesLoading }] = useLazyGetGradesQuery();
+    const [fetchAtt, { data: attData, isLoading: attLoading, error: attError }] = useLazyGetAttendanceQuery();
+    const [fetchGrades, { data: gradesData, isLoading: gradesLoading, error: gradesError }] = useLazyGetGradesQuery();
 
     const load = () => {
-        if (!studentId) return;
+        if (!studentId || rangeError) return;
         fetchAtt({ student_id: studentId, date_from: dateFrom, date_to: dateTo, page:1 });
         fetchGrades({ student_id: studentId, date_from: dateFrom, date_to: dateTo, page:1 });
     };
     useEffect(() => { load(); }, [studentId, dateFrom, dateTo]);
 
     const isLoading = attLoading || gradesLoading;
+    const error = attError || gradesError;
 
     const rows = useMemo(() => {
         const map = {};
@@ -235,6 +237,7 @@ function AttendanceTab({ studentId }) {
         const pct     = marked > 0 ? Math.round(present/marked*100) : null;
         const graded  = filteredRows.filter(r=>r.grade!=null);
         const avg     = graded.length ? (graded.reduce((s,r)=>s+Number(r.grade),0)/graded.length).toFixed(1) : null;
+
         return { present, absent, late, pct, avg };
     }, [rows, subjectFilter]);
 
@@ -245,6 +248,14 @@ function AttendanceTab({ studentId }) {
         ? rows
         : rows.filter(row => row.subject_name === subjectFilter);
 
+    if (error) {
+        return (
+            <div role="alert" style={{ background:'var(--danger-soft)', border:'1px solid var(--danger)', color:'var(--danger)', padding:16, borderRadius:12 }}>
+                Xatolik: {getErrorMessage(error, "Davomat va baholarni yuklab bo'lmadi")}
+            </div>
+        );
+    }
+
     return (
         <div>
             {/* Filter */}
@@ -252,13 +263,17 @@ function AttendanceTab({ studentId }) {
                 <div>
                     <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Dan</label>
                     <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
+                        max={dateTo || undefined}
                         style={{ padding:'8px 12px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', width:155 }}/>
                 </div>
                 <div>
                     <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Gacha</label>
                     <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
+                        min={dateFrom || undefined}
+                        max={maxRangeEnd(dateFrom)}
                         style={{ padding:'8px 12px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', width:155 }}/>
                 </div>
+                {rangeError && <span role="alert" style={{ color:'var(--danger)', fontSize:'0.75rem' }}>{rangeError}</span>}
                 <div>
                     <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Fan</label>
                     <select value={subjectFilter} onChange={e=>setSubjectFilter(e.target.value)}
@@ -453,25 +468,27 @@ function StudentDayCard({ record }) {
     );
 }
 
-function EntryExitTab({ studentId }) {
+function EntryExitTab({ studentId, isAdmin }) {
     const [page, setPage] = useState(1);
     const LIMIT = 20;
     const now = new Date();
     const [startDate, setStartDate] = useState(fmtLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
     const [endDate, setEndDate] = useState(fmtLocal(now));
     const [downloading, setDownloading] = useState(false);
-    const [fetchAll, { data, isLoading }] = useLazyGetStudentAttendanceAllQuery();
+    const [fetchAll, { data, isLoading, error }] = useLazyGetStudentAttendanceAllQuery();
     const [fetchExcel] = useLazyGetStudentAttendanceExcelQuery();
 
+    const rangeError = validateExcelRange(startDate, endDate);
+
     useEffect(() => {
-        if (studentId) {
+        if (studentId && !rangeError) {
             fetchAll({ student_id: studentId, startDate, endDate });
             setPage(1);
         }
-    }, [studentId, startDate, endDate]);
+    }, [studentId, startDate, endDate, rangeError, fetchAll]);
 
     const handleExcel = async () => {
-        if (!studentId || downloading) return;
+        if (!isAdmin || !studentId || downloading) return;
         const rangeError = validateExcelRange(startDate, endDate);
         if (rangeError) { Alert(rangeError, 'error'); return; }
         setDownloading(true);
@@ -519,23 +536,31 @@ function EntryExitTab({ studentId }) {
                     <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Dan</label>
                     <input type="date" value={startDate}
                         onChange={e=>{ setStartDate(e.target.value); setPage(1); }}
+                        max={endDate || undefined}
                         className="search-input" style={{ paddingLeft:14, width:150 }} />
                 </div>
                 <div>
                     <label style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Gacha</label>
                     <input type="date" value={endDate}
                         onChange={e=>{ setEndDate(e.target.value); setPage(1); }}
+                        min={startDate || undefined}
+                        max={maxRangeEnd(startDate)}
                         className="search-input" style={{ paddingLeft:14, width:150 }} />
                 </div>
-                <button onClick={handleExcel} disabled={downloading || !studentId}
+                {rangeError && <span role="alert" style={{ color:'var(--danger)', fontSize:'0.75rem' }}>{rangeError}</span>}
+                {isAdmin && <button onClick={handleExcel} disabled={downloading || !studentId || !!rangeError}
                     style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 14px', borderRadius:9, border:'none',
                         background:downloading?'var(--input-bg)':'#10b981', color:downloading?'var(--text-muted)':'#fff',
                         fontSize:'0.82rem', fontWeight:600, cursor:downloading?'not-allowed':'pointer' }}>
                     <Download size={14}/>{downloading?'Yuklanmoqda...':'Excel'}
-                </button>
+                </button>}
             </div>
 
-            {isLoading ? <Loading/> : records.length===0 ? (
+            {error ? (
+                <div role="alert" style={{ background:'var(--danger-soft)', border:'1px solid var(--danger)', color:'var(--danger)', padding:16, borderRadius:12 }}>
+                    Xatolik: {getErrorMessage(error, "Kirdi-chiqdi ma'lumotlarini yuklab bo'lmadi")}
+                </div>
+            ) : rangeError ? null : isLoading ? <Loading/> : records.length===0 ? (
                 <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
                     <CameraIcon size={40} style={{ opacity:.2, margin:'0 auto 10px' }}/>
                     <p>Kirdi-chiqdi ma'lumotlari topilmadi</p>
@@ -570,7 +595,7 @@ function EntryExitTab({ studentId }) {
 }
 
 /* ── Parent info tab ── */
-function ParentInfo({ student, onRefetch }) {
+function ParentInfo({ student, onRefetch, canViewParentProfile }) {
     const parent = student?.parent;
     if (!parent) return (
         <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
@@ -591,12 +616,16 @@ function ParentInfo({ student, onRefetch }) {
                             {(parent.full_name||'?').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                            <NavLink to={`/parent/${parent.id}`} style={{ fontSize:'1rem',fontWeight:700,color:'var(--text-primary)',textDecoration:'none',display:'flex',alignItems:'center',gap:6 }}
-                                onMouseEnter={e=>e.currentTarget.style.color='var(--accent)'}
-                                onMouseLeave={e=>e.currentTarget.style.color='var(--text-primary)'}>
-                                {parent.full_name}
-                                <ExternalLink size={13} style={{ opacity:.6 }}/>
-                            </NavLink>
+                            {canViewParentProfile ? (
+                                <NavLink to={`/parent/${parent.id}`} style={{ fontSize:'1rem',fontWeight:700,color:'var(--text-primary)',textDecoration:'none',display:'flex',alignItems:'center',gap:6 }}
+                                    onMouseEnter={e=>e.currentTarget.style.color='var(--accent)'}
+                                    onMouseLeave={e=>e.currentTarget.style.color='var(--text-primary)'}>
+                                    {parent.full_name}
+                                    <ExternalLink size={13} style={{ opacity:.6 }}/>
+                                </NavLink>
+                            ) : (
+                                <div style={{ fontSize:'1rem',fontWeight:700,color:'var(--text-primary)' }}>{parent.full_name}</div>
+                            )}
                             <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
                                 <div style={{ fontSize:'0.72rem',color:'var(--text-muted)' }}>Ota-ona</div>
                                 {botConnected ? (
@@ -640,6 +669,7 @@ export default function StudentProfile() {
     const [tab, setTab] = useState('payments');
     const student = data?.data || data;
     const authRole   = useSelector(s => s.auth.role);
+    const authRoleForExport = authRole === 'admin' || authRole === 'super_admin';
     const rawPayment = useSelector(s => s.auth.is_payment);
     // super_admin va cashier uchun to'lov har doim ko'rsatiladi
     const is_payment = authRole === 'super_admin' || authRole === 'cashier' ? true : rawPayment;
@@ -660,7 +690,7 @@ export default function StudentProfile() {
         ...(authRole !== 'cashier' ? [{ key:'schedule', label:'Haftalik jadval', icon: CalendarDays }] : []),
         ...(authRole !== 'cashier' ? [{ key:'attendance', label:"Davomat va baholar", icon: ClipboardList }] : []),
         { key:'parent',     label:"Ota-ona",            icon: Users        },
-        ...(authRole !== 'cashier' ? [{ key:'entryexit',  label:"Kirdi-Chiqdi",       icon: CameraIcon   }] : []),
+        ...(authRole !== 'cashier' && authRole !== 'teacher' ? [{ key:'entryexit',  label:"Kirdi-Chiqdi",       icon: CameraIcon   }] : []),
     ];
 
     return (
@@ -745,8 +775,8 @@ export default function StudentProfile() {
                 {tab === 'payments'   && <PaymentsTab studentId={id} requiredAmount={student.price} showAddButton={is_payment} />}
                 {tab === 'schedule'   && <StudentScheduleTab studentId={id} />}
                 {tab === 'attendance' && <AttendanceTab studentId={id} />}
-                {tab === 'parent'     && <ParentInfo student={student} onRefetch={refetch} />}
-                {tab === 'entryexit'  && <EntryExitTab studentId={id} />}
+                {tab === 'parent'     && <ParentInfo student={student} onRefetch={refetch} canViewParentProfile={authRole !== 'teacher'} />}
+                {tab === 'entryexit'  && <EntryExitTab studentId={id} isAdmin={authRoleForExport} />}
             </div>
         </div>
     );
