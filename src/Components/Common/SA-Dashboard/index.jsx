@@ -325,6 +325,7 @@ export default function Dashboard() {
                 <KpiCard
                     icon={GraduationCap} label="O'quvchilar" color="#6366f1"
                     value={g?.students?.total ?? 0}
+                    onClick={authRole === 'admin' ? () => navigate('/ad/student') : undefined}
                     sub={g?.students ? `Faol: ${g.students.active ?? 0} · Nofaol: ${g.students.inactive ?? 0}` : undefined}
                 />
                 <KpiCard
@@ -332,6 +333,7 @@ export default function Dashboard() {
                     label={authRole === 'super_admin' ? 'Foydalanuvchilar' : "O'qituvchilar"}
                     color="#10b981"
                     value={authRole === 'super_admin' ? totalUsers : userCounts.teacher || 0}
+                    onClick={authRole === 'admin' ? () => navigate('/ad/teachers') : undefined}
                     sub={authRole === 'super_admin' ? (
                         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px 12px' }}>
                             {employeeRoles.map(role => (
@@ -363,6 +365,7 @@ export default function Dashboard() {
                 <KpiCard
                     icon={BookOpen} label="Guruhlar" color="#f59e0b"
                     value={g?.groups_count ?? 0}
+                    onClick={authRole === 'admin' ? () => navigate('/ad/groups') : undefined}
                 />
                 <KpiCard
                     icon={TrendingUp} label="Fanlar" color="#8b5cf6"
@@ -636,9 +639,20 @@ export default function Dashboard() {
                                     const scoreColor = grp.score > 500 ? 'var(--success)' : grp.score > 200 ? 'var(--warning)' : 'var(--text-muted)';
                                     const attColor   = grp.attendance_rate >= 80 ? 'var(--success)' : grp.attendance_rate >= 50 ? 'var(--warning)' : 'var(--danger)';
                                     const gradeColor = grp.avg_grade >= 80 ? 'var(--success)' : grp.avg_grade >= 60 ? 'var(--warning)' : 'var(--danger)';
+                                    const canOpenProfile = Boolean(grp.group_id)
+                                        && ['admin', 'super_admin', 'cashier'].includes(authRole);
                                     return (
                                         <tr key={grp.group_id || i}
-                                            style={{ borderTop: '1px solid var(--card-border)', transition: 'background 0.15s' }}
+                                            role={canOpenProfile ? 'link' : undefined}
+                                            tabIndex={canOpenProfile ? 0 : undefined}
+                                            onClick={canOpenProfile ? () => navigate(`/group/${grp.group_id}`) : undefined}
+                                            onKeyDown={canOpenProfile ? (event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault();
+                                                    navigate(`/group/${grp.group_id}`);
+                                                }
+                                            } : undefined}
+                                            style={{ borderTop: '1px solid var(--card-border)', transition: 'background 0.15s', cursor: canOpenProfile ? 'pointer' : undefined }}
                                             onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-soft)'}
                                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                             <td style={{ padding: '11px 16px', textAlign: 'center' }}>
