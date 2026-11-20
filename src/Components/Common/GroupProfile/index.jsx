@@ -98,6 +98,7 @@ export default function GroupProfile() {
     const navigate  = useNavigate();
     const role      = useSelector(s => s.auth.role);
     const isTeacher = role === 'teacher';
+    const isCashier = role === 'cashier';
 
     const tabs = isTeacher ? TEACHER_TABS : ADMIN_TABS.filter(t =>
         role !== 'cashier' || t.key === 'students'
@@ -252,7 +253,11 @@ export default function GroupProfile() {
                     isTeacher={isTeacher}
                 />
 
-                {tab === 'students'              && <><GroupStudentsTab groupId={id} />{!isTeacher && <div style={{ marginTop: 24 }}><GroupDebtorsTab /></div>}</>}
+                {tab === 'students' && (
+                    isCashier
+                        ? <GroupDebtorsTab students={students} />
+                        : <><GroupStudentsTab groupId={id} />{!isTeacher && <div style={{ marginTop: 24 }}><GroupDebtorsTab students={students} /></div>}</>
+                )}
                 {tab === 'schedule'              && <ScheduleTab groupId={id} />}
                 {tab === 'attendance' && !merged  && <AttendanceTab groupId={id} students={students} merged={false} groupSubjects={groupSubjects} teacherSubjectId={teacherSubjectId} scheduleRecords={Array.isArray(scheduleRecords) ? scheduleRecords : []} />}
                 {tab === 'grades'     && !merged  && <GradesTab students={students} groupSubjects={groupSubjects} teacherSubjectId={teacherSubjectId} scheduleRecords={Array.isArray(scheduleRecords) ? scheduleRecords : []} />}

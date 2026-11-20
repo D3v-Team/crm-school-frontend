@@ -200,23 +200,50 @@ export default function StudentsTab({ students = [] }) {
         if (groupId) fetchDebtors({ group_id: groupId, year, month });
     }, [groupId, year, month]);
 
-    const debtorsMap = useMemo(() => {
-        const list = data?.data?.students || data?.students || [];
-        return list.reduce((acc, item) => { acc[item.student_id] = item; return acc; }, {});
-    }, [data]);
+    const debtorStudents = data?.data?.students || data?.students;
+    const debtorTotals = data?.data?.totals || data?.totals;
 
-    const rows = useMemo(() => students.map(s => {
-        const price = Number(s.price) || 0;
-        const d = debtorsMap[s.id];
-        return d
-            ? { id: s.id, name: s.full_name, phone: s.phone || '—', required: Number(d.required_amount) || price, paid: Number(d.paid_amount) || 0, debt: Number(d.debt) || 0 }
-            : { id: s.id, name: s.full_name, phone: s.phone || '—', required: price, paid: price, debt: 0 };
-    }).sort((a, b) => b.debt - a.debt), [students, debtorsMap]);
+    const rows = useMemo(() => {
+        const debtorsById = new Map(
+            (Array.isArray(debtorStudents) ? debtorStudents : []).map(debtor => [debtor.student_id, debtor])
+        );
+        const studentIds = new Set(students.map(student => student.id));
+        const rosterRows = students.map(student => {
+            const debtor = debtorsById.get(student.id);
+            const price = Number(student.price) || 0;
+            return {
+                id: student.id,
+                name: debtor?.full_name || student.full_name || '—',
+                phone: student.phone || debtor?.phone || '—',
+                required: Number(debtor?.required_amount ?? price) || 0,
+                paid: Number(debtor?.paid_amount ?? price) || 0,
+                debt: Number(debtor?.debt) || 0,
+            };
+        });
+        const debtorOnlyRows = (Array.isArray(debtorStudents) ? debtorStudents : [])
+            .filter(debtor => !studentIds.has(debtor.student_id))
+            .map(debtor => ({
+                id: debtor.student_id,
+                name: debtor.full_name || '—',
+                phone: debtor.phone || '—',
+                required: Number(debtor.required_amount) || 0,
+                paid: Number(debtor.paid_amount) || 0,
+                debt: Number(debtor.debt) || 0,
+            }));
 
-    const totals = useMemo(() => rows.reduce(
-        (acc, r) => ({ req: acc.req + r.required, paid: acc.paid + r.paid, debt: acc.debt + r.debt }),
-        { req: 0, paid: 0, debt: 0 }
-    ), [rows]);
+        return [...rosterRows, ...debtorOnlyRows].sort((a, b) => b.debt - a.debt);
+    }, [students, debtorStudents]);
+
+    const totals = useMemo(() => debtorTotals
+        ? {
+            req: Number(debtorTotals.total_required) || 0,
+            paid: Number(debtorTotals.total_paid) || 0,
+            debt: Number(debtorTotals.total_debt) || 0,
+        }
+        : rows.reduce(
+            (acc, r) => ({ req: acc.req + r.required, paid: acc.paid + r.paid, debt: acc.debt + r.debt }),
+            { req: 0, paid: 0, debt: 0 }
+        ), [debtorTotals, rows]);
 
     const pct = totals.req > 0 ? Math.min(100, Math.round(totals.paid / totals.req * 100)) : 0;
     const loading = isLoading || isFetching;
