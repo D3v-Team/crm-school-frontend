@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { useLazyGetAttendanceQuery, useBulkAttendanceMutation } from '../../../../store/services/attedance.api';
 import { useLazyGetGradesQuery, useBulkGradeMutation } from '../../../../store/services/grades.api';
 import { addBulkError, addBulkSuccess, createBulkReport, showBulkReport } from '../../../../utils/bulk';
-import { Check, X, Clock, Save, BookOpen, Info, CalendarOff } from 'lucide-react';
+import { Check, X, Clock, Save, BookOpen, Info, CalendarOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { Alert } from '../../../Other/UI/Alert/Alert';
 import Loading from '../../../Other/UI/Loadings/Loading';
 import Modal from '../../../Other/UI/Modal/Modal';
@@ -162,12 +162,13 @@ function InfoModal({ open, onClose, entry, merged, onSave }) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   TEACHER — bugungi kun uchun TABLE layout
+   TEACHER — today's attendance table and mobile cards
 ══════════════════════════════════════════════════════════════ */
 function TeacherTodayLayout({
     todaySubs, historyStudents, getStatus, getScore, getAttComment, getGradeComment,
     setPendingField, pending, pKey, merged, saving, saveAll, hasPending, isFetching,
 }) {
+    const [expandedStudents, setExpandedStudents] = useState({});
     const todayStr  = fmtLocal(new Date());
     const today     = parseLocal(todayStr);
     const dayName   = DAY_SHORT[dayNameOf(todayStr)];
@@ -223,26 +224,28 @@ function TeacherTodayLayout({
                     <div key={schId} style={{borderRadius:14,border:'1px solid var(--card-border)',overflow:'hidden',background:'var(--card-bg)'}}>
 
                         {/* Subject header row */}
-                        <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 18px',
+                        <div className="teacher-attendance-subject-header" style={{display:'flex',alignItems:'center',gap:10,padding:'12px 18px',
                             background:'var(--accent-soft)',borderBottom:'1px solid var(--card-border)'}}>
-                            <BookOpen size={15} style={{color:'var(--accent)',flexShrink:0}}/>
-                            <span style={{fontWeight:700,fontSize:'0.88rem',color:'var(--accent)'}}>{subjectLabel}</span>
-                            {lessonLabel && (
-                                <span style={{fontSize:'0.72rem',color:'var(--text-muted)',fontWeight:500,
-                                    padding:'2px 8px',borderRadius:6,background:'var(--card-bg)',
-                                    border:'1px solid var(--card-border)'}}>
-                                    {lessonLabel}
-                                </span>
-                            )}
+                            <div className="teacher-attendance-subject-title" style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                                <BookOpen size={15} style={{color:'var(--accent)',flexShrink:0}}/>
+                                <span className="teacher-attendance-subject-name" style={{fontWeight:700,fontSize:'0.88rem',color:'var(--accent)'}}>{subjectLabel}</span>
+                                {lessonLabel && (
+                                    <span style={{fontSize:'0.72rem',color:'var(--text-muted)',fontWeight:500,
+                                        padding:'2px 8px',borderRadius:6,background:'var(--card-bg)',
+                                        border:'1px solid var(--card-border)',whiteSpace:'nowrap'}}>
+                                        {lessonLabel}
+                                    </span>
+                                )}
+                            </div>
                             {timeLabel && (
-                                <span style={{display:'flex',alignItems:'center',gap:4,fontSize:'0.75rem',
+                                <span className="teacher-attendance-time" style={{display:'flex',alignItems:'center',gap:4,fontSize:'0.75rem',
                                     color:'var(--text-muted)',padding:'2px 10px',borderRadius:6,
                                     background:'var(--card-bg)',border:'1px solid var(--card-border)',
                                     marginLeft:4,whiteSpace:'nowrap'}}>
                                     <Clock size={11}/>{timeLabel}
                                 </span>
                             )}
-                            <span style={{marginLeft:'auto',fontSize:'0.72rem',color:'var(--text-muted)',
+                            <span className="teacher-attendance-student-count" style={{marginLeft:'auto',fontSize:'0.72rem',color:'var(--text-muted)',
                                 padding:'2px 10px',borderRadius:6,background:'var(--card-bg)',
                                 border:'1px solid var(--card-border)',whiteSpace:'nowrap'}}>
                                 {historyStudents.length} o'quvchi
@@ -250,17 +253,17 @@ function TeacherTodayLayout({
                         </div>
 
                         {/* Table */}
-                        <div style={{overflowX:'auto'}}>
+                        <div className="teacher-attendance-table" style={{overflowX:'auto'}}>
                             <table style={{width:'100%',borderCollapse:'collapse'}}>
                                 <colgroup>
-                                    <col style={{width:42}}/>
+                                    <col style={{width:30}}/>
                                     <col style={{width:'18%',minWidth:150}}/>
                                     <col style={{width: merged ? '40%' : '55%'}}/>
                                     {merged && <col style={{width:'27%',minWidth:200}}/>}
                                 </colgroup>
                                 <thead>
                                     <tr style={{background:'var(--input-bg)',borderBottom:'2px solid var(--card-border)'}}>
-                                        <th style={{padding:'10px 12px',textAlign:'center',fontSize:'0.68rem',
+                                        <th style={{padding:'10px 4px',textAlign:'center',fontSize:'0.68rem',
                                             fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',
                                             letterSpacing:'0.05em',borderRight:'1px solid var(--card-border)'}}>
                                             #
@@ -306,7 +309,7 @@ function TeacherTodayLayout({
                                                 transition:'background 0.15s',
                                             }}>
                                                 {/* # */}
-                                                <td style={{padding:'14px 12px',textAlign:'center',verticalAlign:'top',
+                                                <td style={{padding:'14px 4px',textAlign:'center',verticalAlign:'top',
                                                     borderRight:'1px solid var(--card-border)',
                                                     fontSize:'0.78rem',fontWeight:700,color:'var(--text-muted)'}}>
                                                     {idx+1}
@@ -456,6 +459,140 @@ function TeacherTodayLayout({
                                 </tbody>
                             </table>
                         </div>
+
+                        <div className="teacher-attendance-cards">
+                            {historyStudents.length === 0 ? (
+                                <div style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                                    Guruhda o&apos;quvchi topilmadi
+                                </div>
+                            ) : historyStudents.map((s, idx) => {
+                                const studentKey = `${schId}-${s.id}`;
+                                const expanded = !!expandedStudents[studentKey];
+                                const curStatus = getStatus(s.id, todayStr, schId);
+                                const curScore = getScore(s.id, todayStr, schId);
+                                const curAttCmt = getAttComment(s.id, todayStr, schId);
+                                const curGradeCmt = getGradeComment(s.id, todayStr, schId);
+                                const scoreNum = curScore !== '' ? Number(curScore) : null;
+                                const isAbsent = curStatus === 'absent';
+                                const presentStyle = STATUS_STYLE.present;
+
+                                return (
+                                    <article key={s.id} className="teacher-student-mobile-card">
+                                        <div className="teacher-student-mobile-summary">
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {idx + 1}. {s.full_name}
+                                                </div>
+                                                {curStatus && (
+                                                    <span style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4,
+                                                        padding: '2px 7px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 700,
+                                                        background: STATUS_STYLE[curStatus].bg, color: STATUS_STYLE[curStatus].color,
+                                                    }}>
+                                                        {STATUS_LABELS[curStatus]}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPendingField(s.id, todayStr, schId, { status: curStatus === 'present' ? null : 'present' })}
+                                                aria-pressed={curStatus === 'present'}
+                                                aria-label="Keldi deb belgilash"
+                                                title="Keldi"
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    width: 40, height: 40, padding: 0, borderRadius: 9, flexShrink: 0,
+                                                    border: `1.5px solid ${curStatus === 'present' ? presentStyle.border : 'var(--card-border)'}`,
+                                                    background: curStatus === 'present' ? presentStyle.bg : 'var(--input-bg)',
+                                                    color: curStatus === 'present' ? presentStyle.color : 'var(--text-secondary)',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                <Check size={18} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setExpandedStudents(previous => ({ ...previous, [studentKey]: !previous[studentKey] }))}
+                                                aria-expanded={expanded}
+                                                aria-label={expanded ? `${s.full_name} ma'lumotlarini yopish` : `${s.full_name} ma'lumotlarini ochish`}
+                                                style={{
+                                                    width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    border: '1px solid var(--card-border)', borderRadius: 9, background: 'var(--input-bg)',
+                                                    color: 'var(--text-secondary)', cursor: 'pointer', flexShrink: 0,
+                                                }}
+                                            >
+                                                {expanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+                                            </button>
+                                        </div>
+
+                                        {expanded && (
+                                            <div className="teacher-student-mobile-details">
+                                                <div>
+                                                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8 }}>Davomat</div>
+                                                    <div style={{ display: 'flex', gap: 7 }}>
+                                                        {['present', 'absent', 'late'].map(value => (
+                                                            <BigStatusBtn
+                                                                key={value}
+                                                                value={value}
+                                                                current={curStatus}
+                                                                onClick={() => setPendingField(s.id, todayStr, schId, { status: curStatus === value ? null : value })}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                    Davomat izohi
+                                                    <input
+                                                        type="text"
+                                                        value={curAttCmt}
+                                                        onChange={event => setPendingField(s.id, todayStr, schId, { att_comment: event.target.value })}
+                                                        placeholder="Izoh (ixtiyoriy)"
+                                                        className="search-input"
+                                                        style={{ marginTop: 5, paddingLeft: 12 }}
+                                                    />
+                                                </label>
+                                                {merged && (
+                                                    <>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                            Baho (0–100%)
+                                                            <input
+                                                                type="number"
+                                                                min={0}
+                                                                max={100}
+                                                                value={curScore}
+                                                                disabled={isAbsent}
+                                                                onChange={event => setPendingField(s.id, todayStr, schId, { score: event.target.value })}
+                                                                placeholder={isAbsent ? '—' : '0–100'}
+                                                                className="search-input"
+                                                                style={{
+                                                                    marginTop: 5, paddingLeft: 12, fontWeight: 700,
+                                                                    borderColor: scoreNum != null ? scoreColor(scoreNum) : undefined,
+                                                                    background: isAbsent ? 'var(--input-bg)' : scoreNum != null ? scoreBg(scoreNum) : undefined,
+                                                                    color: isAbsent ? 'var(--text-muted)' : scoreNum != null ? scoreColor(scoreNum) : undefined,
+                                                                    opacity: isAbsent ? 0.6 : 1,
+                                                                }}
+                                                            />
+                                                        </label>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                            Baho izohi
+                                                            <input
+                                                                type="text"
+                                                                value={curGradeCmt}
+                                                                disabled={isAbsent}
+                                                                onChange={event => setPendingField(s.id, todayStr, schId, { grade_comment: event.target.value })}
+                                                                placeholder="Izoh (ixtiyoriy)"
+                                                                className="search-input"
+                                                                style={{ marginTop: 5, paddingLeft: 12, opacity: isAbsent ? 0.6 : 1 }}
+                                                            />
+                                                        </label>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </article>
+                                );
+                            })}
+                        </div>
                     </div>
                 );
             })}
@@ -549,8 +686,21 @@ export default function AttendanceTab({
             group_schedule_id:sb.group_schedule_id, subject_name:sb.subject_name,
             lesson_number:sb.lesson_number, start_time:sb.start_time, end_time:sb.end_time, subject_id:sb.subject_id,
         })); }); });
+        if (!m[todayStr]?.length) {
+            const todaySchedules = scheduleRecordsProp.filter(s => String(s.day_of_week || '').toLowerCase() === dayNameOf(todayStr));
+            if (todaySchedules.length) {
+                m[todayStr] = todaySchedules.map(s => ({
+                    group_schedule_id: s.id || s.schedule_id,
+                    subject_name: s.subject?.name || s.subject_name || '',
+                    lesson_number: s.lesson_number,
+                    start_time: s.start_time,
+                    end_time: s.end_time,
+                    subject_id: s.subject_id,
+                })).filter(s => s.group_schedule_id);
+            }
+        }
         return m;
-    },[attRecords]);
+    },[attRecords,scheduleRecordsProp,todayStr]);
 
     const subjectSchedules = useMemo(()=>{
         const m={};
@@ -602,7 +752,22 @@ export default function AttendanceTab({
             .sort();
     },[allDates,dateSubjectsTemplate,isTeacher,todayStr]);
 
-    const historyStudents = useMemo(()=>attRecords.map(r=>({id:r.student_id,full_name:r.full_name})),[attRecords]);
+    const historyStudents = useMemo(()=>{
+        const byId = new Map();
+        students.forEach(student => {
+            if (student?.id != null) byId.set(String(student.id), { id: student.id, full_name: student.full_name });
+        });
+        attRecords.forEach(record => {
+            if (record.student_id != null) {
+                const key = String(record.student_id);
+                byId.set(key, {
+                    id: record.student_id,
+                    full_name: record.full_name || byId.get(key)?.full_name || '—',
+                });
+            }
+        });
+        return Array.from(byId.values());
+    },[attRecords,students]);
 
     /* Pending */
     const [pending, setPending] = useState({});

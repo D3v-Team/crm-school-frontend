@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useLazyGetGradesQuery, useBulkGradeMutation } from '../../../../store/services/grades.api';
 import { addBulkError, addBulkSuccess, createBulkReport, showBulkReport } from '../../../../utils/bulk';
-import { Save, BookOpen, Info, Check } from 'lucide-react';
+import { Save, BookOpen, Info, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Alert } from '../../../Other/UI/Alert/Alert';
 import Loading from '../../../Other/UI/Loadings/Loading';
 import Modal from '../../../Other/UI/Modal/Modal';
@@ -122,8 +122,38 @@ export default function GradesTab({
             group_schedule_id:sb.group_schedule_id,subject_name:sb.subject_name,
             lesson_number:sb.lesson_number,start_time:sb.start_time,end_time:sb.end_time,subject_id:sb.subject_id,
         })); }); });
+        const cursor = parseLocal(dateFrom);
+        const end = parseLocal(dateTo);
+        while (cursor <= end) {
+            const date = fmtLocal(cursor);
+            const scheduledToday = scheduleRecordsProp.filter(schedule =>
+                String(schedule.day_of_week || '').toLowerCase() === dayNameOf(date)
+            );
+            if (scheduledToday.length) {
+                const subjectsBySchedule = new Map(
+                    (m[date] || []).map(subject => [subject.group_schedule_id, subject])
+                );
+                scheduledToday.forEach(schedule => {
+                    const scheduleId = schedule.id || schedule.schedule_id;
+                    if (!scheduleId || subjectsBySchedule.has(scheduleId)) return;
+                    subjectsBySchedule.set(scheduleId, {
+                        group_schedule_id: scheduleId,
+                        subject_name: schedule.subject?.name
+                            || schedule.subject_name
+                            || groupSubjects.find(subject => subject.id === schedule.subject_id)?.name
+                            || '',
+                        lesson_number: schedule.lesson_number,
+                        start_time: schedule.start_time,
+                        end_time: schedule.end_time,
+                        subject_id: schedule.subject_id,
+                    });
+                });
+                m[date] = Array.from(subjectsBySchedule.values());
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
         return m;
-    },[records]);
+    },[records,dateFrom,dateTo,scheduleRecordsProp,groupSubjects]);
 
     /* Unique schedules per subject — scheduleRecordsProp dan ham olish */
     const subjectSchedules = useMemo(()=>{
@@ -190,6 +220,7 @@ export default function GradesTab({
 
     /* Pending */
     const [pending, setPending] = useState({});
+    const [expandedMobileStudents, setExpandedMobileStudents] = useState({});
     const pKey = (sid,date,schId)=>`${sid}|${date}|${schId}`;
 
     const getScore = (sid,date,schId)=>{
@@ -315,7 +346,7 @@ export default function GradesTab({
                     <BookOpen size={40} style={{opacity:.2,margin:'0 auto 10px'}}/><p>Fan tanlang yoki o'quvchilar topilmadi</p>
                 </div>
             ) : (
-                <div ref={tableWrapRef} style={{overflowX:'auto',borderRadius:12,border:'1px solid var(--card-border)',background:'var(--card-bg)'}}>
+                <div ref={tableWrapRef} className="group-grades-desktop-table" style={{overflowX:'auto',borderRadius:12,border:'1px solid var(--card-border)',background:'var(--card-bg)'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.82rem'}}>
                         <thead>
                             <tr style={{background:'var(--accent-soft)'}}>
@@ -401,6 +432,114 @@ export default function GradesTab({
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {students.length > 0 && (
+                <div className="group-grades-mobile-list">
+                    {students.map((student, studentIndex) => {
+                        const studentKey = String(student.id);
+                        const expanded = !!expandedMobileStudents[studentKey];
+                        const grades = visibleDates.flatMap(date =>
+                            (dateSubjectsTemplate[date] || []).map(subject => getScore(student.id, date, subject.group_schedule_id))
+                        );
+                        const gradedCount = grades.filter(score => score !== '').length;
+
+                        return (
+                            <article key={student.id} className="group-grade-mobile-card">
+                                <div className="group-grade-mobile-summary">
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {studentIndex + 1}. {student.full_name}
+                                        </div>
+                                        <div style={{ marginTop: 3, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                            {gradedCount}/{grades.length} baho kiritilgan
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="group-grade-mobile-toggle"
+                                        onClick={() => setExpandedMobileStudents(previous => ({ ...previous, [studentKey]: !previous[studentKey] }))}
+                                        aria-expanded={expanded}
+                                        aria-label={`${student.full_name} baholarini ${expanded ? 'yopish' : 'ochish'}`}
+                                    >
+                                        {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                    </button>
+                                </div>
+                                {expanded && (
+                                    <div className="group-grade-mobile-details">
+                                        {visibleDates.length === 0 ? (
+                                            <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', padding: 8 }}>
+                                                Jadvalda dars topilmadi
+                                            </div>
+                                        ) : visibleDates.map(date => {
+                                            const subjectsForDate = dateSubjectsTemplate[date] || [];
+                                            if (subjectsForDate.length === 0) return null;
+                                            return (
+                                                <section key={date} className="group-grade-mobile-date">
+                                                    <div className="group-grade-mobile-date-title">
+                                                        {parseLocal(date).toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit' })}
+                                                        <span>{DAY_SHORT[dayNameOf(date)]}</span>
+                                                    </div>
+                                                    {subjectsForDate.map(subject => {
+                                                        const scheduleId = subject.group_schedule_id;
+                                                        const score = getScore(student.id, date, scheduleId);
+                                                        const scoreNumber = score !== '' ? Number(score) : null;
+                                                        return (
+                                                            <div key={scheduleId} className="group-grade-mobile-subject">
+                                                                <div style={{ minWidth: 0, flex: 1 }}>
+                                                                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>
+                                                                        {subject.subject_name || 'Fan'}
+                                                                    </div>
+                                                                    {subject.start_time && (
+                                                                        <div style={{ marginTop: 2, fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                                                            {fmtTime(subject.start_time)}–{fmtTime(subject.end_time)}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    value={score}
+                                                                    onChange={event => setPending(previous => ({
+                                                                        ...previous,
+                                                                        [pKey(student.id, date, scheduleId)]: {
+                                                                            ...previous[pKey(student.id, date, scheduleId)],
+                                                                            score: event.target.value,
+                                                                        },
+                                                                    }))}
+                                                                    placeholder="—"
+                                                                    aria-label={`${student.full_name} ${subject.subject_name || 'fan'} bahosi`}
+                                                                    style={{
+                                                                        width: 68, padding: '7px 8px', textAlign: 'center',
+                                                                        border: `1px solid ${scoreNumber != null ? scoreColor(scoreNumber) : 'var(--input-border)'}`,
+                                                                        borderRadius: 8,
+                                                                        background: scoreNumber != null ? scoreBg(scoreNumber) : 'var(--input-bg)',
+                                                                        color: scoreNumber != null ? scoreColor(scoreNumber) : 'var(--input-text)',
+                                                                        fontSize: '0.8rem', fontWeight: 700,
+                                                                    }}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className="group-grade-mobile-info"
+                                                                    onClick={() => openInfo(student.id, student.full_name, date, subject)}
+                                                                    title="Izoh"
+                                                                    aria-label={`${student.full_name} izohini tahrirlash`}
+                                                                >
+                                                                    <Info size={15} />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </section>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </article>
+                        );
+                    })}
                 </div>
             )}
 

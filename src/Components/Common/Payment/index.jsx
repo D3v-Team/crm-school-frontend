@@ -4,10 +4,11 @@ import { useLazyGetStudentsQuery } from "../../../store/services/student.api";
 import { useLazyGetGroupsQuery } from "../../../store/services/group.api";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Search, RefreshCw, CreditCard, X, Trash, AlertTriangle, Download,
+    Search, RefreshCw, CreditCard, X, Trash, AlertTriangle, Download, Plus,
 } from "lucide-react";
 import Loading from "../../Other/UI/Loadings/Loading";
 import EditPayment from "./__components/EditPayment";
+import AddPaymentModal from "./__components/AddPaymentModal";
 import { Alert } from "../../Other/UI/Alert/Alert";
 import Modal from "../../Other/UI/Modal/Modal";
 import $api from "../../../store/api";
@@ -56,6 +57,7 @@ export default function Payment() {
     const [selectedGroupId, setSelectedGroupId]     = useState("");
     const [students, setStudents]     = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [showAddPayment, setShowAddPayment] = useState(false);
 
     const [trigger, { data, isLoading, error }] = useLazyGetPaymentsQuery();
     const [fetchStudents, { data:studentsData, isLoading:studentsLoading }] = useLazyGetStudentsQuery();
@@ -158,6 +160,9 @@ export default function Payment() {
                     )}
                 </div>
                 <button className="btn-refresh" onClick={fetchPayments} title="Yangilash"><RefreshCw size={15}/></button>
+                <button className="btn-create" onClick={() => setShowAddPayment(true)}>
+                    <Plus size={14}/> To&apos;lov qo&apos;shish
+                </button>
                 <button
                     onClick={handleExcelExport}
                     disabled={exporting}
@@ -237,6 +242,11 @@ export default function Payment() {
                     </>
                 )
             )}
+            <AddPaymentModal
+                open={showAddPayment}
+                onClose={() => setShowAddPayment(false)}
+                onSuccess={fetchPayments}
+            />
         </div>
     );
 }

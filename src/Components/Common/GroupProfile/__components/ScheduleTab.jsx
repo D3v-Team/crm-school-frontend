@@ -350,7 +350,7 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
 
             {/* Stats */}
             {stats.count > 0 && (
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
+                <div className="group-schedule-stats" style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
                     {[
                         { icon:BookOpen,  label:'dars / hafta',     val:stats.count,              color:'#3b82f6' },
                         { icon:Hourglass, label:'umumiy yuklama',   val:`${stats.hours} soat`,    color:'#f59e0b' },
