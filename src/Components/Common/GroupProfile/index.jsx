@@ -27,22 +27,21 @@ const ADMIN_TABS = [
 const TEACHER_TABS = [
     { key:'students',   label:"O'quvchilar", icon: Users },
     { key:'schedule',   label:'Jadvallar', icon: Calendar     },
-    { key:'attendance', label:'Davomat',   icon: ClipboardList },
-    { key:'grades',     label:'Baholar',   icon: BookOpen     },
+    { key:'merged',     label:'Davomat + Baholar', icon: Columns2 },
 ];
 
 /* ── Tab bar with merge button ── */
 function Tabs({ tabs, active, onChange, merged, onMergeToggle, isTeacher }) {
     const showMerge = !isTeacher && (active === 'attendance' || active === 'grades' || merged);
     return (
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+        <div className="group-profile-tabs-toolbar" style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20, flexWrap:'wrap' }}>
             {/* Tab buttons */}
-            <div style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', overflowX:'auto', flex:'1 1 auto' }}>
+            <div className="group-profile-tab-scroll" style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', overflowX:'auto', flex:'1 1 auto' }}>
                 {tabs.map(t => {
                     /* merged holatda attendance va grades yashiriladi */
-                    if (merged && (t.key === 'attendance' || t.key === 'grades')) return null;
+                    if (!isTeacher && merged && (t.key === 'attendance' || t.key === 'grades')) return null;
                     /* active faqat joriy tab key ga mos kelsa */
-                    const isActive = !merged && active === t.key;
+                    const isActive = isTeacher ? active === t.key : !merged && active === t.key;
                     return (
                         <button key={t.key} onClick={() => onChange(t.key)} style={{
                             display:'flex', alignItems:'center', gap:6,
@@ -56,8 +55,8 @@ function Tabs({ tabs, active, onChange, merged, onMergeToggle, isTeacher }) {
                         </button>
                     );
                 })}
-                {/* Merged tab — faqat merged holatda ko'rinadi */}
-                {merged && (
+                {/* Admin uchun birlashtirilgan tab indikatori */}
+                {merged && !isTeacher && (
                     <button style={{
                         display:'flex', alignItems:'center', gap:6,
                         padding:'8px 14px', borderRadius:9, border:'none', cursor:'default',
@@ -109,6 +108,10 @@ export default function GroupProfile() {
 
     const handleTabChange = (key) => {
         setTab(key);
+        if (isTeacher) {
+            setMerged(key === 'merged');
+            return;
+        }
         if (key !== 'attendance' && key !== 'grades' && key !== 'merged') {
             setMerged(false);
         }
@@ -193,7 +196,7 @@ export default function GroupProfile() {
                     <span className="page-title-icon"><Layers size={18}/></span>
                     Guruh profili
                 </div>
-                <button onClick={() => navigate(-1)} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--input-bg)', border:'1.5px solid var(--card-border)', borderRadius:9, padding:'7px 14px', cursor:'pointer', fontSize:'0.78rem', color:'var(--text-secondary)', fontWeight:600 }}>
+                <button className="group-profile-back-button" onClick={() => navigate(-1)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, width:'auto', flex:'0 0 auto', alignSelf:'flex-start', background:'var(--input-bg)', border:'1.5px solid var(--card-border)', borderRadius:9, padding:'7px 14px', cursor:'pointer', fontSize:'0.78rem', color:'var(--text-secondary)', fontWeight:600 }}>
                     <ArrowLeft size={14}/> Orqaga
                 </button>
             </div>
@@ -243,7 +246,7 @@ export default function GroupProfile() {
             </div>
 
             {/* ── Tabs card ── */}
-            <div style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:'16px 18px' }}>
+            <div className="group-profile-content" style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:'16px 18px' }}>
                 <Tabs
                     tabs={tabs}
                     active={tab}

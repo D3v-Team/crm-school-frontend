@@ -63,7 +63,7 @@ export default function GroupStudentsTab({ groupId }) {
 
     return (
         <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+            <div className="group-students-toolbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Users size={16} style={{ color: "var(--accent)" }} />
                     <strong style={{ color: "var(--text-primary)" }}>Guruh o&apos;quvchilari</strong>
@@ -71,7 +71,7 @@ export default function GroupStudentsTab({ groupId }) {
                 </div>
                 {canManage && <button className="btn-create" onClick={openAdd}><Plus size={14} /> O&apos;quvchi qo&apos;shish</button>}
             </div>
-            <div className="data-table-wrap">
+            <div className="group-students-desktop-table data-table-wrap">
                 <table className="data-table">
                     <thead>
                         <tr><th>O&apos;quvchi</th><th>Telefon</th><th>Ota-ona</th><th>Guruhga qo&apos;shilgan</th>{canManage && <th>Amallar</th>}</tr>
@@ -90,6 +90,34 @@ export default function GroupStudentsTab({ groupId }) {
                         ))}
                     </tbody>
                 </table>
+            </div>
+            <div className="group-students-mobile-list">
+                {students.length === 0 ? (
+                    <div className="group-student-mobile-empty">Guruhda o&apos;quvchi yo&apos;q</div>
+                ) : students.map((student) => (
+                    <article key={student.id} className="group-student-mobile-card">
+                        <div className="group-student-mobile-header">
+                            <Link to={`/student/${student.id}`} style={{ color: "var(--text-primary)", fontWeight: 700, textDecoration: "none", minWidth: 0 }}>
+                                {student.full_name}
+                            </Link>
+                            {canManage && (
+                                <button
+                                    className="action-btn action-btn-danger"
+                                    title="Guruhdan chiqarish"
+                                    aria-label={`${student.full_name} guruhdan chiqarish`}
+                                    onClick={() => setPendingRemove(student)}
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="group-student-mobile-details">
+                            <div><span>Telefon</span><strong>{student.phone || "—"}</strong></div>
+                            <div><span>Ota-ona</span><strong>{student.parent?.full_name || "—"}</strong></div>
+                            <div><span>Guruhga qo&apos;shilgan</span><strong>{joinedDate(student.joined_at || student.StudentGroup?.joined_at)}</strong></div>
+                        </div>
+                    </article>
+                ))}
             </div>
 
             <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Guruhga o'quvchi qo'shish" size="md">

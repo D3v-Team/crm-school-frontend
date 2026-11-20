@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useLazyGetTeacherQuery } from '../../../../store/services/statistic.api';
 import { useLazyGetGroupsQuery } from '../../../../store/services/group.api';
 import { useLazyGetGradesQuery } from '../../../../store/services/grades.api';
@@ -20,6 +21,14 @@ const DAY_LABELS = {
     thursday:'Payshanba', friday:'Juma', saturday:'Shanba',
 };
 const JS_DAY = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+const getRecords = (response) => {
+    const result = response?.data ?? response;
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result?.records)) return result.records;
+    if (Array.isArray(result?.data)) return result.data;
+    if (Array.isArray(result?.data?.records)) return result.data.records;
+    return [];
+};
 
 const scoreColor = (v) => v >= 80 ? 'var(--success)' : v >= 60 ? 'var(--warning)' : 'var(--danger)';
 const scoreBg    = (v) => v >= 80 ? 'var(--success-soft)' : v >= 60 ? 'var(--warning-soft)' : 'var(--danger-soft)';
@@ -33,36 +42,39 @@ function ProgressBar({ value, color }) {
     );
 }
 
-function StatCard({ icon: Icon, label, value, color, large }) {
+function StatCard({ icon: Icon, label, value, color, to }) {
     return (
-        <div style={{
-            background: 'var(--card-bg)',
-            border: `1.5px solid ${color}33`,
-            borderRadius: 16,
-            padding: '16px 18px',
-            display: 'flex', alignItems: 'center', gap: 14,
-            boxShadow: 'var(--shadow-sm)',
-            transition: 'box-shadow 0.15s, border-color 0.15s',
-            minWidth: 0,
-        }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 0 0 3px ${color}22`; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = `${color}33`; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
-        >
+        <NavLink to={to} aria-label={`${label}: ${value}`} style={{ display: 'block', color: 'inherit', textDecoration: 'none', borderRadius: 16 }}>
             <div style={{
-                width: 44, height: 44,
-                borderRadius: 12, background: color + '18', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-                <Icon size={20} style={{ color }} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</div>
+                background: 'var(--card-bg)',
+                border: `1.5px solid ${color}33`,
+                borderRadius: 16,
+                padding: '16px 18px',
+                display: 'flex', alignItems: 'center', gap: 14,
+                boxShadow: 'var(--shadow-sm)',
+                transition: 'box-shadow 0.15s, border-color 0.15s',
+                minWidth: 0,
+                cursor: 'pointer',
+            }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 0 0 3px ${color}22`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = `${color}33`; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+            >
                 <div style={{
-                    fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4,
-                    wordBreak: 'break-word', overflowWrap: 'anywhere', lineHeight: 1.3,
-                }}>{label}</div>
+                    width: 44, height: 44,
+                    borderRadius: 12, background: color + '18', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <Icon size={20} style={{ color }} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</div>
+                    <div style={{
+                        fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4,
+                        wordBreak: 'break-word', overflowWrap: 'anywhere', lineHeight: 1.3,
+                    }}>{label}</div>
+                </div>
             </div>
-        </div>
+        </NavLink>
     );
 }
 
@@ -75,7 +87,7 @@ export default function TeacherDashboard({ teacherId }) {
     const [fetchStats,    { data: statsData,    isLoading: sl }] = useLazyGetTeacherQuery();
     const [fetchGroups,   { data: groupsData,   isLoading: gl }] = useLazyGetGroupsQuery();
     const [fetchGrades,   { data: gradesData                  }] = useLazyGetGradesQuery();
-    const [fetchSchedule, { data: scheduleData               }] = useLazyGetGroupScheduleByTeacherQuery();
+    const [fetchSchedule, { data: scheduleData, isLoading: scheduleLoading, error: scheduleError }] = useLazyGetGroupScheduleByTeacherQuery();
 
     useEffect(() => {
         if (!teacherId) return;
@@ -93,16 +105,16 @@ export default function TeacherDashboard({ teacherId }) {
     }, [year, month, teacherId, fetchGrades, fetchStats]);
 
     const stats  = statsData?.data  || {};
-    const groups = groupsData?.data?.records || groupsData?.data || [];
+    const groups = getRecords(groupsData);
 
     /* today schedule */
-    const allSchedule = scheduleData?.data?.records || scheduleData?.data || [];
+    const allSchedule = getRecords(scheduleData);
     const todaySchedule = allSchedule
-        .filter(s => s.day_of_week === todayKey)
+        .filter(s => String(s.day_of_week || '').toLowerCase() === todayKey)
         .sort((a,b) => toMins(a.start_time) - toMins(b.start_time));
 
     /* per-group avg grade from /api/grade */
-    const gradeRecords = gradesData?.data?.records || [];
+    const gradeRecords = getRecords(gradesData);
     const gradeByGroup = gradeRecords.reduce((acc, r) => {
         const gid = r.group_id || r.group?.id;
         if (!gid) return acc;
@@ -115,12 +127,12 @@ export default function TeacherDashboard({ teacherId }) {
     const byGroup = stats.by_group || stats.groups || [];
 
     const kpiCards = [
-        { icon: Users,        label: "Jami o'quvchilar",  value: stats.total_students    ?? (groups.reduce((s,g)=>(s+(g.students_count ?? g.students?.length ?? 0)),0) || '—'), color: '#3b82f6' },
-        { icon: Layers,       label: 'Guruhlar soni',      value: stats.total_groups      ?? groups.length,                                                     color: '#8b5cf6' },
-        { icon: CalendarDays, label: 'Bugungi darslar',    value: todaySchedule.length,                                                                          color: '#f59e0b' },
-        { icon: CheckCircle,  label: 'Davomat foizi',      value: stats.attendance_rate  != null ? `${stats.attendance_rate}%`  : '—',                           color: '#10b981' },
-        { icon: Star,         label: "O'rtacha baho",      value: stats.avg_grade        != null ? `${stats.avg_grade}%`        : '—',                           color: '#06b6d4' },
-        { icon: TrendingUp,   label: 'Jami darslar (oy)', value: stats.total_lessons     ?? '—',                                                                  color: '#f43f5e' },
+        { icon: Users,        label: "Jami o'quvchilar",  value: stats.total_students    ?? (groups.reduce((s,g)=>(s+(g.students_count ?? g.students?.length ?? 0)),0) || '—'), color: '#3b82f6', to: '/teacher/groups' },
+        { icon: Layers,       label: 'Guruhlar soni',      value: stats.total_groups      ?? groups.length,                                                       color: '#8b5cf6', to: '/teacher/groups' },
+        { icon: CalendarDays, label: 'Bugungi darslar',    value: todaySchedule.length,                                                                            color: '#f59e0b', to: '/teacher/schedule' },
+        { icon: CheckCircle,  label: 'Davomat foizi',      value: stats.attendance_rate  != null ? `${stats.attendance_rate}%`  : '—',                             color: '#10b981', to: '/teacher/groups' },
+        { icon: Star,         label: "O'rtacha baho",      value: stats.avg_grade        != null ? `${stats.avg_grade}%`        : '—',                             color: '#06b6d4', to: '/teacher/groups' },
+        { icon: TrendingUp,   label: 'Jami darslar (oy)', value: stats.total_lessons     ?? '—',                                                                    color: '#f43f5e', to: '/teacher/schedule' },
     ].filter(c => c.value !== '—');
 
     if (sl || gl) return <Loading />;
@@ -146,7 +158,7 @@ export default function TeacherDashboard({ teacherId }) {
             {/* ── KPI cards ── */}
             {kpiCards.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
-                    {kpiCards.map((c,i) => <StatCard key={i} {...c} />)}
+                    {kpiCards.map(c => <StatCard key={c.label} {...c} />)}
                 </div>
             )}
 
@@ -154,12 +166,12 @@ export default function TeacherDashboard({ teacherId }) {
             <div className="teacher-dash-grid" style={{ display: 'grid', gap: 16 }}>
 
                 {/* Today schedule */}
-                {todaySchedule.length > 0 && (
-                    <div style={{ background: 'var(--card-bg)', border: '1.5px solid var(--accent)', borderRadius: 18, padding: '20px 22px', boxShadow: '0 0 0 3px var(--accent-glow)' }}>
+                <div style={{ background: 'var(--card-bg)', border: '1.5px solid var(--accent)', borderRadius: 18, padding: '20px 22px', boxShadow: '0 0 0 3px var(--accent-glow)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                             <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <CalendarDays size={16} style={{ color: '#fff' }} />
                             </div>
+                            <NavLink to="/teacher/schedule" style={{ textDecoration: 'none', color: 'inherit' }}>
                             <div>
                                 <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                                     Bugungi darslar
@@ -168,12 +180,23 @@ export default function TeacherDashboard({ teacherId }) {
                                     {DAY_LABELS[todayKey] || 'Yakshanba'}
                                 </div>
                             </div>
+                            </NavLink>
                             <span style={{ marginLeft: 'auto', fontSize: '0.72rem', background: 'var(--accent-soft)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>
                                 {todaySchedule.length} ta
                             </span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {mergeParallelItems(todaySchedule).map(parallelItems => {
+                            {scheduleLoading ? (
+                                <Loading />
+                            ) : scheduleError ? (
+                                <div role="alert" style={{ color: 'var(--danger)', padding: 10, background: 'var(--danger-soft)', borderRadius: 9, fontSize: '0.78rem' }}>
+                                    Bugungi darslarni yuklab bo&apos;lmadi: {scheduleError?.data?.message || 'Xatolik'}
+                                </div>
+                            ) : todaySchedule.length === 0 ? (
+                                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                                    Bugun jadval bo&apos;yicha dars yo&apos;q
+                                </div>
+                            ) : mergeParallelItems(todaySchedule).map(parallelItems => {
                                 return (
                                     <div key={parallelItems.map(lesson => lesson.id).join('-')} style={{ padding:'10px 14px', borderRadius:12, background: parallelItems.length > 1 ? 'var(--warning-soft)' : 'var(--accent-soft)', border:'1px solid var(--card-border)' }}>
                                         {parallelItems.length > 1 && <div style={{ fontSize:'0.64rem', fontWeight:700, color:'var(--warning)', marginBottom:6 }}>Parallel darslar · {parallelItems.length} ta</div>}
@@ -183,7 +206,12 @@ export default function TeacherDashboard({ teacherId }) {
                                                 <div style={{ flex:1, minWidth:0 }}>
                                                     <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--accent)' }}>{lesson.start_time?.slice(0,5)} – {lesson.end_time?.slice(0,5)}</div>
                                                     <div style={{ fontSize:'0.875rem', fontWeight:700, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{lesson.subject?.name || '—'}</div>
-                                                    <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4 }}><Layers size={10}/> {lesson.group?.name || '—'}</div>
+                                                    <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4 }}>
+                                                        <Layers size={10}/>
+                                                        {lesson.group?.id
+                                                            ? <NavLink to={`/group/${lesson.group.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{lesson.group.name || '—'}</NavLink>
+                                                            : lesson.group?.name || '—'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -191,8 +219,7 @@ export default function TeacherDashboard({ teacherId }) {
                                 );
                             })}
                         </div>
-                    </div>
-                )}
+                </div>
 
                 {/* Groups */}
                 <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 18, padding: '20px 22px' }}>
@@ -200,9 +227,9 @@ export default function TeacherDashboard({ teacherId }) {
                         <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Layers size={16} style={{ color: 'var(--accent)' }} />
                         </div>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <NavLink to="/teacher/groups" style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', textDecoration: 'none' }}>
                             Mening guruhlarim
-                        </span>
+                        </NavLink>
                         {groups.length > 0 && (
                             <span style={{ fontSize: '0.72rem', background: 'var(--accent-soft)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>
                                 {groups.length}
@@ -225,10 +252,12 @@ export default function TeacherDashboard({ teacherId }) {
                                 const studentCount = group?.students_count ?? group?.students?.length ?? group?.student_count ?? null;
 
                                 return (
-                                    <div key={item.id} style={{
+                                    <NavLink key={gid || item.id} to={gid ? `/group/${gid}` : '/teacher/groups'} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                                    <div style={{
                                         padding: '14px 16px', borderRadius: 14,
                                         background: 'var(--input-bg)', border: '1.5px solid var(--card-border)',
                                         transition: 'border-color 0.15s',
+                                        cursor: 'pointer',
                                     }}
                                         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                                         onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--card-border)'}
@@ -267,6 +296,7 @@ export default function TeacherDashboard({ teacherId }) {
                                             </div>
                                         )}
                                     </div>
+                                    </NavLink>
                                 );
                             })}
                         </div>
@@ -289,8 +319,10 @@ export default function TeacherDashboard({ teacherId }) {
                         {byGroup.map((g, i) => {
                             const att = g.attendance_rate ?? g.attendance ?? null;
                             const avg = g.avg_grade ?? g.average_grade ?? null;
+                            const groupId = g.group_id || g.group?.id || g.id;
                             return (
-                                <div key={g.group_id || i} style={{ background: 'var(--input-bg)', borderRadius: 14, padding: '14px 18px', border: '1px solid var(--card-border)' }}>
+                                <NavLink key={groupId || i} to={groupId ? `/group/${groupId}` : '/teacher/groups'} style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
+                                <div style={{ background: 'var(--input-bg)', borderRadius: 14, padding: '14px 18px', border: '1px solid var(--card-border)', cursor: 'pointer' }}>
                                     <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
                                         {g.group_name || g.name || '—'}
                                     </div>
@@ -315,6 +347,7 @@ export default function TeacherDashboard({ teacherId }) {
                                         )}
                                     </div>
                                 </div>
+                                </NavLink>
                             );
                         })}
                     </div>
