@@ -566,7 +566,7 @@ export default function Dashboard() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
                             <Card>
                                 <CardHead icon={GraduationCap} title="O'quvchilar" color="#6366f1" />
-                                <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 16px 16px' }}>
                                     <MiniStat label="Faol"   value={g.students.active   ?? 0} color="var(--success)" />
                                     <MiniStat label="Nofaol" value={g.students.inactive ?? 0} color="var(--danger)"  />
                                     <MiniStat label="Jami"   value={g.students.total    ?? 0} color="var(--accent)"  />
@@ -575,7 +575,7 @@ export default function Dashboard() {
                             {g?.parents && (
                                 <Card>
                                     <CardHead icon={Users2} title="Ota-onalar" color="#ec4899" />
-                                    <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 16px 16px' }}>
                                         <MiniStat label="Jami"        value={g.parents.total         ?? 0} color="#ec4899"          />
                                         <MiniStat label="Bot ulangan" value={g.parents.linked_to_bot ?? 0} color="var(--success)"  />
                                         <MiniStat label="Ulanmagan"   value={g.parents.not_linked    ?? 0} color="var(--text-muted)"/>
@@ -593,7 +593,7 @@ export default function Dashboard() {
                     {g?.students && (
                         <Card>
                             <CardHead icon={GraduationCap} title="O'quvchilar holati" color="#6366f1" />
-                            <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 16px 16px' }}>
                                 <MiniStat label="Faol"   value={g.students.active   ?? 0} color="var(--success)" />
                                 <MiniStat label="Nofaol" value={g.students.inactive ?? 0} color="var(--danger)"  />
                                 <MiniStat label="Jami"   value={g.students.total    ?? 0} color="var(--accent)"  />
@@ -603,7 +603,7 @@ export default function Dashboard() {
                     {g?.parents && (
                         <Card>
                             <CardHead icon={Users2} title="Ota-onalar" color="#ec4899" />
-                            <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 16px 16px' }}>
                                 <MiniStat label="Jami"        value={g.parents.total         ?? 0} color="#ec4899"          />
                                 <MiniStat label="Bot ulangan" value={g.parents.linked_to_bot ?? 0} color="var(--success)"  />
                                 <MiniStat label="Ulanmagan"   value={g.parents.not_linked    ?? 0} color="var(--text-muted)"/>
@@ -618,10 +618,10 @@ export default function Dashboard() {
                 <Card>
                     <CardHead icon={Trophy} title="Top guruhlar" color="#f59e0b" />
                     <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                        <table className="mobile-cards" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                             <thead>
                                 <tr style={{ background: 'var(--accent-soft)' }}>
-                                    {['#', 'Guruh', "O'quvchilar", "O'rt. baho", 'Davomat', 'Ball'].map((h, hi) => (
+                                    {["O'rin", 'Guruh', "O'quvchilar", "O'rt. baho", 'Davomat', 'Ball'].map((h, hi) => (
                                         <th key={hi} style={{
                                             padding: '10px 16px',
                                             textAlign: hi === 0 ? 'center' : hi >= 2 ? 'center' : 'left',

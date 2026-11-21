@@ -27,7 +27,7 @@ const ATT = {
 
 function Tabs({ tabs, active, onChange }) {
     return (
-        <div style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', marginBottom:20, overflowX:'auto' }}>
+        <div className="tab-bar" style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', marginBottom:20, overflowX:'auto' }}>
             {tabs.map(t => (
                 <button key={t.key} onClick={() => onChange(t.key)} style={{
                     display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:9, border:'none', cursor:'pointer',

@@ -8,6 +8,7 @@ import {
     ClipboardList, ArrowLeft, SplitSquareHorizontal, Columns2, DoorOpen,
 } from 'lucide-react';
 import Loading from '../../Other/UI/Loadings/Loading';
+import { ownLessons } from '../../../utils/teacherLessons';
 import GroupStudentsTab from './__components/GroupStudentsTab';
 import GroupDebtorsTab from './__components/StudentsTab';
 import ScheduleTab   from './__components/ScheduleTab';
@@ -36,7 +37,7 @@ function Tabs({ tabs, active, onChange, merged, onMergeToggle, isTeacher }) {
     return (
         <div className="group-profile-tabs-toolbar" style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20, flexWrap:'wrap' }}>
             {/* Tab buttons */}
-            <div className="group-profile-tab-scroll" style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', overflowX:'auto', flex:'1 1 auto' }}>
+            <div className="tab-bar group-profile-tab-scroll" style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', overflowX:'auto', flex:'1 1 auto' }}>
                 {tabs.map(t => {
                     /* merged holatda attendance va grades yashiriladi */
                     if (!isTeacher && merged && (t.key === 'attendance' || t.key === 'grades')) return null;
@@ -96,6 +97,7 @@ export default function GroupProfile() {
     const { id } = useParams();
     const navigate  = useNavigate();
     const role      = useSelector(s => s.auth.role);
+    const authUserId = useSelector(s => s.auth.userId);
     const isTeacher = role === 'teacher';
     const isCashier = role === 'cashier';
 
@@ -141,8 +143,9 @@ export default function GroupProfile() {
     }, [groupLoading]);
 
     useEffect(() => {
-        if (id) fetchSchedule(id);
-    }, [id, fetchSchedule]);
+        // Kassirga dars jadvali ruxsat etilmagan (403) va kerak ham emas — faqat o'quvchilar va qarzdorlar
+        if (id && role !== 'cashier') fetchSchedule(id);
+    }, [id, fetchSchedule, role]);
 
     const group    = groupData?.data || groupData;
     // Faqat guruhga tegishli studentlar — group.students to'g'ri ma'lumot
@@ -151,7 +154,7 @@ export default function GroupProfile() {
     const teacherSubjectId = group?.subject_id || group?.subject?.id || null;
 
     /* Admin uchun — guruh jadvalidan unique fanlar */
-    const scheduleRecords = useMemo(() => {
+    const allScheduleRecords = useMemo(() => {
         if (!scheduleData) return [];
         // axiosBaseQuery: result.data → hook.data
         // Backend javob: { status, data: [...] }  yoki  { status, data: { records: [...] } }
@@ -169,6 +172,11 @@ export default function GroupProfile() {
         if (Array.isArray(d?.data?.records)) return d.data.records;
         return [];
     }, [scheduleData]);
+    /* O'qituvchi faqat o'z darslarini ko'radi (eski sinfda boshqa fan o'qituvchilarining darslari ham bor) */
+    const scheduleRecords = useMemo(
+        () => isTeacher ? ownLessons(allScheduleRecords, authUserId) : allScheduleRecords,
+        [isTeacher, allScheduleRecords, authUserId],
+    );
     const groupSubjects = useMemo(() => {
         const groupSubject = group?.subject || (group?.subject_id ? { id: group.subject_id, name: group.subject_name } : null);
         if (groupSubject?.id) return [{ id: groupSubject.id, name: groupSubject.name || "Fan" }];

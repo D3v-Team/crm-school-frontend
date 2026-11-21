@@ -1168,12 +1168,12 @@ html, body {
 }
 @media (max-width: 1100px) {
   .dash-kpi-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media (max-width: 600px) {
   .dash-kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1301,17 +1301,17 @@ html, body {
 
 /* ── Teacher dashboard: today + groups grid ── */
 .teacher-dash-grid {
-  grid-template-columns: 1fr 1.6fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
 }
 @media (max-width: 900px) {
   .teacher-dash-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 
 /* Teacher dashboard: 2 col wide, 1 col narrow */
 .teacher-dash-grid {
-  grid-template-columns: 1fr 1.6fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
 }
 /* Only 1 child — full width */
 .teacher-dash-grid > *:only-child {
@@ -1319,7 +1319,7 @@ html, body {
 }
 @media (max-width: 860px) {
   .teacher-dash-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 
@@ -1333,7 +1333,7 @@ html, body {
   display: none;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 767px) {
   .teacher-attendance-subject-header {
     align-items: flex-start !important;
     flex-wrap: wrap;
@@ -1401,7 +1401,7 @@ html, body {
   display: none;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 767px) {
   .group-profile-content {
     padding: 12px !important;
   }
@@ -1570,4 +1570,561 @@ html, body {
     color: var(--text-secondary);
     cursor: pointer;
   }
+}
+
+/* =========================================================
+   TELEFON: ilova ko'rinishi (pastki navigatsiya, o'qituvchi bosh sahifasi, yo'qlama)
+   ========================================================= */
+:root {
+  --bottom-nav-h: 64px;
+}
+
+/* iOS Safari 16px dan kichik inputga bosilganda sahifani kattalashtirib yuboradi */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  /* Tugma va havolalarni barmoq bilan bosish oson bo'lsin */
+  .action-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+  .data-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .page-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+/* ── Pastki navigatsiya ── */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 55;
+  display: flex;
+  height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--card-bg);
+  border-top: 1px solid var(--card-border);
+  box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.08);
+}
+.bottom-nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.bottom-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 28px;
+  border-radius: 99px;
+  transition: background 0.15s, color 0.15s;
+}
+.bottom-nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.bottom-nav-item.is-active {
+  color: var(--accent);
+}
+.bottom-nav-item.is-active .bottom-nav-icon {
+  background: var(--accent-soft);
+}
+
+/* ── O'qituvchi: salomlashish ── */
+.teacher-hello {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.teacher-hello-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  color: #fff;
+  box-shadow: 0 6px 18px var(--accent-glow);
+}
+.teacher-hello h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.teacher-hello p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ── O'qituvchi: bugungi dars kartochkasi ── */
+.teacher-lesson-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1.5px solid var(--card-border);
+  background: var(--input-bg);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.teacher-lesson-card:hover {
+  border-color: var(--accent);
+}
+.teacher-lesson-card:active {
+  transform: scale(0.99);
+}
+.teacher-lesson-card.is-now {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+.teacher-lesson-card.is-next {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.teacher-lesson-card.is-done {
+  opacity: 0.75;
+}
+.teacher-lesson-time {
+  width: 54px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  border-radius: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+.teacher-lesson-time strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.teacher-lesson-time span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.teacher-lesson-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 99px;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.teacher-lesson-group {
+  margin-top: 3px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teacher-lesson-subject {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.teacher-lesson-cta {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  /* Telefonda faqat ikonka — kartochka o'zi bosiladi */
+  .teacher-lesson-cta > span {
+    display: none;
+  }
+  .teacher-lesson-cta {
+    padding: 8px;
+  }
+}
+
+/* ── Yo'qlama: "Hammasi keldi" va saqlash paneli ── */
+.teacher-mark-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.teacher-save-bar {
+  /* sticky emas: layout dagi overflow:hidden sticky ni buzadi */
+  position: fixed;
+  right: 24px;
+  bottom: 20px;
+  z-index: 45;
+  min-width: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+}
+.teacher-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 22px;
+  border-radius: 11px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px var(--accent-glow);
+}
+.teacher-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+@media (max-width: 767px) {
+  .teacher-save-bar {
+    left: 12px;
+    right: 12px;
+    min-width: 0;
+    bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 10px);
+  }
+  .teacher-mark-all-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Saqlash paneli oxirgi o'quvchini yopib qo'ymasin */
+.teacher-today-has-pending {
+  padding-bottom: 90px;
+}
+
+/* =========================================================
+   TELEFON: jadval → kartochka (yonga surish yo'q)
+   data-label lar useMobileTableCards() tomonidan yoziladi
+   ========================================================= */
+@media (max-width: 767px) {
+  .data-table-wrap,
+  .tests-table-wrap {
+    overflow: visible !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  table.data-table,
+  table.tests-table,
+  table.mobile-cards {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  table.data-table thead,
+  table.tests-table thead,
+  table.mobile-cards thead {
+    display: none !important;
+  }
+
+  table.data-table tbody,
+  table.tests-table tbody,
+  table.mobile-cards tbody {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  table.data-table tr,
+  table.tests-table tr,
+  table.mobile-cards tr {
+    display: block !important;
+    padding: 4px 14px;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 14px;
+    background: var(--card-bg) !important;
+    box-shadow: var(--shadow-sm);
+  }
+
+  table.data-table td,
+  table.tests-table td,
+  table.mobile-cards td {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 9px 0 !important;
+    border: none !important;
+    border-top: 1px solid var(--card-border) !important;
+    background: transparent !important;
+    text-align: right !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    font-size: 0.84rem;
+  }
+
+  table.data-table td:first-child,
+  table.tests-table td:first-child,
+  table.mobile-cards td:first-child,
+  /* "№" yashiriladi — keyingi katak kartochkaning birinchisi bo'ladi */
+  table.data-table td[data-label="№"] + td,
+  table.data-table td[data-label="#"] + td,
+  table.mobile-cards td[data-label="№"] + td,
+  table.mobile-cards td[data-label="#"] + td {
+    border-top: none !important;
+  }
+
+  table.data-table td::before,
+  table.tests-table td::before,
+  table.mobile-cards td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  table.data-table td[data-label=""]::before,
+  table.tests-table td[data-label=""]::before,
+  table.mobile-cards td[data-label=""]::before,
+  table.data-table td:not([data-label])::before,
+  table.tests-table td:not([data-label])::before,
+  table.mobile-cards td:not([data-label])::before {
+    display: none;
+  }
+
+  /* Tartib raqami kartochkada kerak emas */
+  table.data-table td[data-label="№"],
+  table.data-table td[data-label="#"],
+  table.mobile-cards td[data-label="№"],
+  table.mobile-cards td[data-label="#"] {
+    display: none !important;
+  }
+
+  /* "Ma'lumot topilmadi" kabi butun qatorli katak */
+  table.data-table td[data-full],
+  table.tests-table td[data-full],
+  table.mobile-cards td[data-full] {
+    justify-content: center;
+    text-align: center !important;
+  }
+
+  /* Qiymat qismi o'ngda, uzun bo'lsa qatorga o'tadi */
+  table.data-table td > *,
+  table.tests-table td > *,
+  table.mobile-cards td > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Amallar qatori: tugmalar o'ngda, kerak bo'lsa keyingi qatorga o'tadi */
+  table.data-table td > div,
+  table.tests-table td > div {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+/* ── Davomat (admin): telefonda kun bo'yicha kartochkalar ── */
+.group-attendance-mobile,
+.save-bar-mobile-only {
+  display: none !important;
+}
+@media (max-width: 767px) {
+  .group-attendance-desktop-table {
+    display: none !important;
+  }
+  .group-attendance-mobile {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .save-bar-mobile-only {
+    display: flex !important;
+  }
+}
+.att-day-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.att-day-nav select {
+  flex: 1;
+  min-width: 0;
+}
+.att-day-nav button {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.att-day-nav button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.att-mobile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: var(--card-bg);
+}
+.att-mobile-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.att-mobile-lesson {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--card-border);
+}
+.att-mobile-lesson.is-changed {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+.att-mobile-lesson-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.att-mobile-lesson-title span {
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.att-mobile-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.att-mobile-score {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--input-border);
+  background: var(--card-bg);
+  color: var(--input-text);
+  text-align: center;
+  outline: none;
+}
+.att-mobile-info {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ── Tab panellari: telefonda yonga surilmaydi, qatorga o'raladi ── */
+@media (max-width: 767px) {
+  .tab-bar {
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+  }
+  .tab-bar > button {
+    flex: 1 1 calc(33.333% - 4px) !important;
+    min-width: 0;
+    justify-content: center;
+    white-space: normal !important;
+    text-align: center;
+  }
+}
+
+/* Grid kartochkalari ichidagi uzun matn ustunni kengaytirib yubormasin */
+.dash-kpi-grid > *,
+.dash-detail-grid > * {
+  min-width: 0;
 }

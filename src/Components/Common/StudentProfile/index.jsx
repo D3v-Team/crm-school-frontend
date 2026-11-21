@@ -46,7 +46,7 @@ const fmtLocal = (date) => {
 /* ── Tab component ── */
 function Tabs({ tabs, active, onChange }) {
     return (
-        <div style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', marginBottom:20, overflowX:'auto' }}>
+        <div className="tab-bar" style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', marginBottom:20, overflowX:'auto' }}>
             {tabs.map(t => (
                 <button key={t.key} onClick={() => onChange(t.key)} style={{
                     display:'flex', alignItems:'center', gap:6,
@@ -595,7 +595,7 @@ function EntryExitTab({ studentId, isAdmin }) {
 }
 
 /* ── Parent info tab ── */
-function ParentInfo({ student, onRefetch, canViewParentProfile }) {
+function ParentInfo({ student, onRefetch, canViewParentProfile, canManageParent }) {
     const parent = student?.parent;
     if (!parent) return (
         <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)' }}>
@@ -640,8 +640,8 @@ function ParentInfo({ student, onRefetch, canViewParentProfile }) {
                             </div>
                         </div>
                     </div>
-                    {/* Unassign button */}
-                    <UnassignParent studentId={student.id} parentName={parent.full_name} onSuccess={onRefetch}/>
+                    {/* Unassign button — faqat admin (backend: PATCH unassign-parent faqat admin/super_admin) */}
+                    {canManageParent && <UnassignParent studentId={student.id} parentName={parent.full_name} onSuccess={onRefetch}/>}
                 </div>
 
                 {/* Info grid */}
@@ -737,8 +737,8 @@ export default function StudentProfile() {
                         </div>
                     </div>
 
-                    {/* Face actions — faqat admin va super_admin uchun */}
-                    {authRole !== 'cashier' && (
+                    {/* Face actions — faqat admin va super_admin uchun (backend ham faqat ularga ruxsat beradi) */}
+                    {(authRole === 'admin' || authRole === 'super_admin') && (
                         <FaceActions
                             studentId={id}
                             studentName={student.full_name}
@@ -775,7 +775,7 @@ export default function StudentProfile() {
                 {tab === 'payments'   && <PaymentsTab studentId={id} requiredAmount={student.price} showAddButton={is_payment} />}
                 {tab === 'schedule'   && <StudentScheduleTab studentId={id} />}
                 {tab === 'attendance' && <AttendanceTab studentId={id} />}
-                {tab === 'parent'     && <ParentInfo student={student} onRefetch={refetch} canViewParentProfile={authRole !== 'teacher'} />}
+                {tab === 'parent'     && <ParentInfo student={student} onRefetch={refetch} canViewParentProfile={authRoleForExport} canManageParent={authRoleForExport} />}
                 {tab === 'entryexit'  && <EntryExitTab studentId={id} isAdmin={authRoleForExport} />}
             </div>
         </div>

@@ -7,7 +7,8 @@ import { useLazyPingCameraQuery } from "../../../store/services/hikvision.api";
 import { useLogoutMutation } from "../../../store/services/auth.api";
 import { logout } from "../../../store/slices/auth.slice";
 
-const CAMERA_ROLES = ['admin', 'super_admin', 'hr'];
+// Backend hikvision/ping faqat admin va super_admin ga ochiq
+const CAMERA_ROLES = ['admin', 'super_admin'];
 
 export default function Header({ active, sidebarOpen, sidebarW = 260, isMobile = false, ...props }) {
     const navigate = useNavigate();

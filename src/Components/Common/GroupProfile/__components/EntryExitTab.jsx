@@ -98,7 +98,7 @@ function AttendanceTable({ students }) {
             border: '1px solid var(--card-border)',
             borderRadius: 12
         }}>
-            <table style={{ 
+            <table className="mobile-cards" style={{ 
                 width: '100%', 
                 borderCollapse: 'separate',
                 borderSpacing: 0,

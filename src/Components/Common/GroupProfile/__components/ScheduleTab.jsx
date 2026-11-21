@@ -24,6 +24,7 @@ import { getErrorMessage, getErrorStatus } from '../../../../utils/errors';
 import Modal from '../../../Other/UI/Modal/Modal';
 import Loading from '../../../Other/UI/Loadings/Loading';
 import { mergeParallelItems } from '../../../../utils/schedule';
+import { ownLessons } from '../../../../utils/teacherLessons';
 
 /* ── constants ── */
 const DAYS_ORDER = ['monday','tuesday','wednesday','thursday','friday','saturday'];
@@ -227,8 +228,9 @@ export default function ScheduleTab({ groupId: groupIdProp }) {
         const records = Array.isArray(d) ? d
             : Array.isArray(d?.records) ? d.records
             : [];
-        setRawData(records);
-    }, [scheduleResponse]);
+        // O'qituvchi faqat o'z darslarini ko'radi
+        setRawData(isTeacher ? ownLessons(records, userId) : records);
+    }, [scheduleResponse, isTeacher, userId]);
 
     useEffect(() => {
         if (groupSubject?.id) setSubjectsMap((current) => ({ ...current, [groupSubject.id]: groupSubject.name || "Fan" }));

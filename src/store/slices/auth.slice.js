@@ -1,6 +1,9 @@
 // store/slices/auth.slice.js
 import { createSlice } from '@reduxjs/toolkit';
 import Cookies from 'js-cookie';
+import { persistExistingAuthCookies, removeAuthCookie, setAuthCookie } from '../../utils/authCookies';
+
+persistExistingAuthCookies();
 
 const initialState = {
     token: Cookies.get('token') || null,
@@ -42,19 +45,19 @@ const authSlice = createSlice({
             state.is_payment = is_payment;
             state.isAuthenticated = !!token;
 
-            if (token) Cookies.set('token', token);
-            if (refreshToken) Cookies.set('refresh_token', refreshToken);
-            if (jti) Cookies.set('jti', jti);
+            if (token) setAuthCookie('token', token);
+            if (refreshToken) setAuthCookie('refresh_token', refreshToken);
+            if (jti) setAuthCookie('jti', jti);
             if (userId) {
-                Cookies.set('userId', userId);
-                Cookies.remove('us_nesw');
+                setAuthCookie('userId', userId);
+                removeAuthCookie('us_nesw');
             }
-            if (role) Cookies.set('role', role);
-            Cookies.set('is_payment', String(is_payment));
+            if (role) setAuthCookie('role', role);
+            setAuthCookie('is_payment', String(is_payment));
         },
         setRole(state, action) {
             state.role = action.payload || null;
-            if (state.role) Cookies.set('role', state.role);
+            if (state.role) setAuthCookie('role', state.role);
         },
         logout(state) {
             state.token = null;
@@ -65,13 +68,13 @@ const authSlice = createSlice({
             state.is_payment = false;
             state.isAuthenticated = false;
 
-            Cookies.remove('token');
-            Cookies.remove('refresh_token');
-            Cookies.remove('jti');
-            Cookies.remove('userId');
-            Cookies.remove('us_nesw');
-            Cookies.remove('role');
-            Cookies.remove('is_payment');
+            removeAuthCookie('token');
+            removeAuthCookie('refresh_token');
+            removeAuthCookie('jti');
+            removeAuthCookie('userId');
+            removeAuthCookie('us_nesw');
+            removeAuthCookie('role');
+            removeAuthCookie('is_payment');
         },
     },
 });

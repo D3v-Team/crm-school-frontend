@@ -5,6 +5,7 @@ import { useLazyGetGradesQuery, useBulkGradeMutation } from '../../../../store/s
 import { addBulkError, addBulkSuccess, createBulkReport, showBulkReport } from '../../../../utils/bulk';
 import { Save, BookOpen, Info, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Alert } from '../../../Other/UI/Alert/Alert';
+import { ownLessonsByDate } from '../../../../utils/teacherLessons';
 import Loading from '../../../Other/UI/Loadings/Loading';
 import Modal from '../../../Other/UI/Modal/Modal';
 
@@ -76,6 +77,7 @@ export default function GradesTab({
     const { id:groupId } = useParams();
     const role = useSelector(s=>s.auth?.role);
     const isTeacher = role==='teacher';
+    const authUserId = useSelector(s=>s.auth?.userId);
 
     const now = new Date();
     const [selYear,  setSelYear]  = useState(now.getFullYear());
@@ -116,11 +118,12 @@ export default function GradesTab({
         return m;
     },[records]);
 
-    const dateSubjectsTemplate = useMemo(()=>{
+    const rawDateSubjectsTemplate = useMemo(()=>{
         const m={};
         records.forEach(s=>{ s.dates?.forEach(de=>{ if(!m[de.date]) m[de.date]=(de.subjects||[]).map(sb=>({
             group_schedule_id:sb.group_schedule_id,subject_name:sb.subject_name,
             lesson_number:sb.lesson_number,start_time:sb.start_time,end_time:sb.end_time,subject_id:sb.subject_id,
+            teacher_id:sb.teacher_id,
         })); }); });
         const cursor = parseLocal(dateFrom);
         const end = parseLocal(dateTo);
@@ -146,6 +149,7 @@ export default function GradesTab({
                         start_time: schedule.start_time,
                         end_time: schedule.end_time,
                         subject_id: schedule.subject_id,
+                        teacher_id: schedule.teacher_id ?? schedule.teacher?.id,
                     });
                 });
                 m[date] = Array.from(subjectsBySchedule.values());
@@ -154,6 +158,11 @@ export default function GradesTab({
         }
         return m;
     },[records,dateFrom,dateTo,scheduleRecordsProp,groupSubjects]);
+    /* O'qituvchi faqat o'z darslarini ko'radi (eski sinflarda boshqa fan o'qituvchilarining darslari ham keladi) */
+    const dateSubjectsTemplate = useMemo(
+        ()=> isTeacher ? ownLessonsByDate(rawDateSubjectsTemplate, authUserId) : rawDateSubjectsTemplate,
+        [isTeacher, rawDateSubjectsTemplate, authUserId],
+    );
 
     /* Unique schedules per subject — scheduleRecordsProp dan ham olish */
     const subjectSchedules = useMemo(()=>{

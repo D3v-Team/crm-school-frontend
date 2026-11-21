@@ -15,7 +15,7 @@ const scoreBg    = (s) => s == null ? 'var(--input-bg)'     : s >= 80 ? 'var(--s
 /* ── Child tab bar ── */
 function ChildTabBar({ children, active, onChange }) {
     return (
-        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--input-bg)', borderRadius: 12, border: '1px solid var(--card-border)', marginBottom: 20, overflowX: 'auto', flexShrink: 0 }}>
+        <div className="tab-bar" style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--input-bg)', borderRadius: 12, border: '1px solid var(--card-border)', marginBottom: 20, overflowX: 'auto', flexShrink: 0 }}>
             {children.map((child) => {
                 const isActive = active === child.student_id;
                 return (

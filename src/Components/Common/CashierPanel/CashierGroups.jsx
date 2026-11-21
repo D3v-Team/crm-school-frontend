@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useLazyGetGroupsQuery } from "../../../store/services/group.api";
-import { useGetUsersQuery } from "../../../store/services/user.api";
-import { useGetSubjectsQuery } from "../../../store/services/subject.api";
 import Loading from "../../Other/UI/Loadings/Loading";
 import {
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -13,17 +11,12 @@ import DebouncedSearchInput from "../../Other/UI/DebouncedSearchInput";
 export default function CashierGroups() {
     const [page, setPage]     = useState(1);
     const [search, setSearch] = useState("");
-    const [teacherId, setTeacherId] = useState("");
-    const [subjectId, setSubjectId] = useState("");
 
     const [trigger, { data, isLoading, error }] = useLazyGetGroupsQuery();
-    const { data: teachersData } = useGetUsersQuery({ role: "teacher", limit: 200 });
-    const { data: subjectsData } = useGetSubjectsQuery({ limit: 200 });
-    const teachers = teachersData?.data?.records || [];
-    const subjects = subjectsData?.data?.records || [];
 
-    const fetchGroups = (p = page, s = search, teacher = teacherId, subject = subjectId) => {
-        trigger({ page: p, limit: 10, ...(s && { search: s }), ...(teacher && { teacher_id: teacher }), ...(subject && { subject_id: subject }) });
+    // O'qituvchi/fan filtri yo'q: kassirga GET /user va GET /subject ruxsat etilmagan (403)
+    const fetchGroups = (p = page, s = search) => {
+        trigger({ page: p, limit: 10, ...(s && { search: s }) });
     };
 
     useEffect(() => { trigger({ page: 1, limit: 10 }); }, [trigger]);
@@ -56,24 +49,6 @@ export default function CashierGroups() {
                         </button>
                     )}
                 </div>
-                <select className="search-select" value={teacherId} onChange={(event) => {
-                    const nextTeacherId = event.target.value;
-                    setTeacherId(nextTeacherId);
-                    setPage(1);
-                    fetchGroups(1, search, nextTeacherId, subjectId);
-                }}>
-                    <option value="">Barcha o&apos;qituvchilar</option>
-                    {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.full_name}</option>)}
-                </select>
-                <select className="search-select" value={subjectId} onChange={(event) => {
-                    const nextSubjectId = event.target.value;
-                    setSubjectId(nextSubjectId);
-                    setPage(1);
-                    fetchGroups(1, search, teacherId, nextSubjectId);
-                }}>
-                    <option value="">Barcha fanlar</option>
-                    {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
-                </select>
                 <button className="btn-refresh" onClick={() => fetchGroups(page)} title="Yangilash">
                     <RefreshCw size={15} />
                 </button>
