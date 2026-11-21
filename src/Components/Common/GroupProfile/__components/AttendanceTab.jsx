@@ -673,7 +673,10 @@ export default function AttendanceTab({
 
     const [selSubjectId,  setSelSubjectId]  = useState('');
     const [selScheduleId, setSelScheduleId] = useState('');
-    const activeSubjectId  = isTeacher ? teacherSubjectId : (selSubjectId||null);
+    // O'qituvchi uchun fan bo'yicha filtr yo'q: guruh fani (masalan MATEMATIKA) bilan filtrlansa backend
+    // o'qituvchining boshqa fandagi darslarini (masalan IT) javobdan olib tashlaydi va ularning davomati
+    // umuman yuklanmaydi. Qaysi darslar ko'rinishini teacher_id bo'yicha filtr (ownLessonsByDate) hal qiladi.
+    const activeSubjectId  = isTeacher ? null : (selSubjectId||null);
     const activeScheduleId = selScheduleId||null;
 
     const [fetchAtt,   {data:attData,    isLoading:attLoading,   isFetching:attFetching,   error:attError}] = useLazyGetAttendanceQuery();

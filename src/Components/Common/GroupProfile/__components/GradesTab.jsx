@@ -86,7 +86,10 @@ export default function GradesTab({
 
     const [selSubjectId,  setSelSubjectId]  = useState('');
     const [selScheduleId, setSelScheduleId] = useState('');
-    const activeSubjectId  = isTeacher ? teacherSubjectId : (selSubjectId||null);
+    // O'qituvchi uchun fan bo'yicha filtr yo'q: guruh fani (masalan MATEMATIKA) bilan filtrlansa backend
+    // o'qituvchining boshqa fandagi darslarini (masalan IT) javobdan olib tashlaydi va ularning davomati
+    // umuman yuklanmaydi. Qaysi darslar ko'rinishini teacher_id bo'yicha filtr (ownLessonsByDate) hal qiladi.
+    const activeSubjectId  = isTeacher ? null : (selSubjectId||null);
     const activeScheduleId = selScheduleId||null;
 
     const [fetchGrades, { data, isLoading, isFetching, error }] = useLazyGetGradesQuery();
@@ -335,9 +338,9 @@ export default function GradesTab({
                     </select>
                 )}
 
-                {isTeacher && teacherSubjectId && groupSubjects.length>0 && (
+                {isTeacher && groupSubjects.length>0 && (
                     <span style={{fontSize:'0.78rem',color:'var(--accent)',fontWeight:600,display:'flex',alignItems:'center',gap:5,padding:'6px 12px',borderRadius:9,background:'var(--accent-soft)',border:'1px solid var(--card-border)'}}>
-                        <BookOpen size={13}/>{groupSubjects.find(s=>s.id===teacherSubjectId)?.name||'Fan'}
+                        <BookOpen size={13}/>{groupSubjects.map(s=>s.name).filter(Boolean).join(', ')||'Fan'}
                     </span>
                 )}
 
