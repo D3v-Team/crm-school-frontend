@@ -177,16 +177,25 @@ export default function GroupProfile() {
         () => isTeacher ? ownLessons(allScheduleRecords, authUserId) : allScheduleRecords,
         [isTeacher, allScheduleRecords, authUserId],
     );
-    const groupSubjects = useMemo(() => {
-        const groupSubject = group?.subject || (group?.subject_id ? { id: group.subject_id, name: group.subject_name } : null);
-        if (groupSubject?.id) return [{ id: groupSubject.id, name: groupSubject.name || "Fan" }];
+    /* Jadvaldagi darslardan noyob fanlar (o'qituvchi uchun — faqat o'z darslari) */
+    const scheduleSubjects = useMemo(() => {
         if (!Array.isArray(scheduleRecords) || !scheduleRecords.length) return [];
         const seen = new Set();
         return scheduleRecords
             .filter(s => s.subject_id && (s.subject?.name || s.subject_name))
             .filter(s => { if (seen.has(s.subject_id)) return false; seen.add(s.subject_id); return true; })
             .map(s => ({ id: s.subject_id, name: s.subject?.name || s.subject_name || s.subject_id }));
-    }, [group, scheduleRecords]);
+    }, [scheduleRecords]);
+    const groupSubjects = useMemo(() => {
+        // O'qituvchi sinfda boshqa fan (masalan IT) o'tishi mumkin — unga guruh fani emas, o'z darslari fani kerak
+        if (isTeacher && scheduleSubjects.length) return scheduleSubjects;
+        const groupSubject = group?.subject || (group?.subject_id ? { id: group.subject_id, name: group.subject_name } : null);
+        if (groupSubject?.id) return [{ id: groupSubject.id, name: groupSubject.name || "Fan" }];
+        return scheduleSubjects;
+    }, [group, scheduleSubjects, isTeacher]);
+    /* Guruh o'qituvchisi (sinf rahbari) boshqa odam bo'lsa, o'qituvchiga buni aniq ko'rsatamiz */
+    const groupTeacherId = group?.teacher?.id || group?.teacher_id;
+    const isOtherTeachersGroup = isTeacher && groupTeacherId && String(groupTeacherId) !== String(authUserId);
 
     if (groupLoading || showInitialLoading) return <Loading/>;
     if (groupError) return (
@@ -219,10 +228,10 @@ export default function GroupProfile() {
                         <div>
                             <h2 style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text-primary)', margin:'0 0 4px' }}>{group?.name}</h2>
                             <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', maxWidth:'100%' }}>
-                                    <User size={13}/> O'qituvchi: <strong style={{ color:'var(--text-primary)' }}>{group?.teacher?.full_name || "Belgilanmagan"}</strong>
+                                    <User size={13}/> {isOtherTeachersGroup ? 'Sinf rahbari' : "O'qituvchi"}: <strong style={{ color:'var(--text-primary)' }}>{group?.teacher?.full_name || "Belgilanmagan"}</strong>
                             </div>
                             <div style={{ fontSize:'0.75rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', maxWidth:'100%', marginTop:4 }}>
-                                    <BookOpen size={13}/> Fan: <strong style={{ color:'var(--text-primary)' }}>{group?.subject?.name || "Fan belgilanmagan"}</strong>
+                                    <BookOpen size={13}/> {isTeacher && scheduleSubjects.length ? 'Sizning faningiz' : 'Fan'}: <strong style={{ color:'var(--text-primary)' }}>{isTeacher && scheduleSubjects.length ? scheduleSubjects.map(subject => subject.name).join(', ') : (group?.subject?.name || "Fan belgilanmagan")}</strong>
                                 </div>
                         </div>
                     </div>
