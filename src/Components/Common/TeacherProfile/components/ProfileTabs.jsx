@@ -20,7 +20,7 @@ export default function ProfileTabs({ user, subjects }) {
     return (
         <div>
             {/* Tab bar */}
-            <div style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', marginBottom:20, overflowX:'auto' }}>
+            <div className="tab-bar" style={{ display:'flex', gap:4, padding:'4px', background:'var(--input-bg)', borderRadius:12, border:'1px solid var(--card-border)', marginBottom:20, overflowX:'auto' }}>
                 {TABS.map(({ key, label, icon: Icon }) => {
                     const isActive = active === key;
                     return (

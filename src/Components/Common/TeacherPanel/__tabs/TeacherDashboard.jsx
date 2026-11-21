@@ -6,10 +6,9 @@ import { useLazyGetGradesQuery } from '../../../../store/services/grades.api';
 import { useLazyGetGroupScheduleByTeacherQuery } from '../../../../store/services/group-schedule.api';
 import {
     Layers, BookOpen, Users, CalendarDays,
-    Star, CheckCircle, TrendingUp, Clock,
+    Star, CheckCircle, TrendingUp, ClipboardCheck, ChevronRight,
 } from 'lucide-react';
 import Loading from '../../../Other/UI/Loadings/Loading';
-import { mergeParallelItems } from '../../../../utils/schedule';
 
 const MONTHS = [
     'Yanvar','Fevral','Mart','Aprel','May','Iyun',
@@ -78,6 +77,34 @@ function StatCard({ icon: Icon, label, value, color, to }) {
     );
 }
 
+const LESSON_STATE = {
+    now:   { label: 'Hozir davom etmoqda', color: 'var(--success)', bg: 'var(--success-soft)' },
+    next:  { label: 'Keyingi dars',        color: 'var(--accent)',  bg: 'var(--accent-soft)'  },
+    later: { label: 'Kutilmoqda',          color: 'var(--text-muted)', bg: 'var(--input-bg)'  },
+    done:  { label: 'Tugagan',             color: 'var(--text-muted)', bg: 'var(--input-bg)'  },
+};
+
+/* Bugungi dars kartochkasi — bosilsa shu darsning yo'qlama va baho oynasi ochiladi */
+function TodayLessonCard({ lesson, state }) {
+    const meta = LESSON_STATE[state];
+    const groupId = lesson.group?.id || lesson.group_id;
+    const to = groupId ? `/group/${groupId}?lesson=${lesson.id}` : '/teacher/schedule';
+    return (
+        <NavLink to={to} className={`teacher-lesson-card is-${state}`} aria-label={`${lesson.group?.name || ''} ${lesson.subject?.name || ''} — yo'qlama va baho`}>
+            <div className="teacher-lesson-time">
+                <strong>{lesson.start_time?.slice(0,5)}</strong>
+                <span>{lesson.end_time?.slice(0,5)}</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <span className="teacher-lesson-badge" style={{ color: meta.color, background: meta.bg }}>{meta.label}</span>
+                <div className="teacher-lesson-group">{lesson.group?.name || '—'}</div>
+                <div className="teacher-lesson-subject"><BookOpen size={11} /> {lesson.subject?.name || 'Fan belgilanmagan'}</div>
+            </div>
+            <span className="teacher-lesson-cta"><ClipboardCheck size={16} /> <span>Yo&apos;qlama va baho</span><ChevronRight size={16} /></span>
+        </NavLink>
+    );
+}
+
 export default function TeacherDashboard({ teacherId }) {
     const now = new Date();
     const todayKey = JS_DAY[now.getDay()];
@@ -110,8 +137,19 @@ export default function TeacherDashboard({ teacherId }) {
     /* today schedule */
     const allSchedule = getRecords(scheduleData);
     const todaySchedule = allSchedule
-        .filter(s => String(s.day_of_week || '').toLowerCase() === todayKey)
+        .filter(s => String(s.day_of_week || '').toLowerCase() === todayKey && !s.archived_at)
         .sort((a,b) => toMins(a.start_time) - toMins(b.start_time));
+
+    /* Dars holati: hozir / keyingi / tugagan / kutilmoqda */
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const nextLesson = todaySchedule.find(lesson => toMins(lesson.start_time) > nowMins);
+    const lessonState = (lesson) => {
+        const start = toMins(lesson.start_time);
+        const end = toMins(lesson.end_time);
+        if (nowMins >= start && nowMins < end) return 'now';
+        if (nowMins >= end) return 'done';
+        return lesson === nextLesson ? 'next' : 'later';
+    };
 
     /* per-group avg grade from /api/grade */
     const gradeRecords = getRecords(gradesData);
@@ -139,28 +177,6 @@ export default function TeacherDashboard({ teacherId }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-            {/* ── Filter bar ── */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap',
-                padding: '12px 16px', background: 'var(--card-bg)',
-                border: '1px solid var(--card-border)', borderRadius: 12 }}>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginRight: 4 }}>Statistika davri:</span>
-                <select value={year} onChange={e => setYear(+e.target.value)}
-                    style={{ padding:'8px 14px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', cursor:'pointer' }}>
-                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-                <select value={month} onChange={e => setMonth(+e.target.value)}
-                    style={{ padding:'8px 14px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', cursor:'pointer' }}>
-                    {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
-                </select>
-            </div>
-
-            {/* ── KPI cards ── */}
-            {kpiCards.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
-                    {kpiCards.map(c => <StatCard key={c.label} {...c} />)}
-                </div>
-            )}
 
             {/* ── Today schedule + groups — responsive ── */}
             <div className="teacher-dash-grid" style={{ display: 'grid', gap: 16 }}>
@@ -196,28 +212,9 @@ export default function TeacherDashboard({ teacherId }) {
                                 <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                                     Bugun jadval bo&apos;yicha dars yo&apos;q
                                 </div>
-                            ) : mergeParallelItems(todaySchedule).map(parallelItems => {
-                                return (
-                                    <div key={parallelItems.map(lesson => lesson.id).join('-')} style={{ padding:'10px 14px', borderRadius:12, background: parallelItems.length > 1 ? 'var(--warning-soft)' : 'var(--accent-soft)', border:'1px solid var(--card-border)' }}>
-                                        {parallelItems.length > 1 && <div style={{ fontSize:'0.64rem', fontWeight:700, color:'var(--warning)', marginBottom:6 }}>Parallel darslar · {parallelItems.length} ta</div>}
-                                        {parallelItems.map(lesson => (
-                                            <div key={lesson.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'4px 0' }}>
-                                                <div style={{ width:36, height:36, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Clock size={15} style={{ color:'#fff' }}/></div>
-                                                <div style={{ flex:1, minWidth:0 }}>
-                                                    <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--accent)' }}>{lesson.start_time?.slice(0,5)} – {lesson.end_time?.slice(0,5)}</div>
-                                                    <div style={{ fontSize:'0.875rem', fontWeight:700, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{lesson.subject?.name || '—'}</div>
-                                                    <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4 }}>
-                                                        <Layers size={10}/>
-                                                        {lesson.group?.id
-                                                            ? <NavLink to={`/group/${lesson.group.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{lesson.group.name || '—'}</NavLink>
-                                                            : lesson.group?.name || '—'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                );
-                            })}
+                            ) : todaySchedule.map((lesson, index) => (
+                                <TodayLessonCard key={lesson.id || index} lesson={lesson} state={lessonState(lesson)} />
+                            ))}
                         </div>
                 </div>
 
@@ -303,6 +300,33 @@ export default function TeacherDashboard({ teacherId }) {
                     )}
                 </div>
             </div>
+
+            {/* ── Statistika (pastda: o'qituvchi uchun asosiysi — bugungi darslar) ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <TrendingUp size={16} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Statistika</span>
+            </div>
+            {/* ── Filter bar ── */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap',
+                padding: '12px 16px', background: 'var(--card-bg)',
+                border: '1px solid var(--card-border)', borderRadius: 12 }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginRight: 4 }}>Statistika davri:</span>
+                <select value={year} onChange={e => setYear(+e.target.value)}
+                    style={{ padding:'8px 14px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', cursor:'pointer' }}>
+                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <select value={month} onChange={e => setMonth(+e.target.value)}
+                    style={{ padding:'8px 14px', background:'var(--input-bg)', border:'1.5px solid var(--input-border)', borderRadius:9, color:'var(--input-text)', fontSize:'0.82rem', outline:'none', cursor:'pointer' }}>
+                    {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
+                </select>
+            </div>
+
+            {/* ── KPI cards ── */}
+            {kpiCards.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+                    {kpiCards.map(c => <StatCard key={c.label} {...c} />)}
+                </div>
+            )}
 
             {/* ── Per-group stats from /api/statistic/teacher ── */}
             {byGroup.length > 0 && (

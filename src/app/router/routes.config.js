@@ -78,7 +78,8 @@ export const ROUTES = [
     {
         path: '/bot-notify',
         component: lazy(() => import('../../Components/Common/BotNotify')),
-        roles: [ADMIN, SUPER_ADMIN, CASHIER],
+        // Backend bot/notify/* faqat admin va super_admin ga ruxsat beradi
+        roles: [ADMIN, SUPER_ADMIN],
     },
 
     // ── Teacher Panel ────────────────────────────────────

@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
-import { useAppDispatch } from "../../../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { setAuth } from "../../../store/slices/auth.slice";
 import { useLoginMutation } from "../../../store/services/auth.api";
 import { User, UserRound, Lock, GraduationCap, Moon, Sun, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Alert } from "../../Other/UI/Alert/Alert";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { homePathFor } from "../../../utils/authCookies";
 import { getErrorMessage, getErrorStatus, getRetryAfterSeconds } from "../../../utils/errors";
 
 export default function Login() {
   const [loginField, setLoginField] = useState("");
   const [password, setPassword] = useState("");
   const [login, { isLoading }] = useLoginMutation();
+  const isAuthenticated = useAppSelector((state) => state.auth?.isAuthenticated);
+  const authRole = useAppSelector((state) => state.auth?.role);
   const dispatch = useAppDispatch();
   const [isDark, setIsDark] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
@@ -55,15 +58,7 @@ export default function Login() {
       const data = await login({ username: loginField, password }).unwrap();
       dispatch(setAuth(data));
       Alert("Xush kelibsiz!", "success");
-      const role = data.user?.role;
-      if (role === "dev")              window.location.replace("/dev/panel");
-      else if (role === "super_admin") window.location.replace("/dashboard");
-      else if (role === "admin")       window.location.replace("/dashboard");
-      else if (role === "teacher")     window.location.replace("/teacher/dashboard");
-      else if (role === "parent")      window.location.replace("/parent/dashboard");
-      else if (role === "hr")          window.location.replace("/dashboard");
-      else if (role === "cashier")     window.location.replace("/dashboard");
-      else                             window.location.replace("/dashboard");
+      window.location.replace(homePathFor(data.user?.role));
     } catch (err) {
       const status = getErrorStatus(err);
       const message = getErrorMessage(err, "Avtorizatsiya xatosi");
@@ -76,6 +71,9 @@ export default function Login() {
       Alert(message, "error");
     }
   };
+
+  // Avval kirgan bo'lsa (cookie saqlangan) — login so'ramasdan bosh sahifaga
+  if (isAuthenticated && authRole) return <Navigate to={homePathFor(authRole)} replace />;
 
   return (
     <div

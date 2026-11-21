@@ -1,7 +1,10 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Sidebar from '../../Components/Other/Sidebar/Sidebar';
 import Header from '../../Components/Other/Header';
+import BottomNav from '../../Components/Other/BottomNav/BottomNav';
+import { useAppSelector } from '../../store/hooks';
+import useMobileTableCards from '../../utils/useMobileTableCards';
 
 const MOBILE_BP = 768; // px — below this sidebar becomes drawer
 
@@ -9,6 +12,12 @@ export default function MainLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(true);   // desktop: expanded/collapsed
     const [mobileOpen, setMobileOpen]   = useState(false);  // mobile: drawer open/close
     const [isMobile, setIsMobile]       = useState(window.innerWidth < MOBILE_BP);
+    const role = useAppSelector((state) => state.auth?.role);
+    useMobileTableCards(); // telefonda jadvallar → kartochkalar
+    const { pathname } = useLocation();
+
+    // Telefonda sahifa almashganda menyu (drawer) yopiladi
+    useEffect(() => { setMobileOpen(false); }, [pathname]);
 
     useEffect(() => {
         const onResize = () => {
@@ -73,7 +82,8 @@ export default function MainLayout() {
                         paddingTop: 78,
                         paddingLeft: isMobile ? 12 : 20,
                         paddingRight: isMobile ? 12 : 20,
-                        paddingBottom: 24,
+                        // Telefonda pastki navigatsiya paneli uchun joy (+ iPhone pastki chizig'i)
+                        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom))' : 24,
                         flex: 1,
                         minWidth: 0,
                         width: '100%',
@@ -83,6 +93,8 @@ export default function MainLayout() {
                     <Outlet />
                 </main>
             </div>
+
+            {isMobile && <BottomNav role={role} menuOpen={mobileOpen} onMenu={() => setMobileOpen((open) => !open)} />}
         </div>
     );
 }

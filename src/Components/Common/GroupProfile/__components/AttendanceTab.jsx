@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useLazyGetAttendanceQuery, useBulkAttendanceMutation } from '../../../../store/services/attedance.api';
 import { useLazyGetGradesQuery, useBulkGradeMutation } from '../../../../store/services/grades.api';
 import { addBulkError, addBulkSuccess, createBulkReport, showBulkReport } from '../../../../utils/bulk';
-import { Check, X, Clock, Save, BookOpen, Info, CalendarOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, X, Clock, Save, BookOpen, Info, CalendarOff, ChevronDown, ChevronUp, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Alert } from '../../../Other/UI/Alert/Alert';
+import { ownLessonsByDate } from '../../../../utils/teacherLessons';
 import Loading from '../../../Other/UI/Loadings/Loading';
 import Modal from '../../../Other/UI/Modal/Modal';
 
@@ -29,11 +31,11 @@ const STATUS_LABELS = {present:'Keldi',absent:'Kelmadi',late:'Kechikdi'};
 const STATUS_ICONS  = {present:Check,absent:X,late:Clock};
 
 /* ── Small status button (for table / non-teacher) ── */
-function StatusBtn({ value, current, onClick, compact }) {
+function StatusBtn({ value, current, onClick, compact, big }) {
     const Icon = STATUS_ICONS[value];
     const st   = STATUS_STYLE[value];
     const active = current === value;
-    const sz = compact ? 20 : 24;
+    const sz = big ? 42 : compact ? 20 : 24;
     return (
         <button onClick={onClick} title={STATUS_LABELS[value]}
             style={{ width:sz, height:sz, borderRadius:5,
@@ -41,8 +43,9 @@ function StatusBtn({ value, current, onClick, compact }) {
                 background:active?st.bg:'var(--input-bg)',
                 color:active?st.color:'var(--text-muted)',
                 display:'flex', alignItems:'center', justifyContent:'center',
-                cursor:'pointer', transition:'all 0.12s', padding:0, flexShrink:0 }}>
-            <Icon size={compact?10:12}/>
+                cursor:'pointer', transition:'all 0.12s', padding:0, flexShrink:0,
+                ...(big && { borderRadius:10 }) }}>
+            <Icon size={big?18:compact?10:12}/>
         </button>
     );
 }
@@ -166,9 +169,26 @@ function InfoModal({ open, onClose, entry, merged, onSave }) {
 ══════════════════════════════════════════════════════════════ */
 function TeacherTodayLayout({
     todaySubs, historyStudents, getStatus, getScore, getAttComment, getGradeComment,
-    setPendingField, pending, pKey, merged, saving, saveAll, hasPending, isFetching,
+    setPendingField, pending, pKey, merged, saving, saveAll, hasPending, isFetching, focusLessonId,
 }) {
     const [expandedStudents, setExpandedStudents] = useState({});
+
+    /* Dashboard dan "Yo'qlama qilish" bosilganda (?lesson=<id>) — shu darsga o'tamiz */
+    useEffect(() => {
+        if (!focusLessonId) return;
+        const el = document.getElementById(`lesson-${focusLessonId}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [focusLessonId, todaySubs.length]);
+
+    /* Hali belgilanmagan hamma o'quvchini "Keldi" qilish — keyin faqat kelmaganlarni o'zgartirish qoladi */
+    const markAllPresent = (schId) => {
+        historyStudents.forEach((student) => {
+            if (!getStatus(student.id, fmtLocal(new Date()), schId)) {
+                setPendingField(student.id, fmtLocal(new Date()), schId, { status: 'present' });
+            }
+        });
+    };
+    const unmarkedCount = (schId) => historyStudents.filter((student) => !getStatus(student.id, fmtLocal(new Date()), schId)).length;
     const todayStr  = fmtLocal(new Date());
     const today     = parseLocal(todayStr);
     const dayName   = DAY_SHORT[dayNameOf(todayStr)];
@@ -176,7 +196,7 @@ function TeacherTodayLayout({
     const dateLabel = `${today.getDate()} ${monthName}, ${today.getFullYear()} — ${dayName}`;
 
     return (
-        <div style={{display:'flex',flexDirection:'column',gap:20,position:'relative'}}>
+        <div className={hasPending ? 'teacher-today-has-pending' : undefined} style={{display:'flex',flexDirection:'column',gap:20,position:'relative'}}>
             {isFetching && (
                 <div style={{position:'absolute',inset:0,background:'var(--card-bg)',opacity:0.6,zIndex:10,
                     borderRadius:12,display:'flex',alignItems:'flex-start',justifyContent:'center',
@@ -202,15 +222,6 @@ function TeacherTodayLayout({
                         <div style={{fontSize:'0.76rem',color:'var(--text-muted)',marginTop:2}}>{dateLabel}</div>
                     </div>
                 </div>
-                {hasPending && (
-                    <button onClick={saveAll} disabled={saving}
-                        style={{display:'flex',alignItems:'center',gap:7,padding:'10px 22px',borderRadius:11,
-                            border:'none',background:'var(--accent)',color:'#fff',fontSize:'0.85rem',
-                            fontWeight:700,cursor:saving?'not-allowed':'pointer',opacity:saving?0.7:1,
-                            boxShadow:'0 2px 10px var(--accent-glow)'}}>
-                        <Save size={15}/>{saving?'Saqlanmoqda...':`Saqlash (${Object.keys(pending).length})`}
-                    </button>
-                )}
             </div>
 
             {/* ── Per-subject tables ── */}
@@ -220,8 +231,10 @@ function TeacherTodayLayout({
                 const lessonLabel  = sb.lesson_number ? `${sb.lesson_number}-dars` : '';
                 const timeLabel    = sb.start_time ? `${fmtTime(sb.start_time)} – ${fmtTime(sb.end_time)}` : '';
 
+                const isFocused = focusLessonId && String(focusLessonId) === String(schId);
+                const unmarked = unmarkedCount(schId);
                 return (
-                    <div key={schId} style={{borderRadius:14,border:'1px solid var(--card-border)',overflow:'hidden',background:'var(--card-bg)'}}>
+                    <div key={schId} id={`lesson-${schId}`} style={{borderRadius:14,border:`${isFocused ? '2px solid var(--accent)' : '1px solid var(--card-border)'}`,overflow:'hidden',background:'var(--card-bg)',scrollMarginTop:80,boxShadow:isFocused?'0 0 0 3px var(--accent-glow)':'none'}}>
 
                         {/* Subject header row */}
                         <div className="teacher-attendance-subject-header" style={{display:'flex',alignItems:'center',gap:10,padding:'12px 18px',
@@ -250,6 +263,12 @@ function TeacherTodayLayout({
                                 border:'1px solid var(--card-border)',whiteSpace:'nowrap'}}>
                                 {historyStudents.length} o'quvchi
                             </span>
+                            {unmarked > 0 && (
+                                <button type="button" className="teacher-mark-all-btn" onClick={() => markAllPresent(schId)}
+                                    title="Hali belgilanmagan o'quvchilarni 'Keldi' qilish">
+                                    <CheckCheck size={14}/> Hammasi keldi ({unmarked})
+                                </button>
+                            )}
                         </div>
 
                         {/* Table */}
@@ -512,6 +531,23 @@ function TeacherTodayLayout({
                                             </button>
                                             <button
                                                 type="button"
+                                                onClick={() => setPendingField(s.id, todayStr, schId, { status: curStatus === 'absent' ? null : 'absent' })}
+                                                aria-pressed={curStatus === 'absent'}
+                                                aria-label="Kelmadi deb belgilash"
+                                                title="Kelmadi"
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    width: 40, height: 40, padding: 0, borderRadius: 9, flexShrink: 0,
+                                                    border: `1.5px solid ${curStatus === 'absent' ? STATUS_STYLE.absent.border : 'var(--card-border)'}`,
+                                                    background: curStatus === 'absent' ? STATUS_STYLE.absent.bg : 'var(--input-bg)',
+                                                    color: curStatus === 'absent' ? STATUS_STYLE.absent.color : 'var(--text-secondary)',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                            <button
+                                                type="button"
                                                 onClick={() => setExpandedStudents(previous => ({ ...previous, [studentKey]: !previous[studentKey] }))}
                                                 aria-expanded={expanded}
                                                 aria-label={expanded ? `${s.full_name} ma'lumotlarini yopish` : `${s.full_name} ma'lumotlarini ochish`}
@@ -596,6 +632,20 @@ function TeacherTodayLayout({
                     </div>
                 );
             })}
+
+            {/* Saqlash paneli — pastda doim ko'rinib turadi (telefonda ro'yxat oxirigacha aylantirish shart emas) */}
+            {/* Portal: main dagi animatsiya (transform) ichida position:fixed noto'g'ri joylashadi */}
+            {hasPending && createPortal(
+                <div className="teacher-save-bar" role="region" aria-label="O'zgarishlarni saqlash">
+                    <span style={{fontSize:'0.8rem',color:'var(--text-secondary)',fontWeight:600}}>
+                        {Object.keys(pending).length} ta o&apos;zgarish
+                    </span>
+                    <button onClick={saveAll} disabled={saving} className="teacher-save-btn">
+                        <Save size={16}/>{saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                    </button>
+                </div>,
+                document.body,
+            )}
         </div>
     );
 }
@@ -608,9 +658,12 @@ export default function AttendanceTab({
     groupSubjects=[], teacherSubjectId=null, scheduleRecords:scheduleRecordsProp=[],
 }) {
     const params    = useParams();
+    const [searchParams] = useSearchParams();
+    const focusLessonId = searchParams.get('lesson');
     const groupId   = groupIdProp || params.id;
     const role      = useSelector(s=>s.auth?.role);
     const isTeacher = role === 'teacher';
+    const authUserId = useSelector(s=>s.auth?.userId);
     const merged    = mergedProp;
 
     const now = new Date();
@@ -680,11 +733,12 @@ export default function AttendanceTab({
         return m;
     },[gradesRecords]);
 
-    const dateSubjectsTemplate = useMemo(()=>{
+    const rawDateSubjectsTemplate = useMemo(()=>{
         const m={};
         attRecords.forEach(s=>{ s.dates?.forEach(de=>{ if(!m[de.date]) m[de.date]=(de.subjects||[]).map(sb=>({
             group_schedule_id:sb.group_schedule_id, subject_name:sb.subject_name,
             lesson_number:sb.lesson_number, start_time:sb.start_time, end_time:sb.end_time, subject_id:sb.subject_id,
+            teacher_id:sb.teacher_id,
         })); }); });
         if (!m[todayStr]?.length) {
             const todaySchedules = scheduleRecordsProp.filter(s => String(s.day_of_week || '').toLowerCase() === dayNameOf(todayStr));
@@ -696,11 +750,17 @@ export default function AttendanceTab({
                     start_time: s.start_time,
                     end_time: s.end_time,
                     subject_id: s.subject_id,
+                    teacher_id: s.teacher_id ?? s.teacher?.id,
                 })).filter(s => s.group_schedule_id);
             }
         }
         return m;
     },[attRecords,scheduleRecordsProp,todayStr]);
+    /* O'qituvchi faqat o'z darslarini ko'radi (eski sinflarda boshqa fan o'qituvchilarining darslari ham keladi) */
+    const dateSubjectsTemplate = useMemo(
+        ()=> isTeacher ? ownLessonsByDate(rawDateSubjectsTemplate, authUserId) : rawDateSubjectsTemplate,
+        [isTeacher, rawDateSubjectsTemplate, authUserId],
+    );
 
     const subjectSchedules = useMemo(()=>{
         const m={};
@@ -751,6 +811,17 @@ export default function AttendanceTab({
             .filter(d => dateSubjectsTemplate[d]?.length > 0)
             .sort();
     },[allDates,dateSubjectsTemplate,isTeacher,todayStr]);
+
+    /* Telefon (admin): matritsa o'rniga bitta kun ko'rinadi — bugun, bo'lmasa oxirgi o'tgan dars kuni */
+    const [mobileDate, setMobileDate] = useState('');
+    const defaultMobileDate = useMemo(()=>{
+        if (!visibleDates.length) return '';
+        if (visibleDates.includes(todayStr)) return todayStr;
+        const past = visibleDates.filter(d => d < todayStr);
+        return past.length ? past[past.length-1] : visibleDates[0];
+    },[visibleDates,todayStr]);
+    const activeMobileDate = visibleDates.includes(mobileDate) ? mobileDate : defaultMobileDate;
+    const mobileDateIndex = visibleDates.indexOf(activeMobileDate);
 
     const historyStudents = useMemo(()=>{
         const byId = new Map();
@@ -897,6 +968,7 @@ export default function AttendanceTab({
                     saveAll={saveAll}
                     hasPending={hasPending}
                     isFetching={isFetching}
+                    focusLessonId={focusLessonId}
                 />
                 <InfoModal
                     open={!!infoEntry}
@@ -961,7 +1033,8 @@ export default function AttendanceTab({
                     <BookOpen size={40} style={{opacity:.2,margin:'0 auto 10px'}}/><p>Fan tanlang yoki o'quvchilar topilmadi</p>
                 </div>
             ) : (
-                <div ref={tableWrapRef} style={{overflowX:'auto',borderRadius:12,border:'1px solid var(--card-border)',background:'var(--card-bg)'}}>
+                <>
+                <div ref={tableWrapRef} className="group-attendance-desktop-table" style={{overflowX:'auto',borderRadius:12,border:'1px solid var(--card-border)',background:'var(--card-bg)'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.82rem'}}>
                         <thead>
                             <tr style={{background:'var(--accent-soft)'}}>
@@ -1059,6 +1132,77 @@ export default function AttendanceTab({
                         </tbody>
                     </table>
                 </div>
+
+                {/* ── Telefon: kun bo'yicha kartochkalar (yonga surish yo'q) ── */}
+                <div className="group-attendance-mobile">
+                    <div className="att-day-nav">
+                        <button type="button" aria-label="Oldingi kun" disabled={mobileDateIndex<=0}
+                            onClick={()=>setMobileDate(visibleDates[mobileDateIndex-1])}><ChevronLeft size={18}/></button>
+                        <select className="search-select" value={activeMobileDate} onChange={e=>setMobileDate(e.target.value)} aria-label="Kun">
+                            {visibleDates.map(d=>(
+                                <option key={d} value={d}>
+                                    {d.slice(8,10)}.{d.slice(5,7)} · {DAY_SHORT[dayNameOf(d)]}{d===todayStr?' · Bugun':''}
+                                </option>
+                            ))}
+                        </select>
+                        <button type="button" aria-label="Keyingi kun" disabled={mobileDateIndex<0||mobileDateIndex>=visibleDates.length-1}
+                            onClick={()=>setMobileDate(visibleDates[mobileDateIndex+1])}><ChevronRight size={18}/></button>
+                    </div>
+                    {!activeMobileDate ? (
+                        <div style={{textAlign:'center',padding:'24px 0',color:'var(--text-muted)',fontSize:'0.82rem'}}>Bu oyda dars yo&apos;q</div>
+                    ) : historyStudents.map(s=>{
+                        const subs=dateSubjectsTemplate[activeMobileDate]||[];
+                        const multi=subs.length>1;
+                        return (
+                            <article key={s.id} className="att-mobile-card">
+                                <Link to={`/student/${s.id}`} className="att-mobile-name">{s.full_name}</Link>
+                                {subs.map(sb=>{
+                                    const schId=sb.group_schedule_id;
+                                    const curStatus=getStatus(s.id,activeMobileDate,schId);
+                                    const hasChg=pending[pKey(s.id,activeMobileDate,schId)]!==undefined;
+                                    const curScore=getScore(s.id,activeMobileDate,schId);
+                                    const scoreNum=curScore!==''?Number(curScore):null;
+                                    return (
+                                        <div key={schId} className={`att-mobile-lesson${hasChg?' is-changed':''}`}>
+                                            <div className="att-mobile-lesson-title">
+                                                {sb.subject_name || 'Dars'}{multi&&sb.lesson_number?` #${sb.lesson_number}`:''}
+                                                {sb.start_time && <span>{fmtTime(sb.start_time)}–{fmtTime(sb.end_time)}</span>}
+                                            </div>
+                                            <div className="att-mobile-actions">
+                                                {['present','absent','late'].map(v=>(
+                                                    <StatusBtn key={v} big value={v} current={curStatus}
+                                                        onClick={()=>setPendingField(s.id,activeMobileDate,schId,{status:curStatus===v?null:v})}/>
+                                                ))}
+                                                {merged && (
+                                                    <input type="number" inputMode="numeric" min={0} max={100} value={curScore}
+                                                        onChange={e=>setPendingField(s.id,activeMobileDate,schId,{score:e.target.value})}
+                                                        placeholder="Baho %" aria-label="Baho"
+                                                        className="att-mobile-score"
+                                                        style={{borderColor:scoreNum!=null?scoreColor(scoreNum):undefined,color:scoreNum!=null?scoreColor(scoreNum):undefined}}/>
+                                                )}
+                                                <button type="button" className="att-mobile-info" onClick={()=>openInfo(s.id,s.full_name,activeMobileDate,sb)} aria-label="Izoh">
+                                                    <Info size={16}/>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </article>
+                        );
+                    })}
+                </div>
+                </>
+            )}
+
+            {/* Telefonda saqlash tugmasi pastda doim ko'rinadi */}
+            {hasPending && createPortal(
+                <div className="teacher-save-bar save-bar-mobile-only" role="region" aria-label="O'zgarishlarni saqlash">
+                    <span style={{fontSize:'0.8rem',color:'var(--text-secondary)',fontWeight:600}}>{Object.keys(pending).length} ta o&apos;zgarish</span>
+                    <button onClick={saveAll} disabled={saving} className="teacher-save-btn">
+                        <Save size={16}/>{saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                    </button>
+                </div>,
+                document.body,
             )}
 
             <InfoModal

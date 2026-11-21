@@ -48,7 +48,8 @@ export default function Sidebar({ open, mobileOpen, isMobile, onClose }) {
         position: 'fixed',
         top: 0,
         left: 0,
-        bottom: 0,
+        // Pastki navigatsiya paneli ustida tugaydi (u "Menyu" tugmasi bilan ochib-yopadi)
+        bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))',
         zIndex: 50,
         width: 270,
         transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',

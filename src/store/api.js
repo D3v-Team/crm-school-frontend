@@ -1,5 +1,6 @@
 import axios from "axios";
 import Cookies from "js-cookie";
+import { removeAuthCookie, setAuthCookie } from "../utils/authCookies";
 import { logout, setRole } from "./slices/auth.slice";
 
 /* ===============================
@@ -59,7 +60,7 @@ const bearerOf = (config) => {
     return String(header).replace(/^Bearer\s+/i, "") || null;
 };
 
-export const clearAuthCookies = () => AUTH_COOKIE_KEYS.forEach((key) => Cookies.remove(key));
+export const clearAuthCookies = () => AUTH_COOKIE_KEYS.forEach((key) => removeAuthCookie(key));
 
 let loggingOut = false;
 const forceLogout = () => {
@@ -145,9 +146,9 @@ const doRefresh = async (staleToken) => {
         if (!accessToken) throw new Error("No access token in refresh response");
 
         // Yangi juftni darhol saqlaymiz — eski refresh token endi o'lik
-        Cookies.set("token", accessToken);
-        if (newRefreshToken) Cookies.set("refresh_token", newRefreshToken);
-        if (newJti) Cookies.set("jti", newJti);
+        setAuthCookie("token", accessToken);
+        if (newRefreshToken) setAuthCookie("refresh_token", newRefreshToken);
+        if (newJti) setAuthCookie("jti", newJti);
         return accessToken;
     } catch (error) {
         // Parallel tab bizdan oldin yangilagan bo'lsa ("Token allaqachon yangilangan")
